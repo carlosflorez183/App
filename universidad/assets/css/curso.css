@@ -1,0 +1,214 @@
+/* =============================================
+   UniPlataforma — Estilos de Curso
+   ============================================= */
+
+/* ---- Hero ---- */
+#curso-hero { transition: background 0.4s; }
+
+/* ---- Tabs del curso ---- */
+.curso-tab {
+  padding: 14px 20px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #64748b;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  white-space: nowrap;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.curso-tab:hover { color: #1e3a8a; background: #f8fafc; }
+.curso-tab.active { color: #1e3a8a; border-bottom-color: #1e3a8a; }
+.tabs-scroll { overflow-x: auto; scrollbar-width: none; }
+.tabs-scroll::-webkit-scrollbar { display: none; }
+
+/* ---- Vistas de contenido ---- */
+.curso-view { display: none; }
+.curso-view.active { display: block; animation: fadeIn 0.25s ease; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+
+/* ---- Corte card ---- */
+.corte-header {
+  background: white;
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 16px;
+  border-left: 5px solid;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.corte-header.c1 { border-left-color: #10b981; }
+.corte-header.c2 { border-left-color: #3b82f6; }
+.corte-header.c3 { border-left-color: #8b5cf6; }
+
+.corte-badge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+.corte-badge.c1 { background: #dcfce7; color: #15803d; }
+.corte-badge.c2 { background: #dbeafe; color: #1d4ed8; }
+.corte-badge.c3 { background: #ede9fe; color: #6d28d9; }
+
+/* ---- Actividad item ---- */
+.actividad-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1.5px solid #e2e8f0;
+  background: white;
+  margin-bottom: 10px;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+.actividad-item:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-color: #cbd5e1; }
+
+.act-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.act-taller { background: #dbeafe; color: #1d4ed8; }
+.act-quiz { background: #fef9c3; color: #854d0e; }
+.act-proyecto { background: #ede9fe; color: #6d28d9; }
+.act-informe { background: #dcfce7; color: #15803d; }
+.act-examen { background: #fee2e2; color: #b91c1c; }
+.act-parcial { background: #ffedd5; color: #c2410c; }
+
+/* ---- Asistencia ---- */
+.asist-table th { background: #f8fafc; padding: 10px 12px; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; }
+.asist-table td { padding: 10px 12px; font-size: 13px; border-bottom: 1px solid #f1f5f9; }
+.asist-table tr:last-child td { border-bottom: none; }
+
+.asist-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  transition: all 0.15s;
+}
+.asist-btn.present { background: #dcfce7; color: #15803d; }
+.asist-btn.absent { background: #fee2e2; color: #b91c1c; }
+.asist-btn.late { background: #fef9c3; color: #854d0e; }
+.asist-btn.none { background: #f1f5f9; color: #94a3b8; }
+.asist-btn:hover { transform: scale(1.12); }
+
+/* ---- Estudiante card ---- */
+.estudiante-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.15s;
+}
+.estudiante-row:last-child { border-bottom: none; }
+.estudiante-row:hover { background: #f8fafc; }
+
+.est-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+/* ---- Nota input ---- */
+.nota-input {
+  width: 64px;
+  text-align: center;
+  padding: 5px 8px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 7px;
+  font-size: 14px;
+  font-weight: 700;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.nota-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+.nota-input.aprobado { border-color: #059669; background: #f0fdf4; color: #15803d; }
+.nota-input.reprobado { border-color: #dc2626; background: #fef2f2; color: #b91c1c; }
+
+/* ---- Upload zona ---- */
+.upload-zona {
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 28px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #f8fafc;
+}
+.upload-zona:hover, .upload-zona.dragover { border-color: #3b82f6; background: #eff6ff; }
+
+/* ---- Recurso item ---- */
+.recurso-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.15s;
+}
+.recurso-item:last-child { border-bottom: none; }
+.recurso-item:hover { background: #f8fafc; }
+
+/* ---- Summary bar (notas) ---- */
+.nota-summary {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.nota-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+/* ---- Fecha asistencia selector ---- */
+.fecha-chip {
+  padding: 5px 14px;
+  border-radius: 20px;
+  border: 1.5px solid #e2e8f0;
+  background: white;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  color: #64748b;
+}
+.fecha-chip:hover { border-color: #3b82f6; color: #1d4ed8; }
+.fecha-chip.active { background: #1e3a8a; border-color: #1e3a8a; color: white; }
+
+/* responsive */
+@media(max-width:768px){
+  .curso-tab { padding: 12px 14px; font-size: 12px; }
+}

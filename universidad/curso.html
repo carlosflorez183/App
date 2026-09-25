@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>UniPlataforma — Curso</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link rel="stylesheet" href="assets/css/main.css"/>
+  <link rel="stylesheet" href="assets/css/curso.css"/>
+</head>
+<body class="bg-slate-100 min-h-screen">
+
+<!-- TOPBAR -->
+<header class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+  <div class="max-w-7xl mx-auto px-4 h-14 flex items-center gap-3">
+    <a href="dashboard.html" class="flex items-center gap-2 text-blue-800 hover:text-blue-600 transition font-semibold text-sm">
+      <i class="fas fa-arrow-left"></i><span class="hidden sm:inline">Volver al Dashboard</span>
+    </a>
+    <div class="h-5 w-px bg-slate-300 mx-1"></div>
+    <div class="flex items-center gap-2 text-xs text-slate-500">
+      <a href="dashboard.html" class="hover:text-blue-600 transition">Inicio</a>
+      <i class="fas fa-chevron-right text-xs"></i>
+      <a href="dashboard.html#lms" class="hover:text-blue-600 transition">Campus Virtual</a>
+      <i class="fas fa-chevron-right text-xs"></i>
+      <span id="bc-curso" class="text-slate-700 font-semibold truncate max-w-48">Cargando...</span>
+    </div>
+    <div class="ml-auto flex items-center gap-2">
+      <div class="hidden md:flex items-center gap-2 text-xs text-slate-500 bg-slate-100 rounded-lg px-3 py-1.5">
+        <i class="fas fa-calendar text-slate-400"></i>
+        <span id="hdr-semestre">2026-1</span>
+      </div>
+      <div class="flex items-center gap-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-lg px-3 py-1.5">
+        <div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold" id="hdr-avatar"></div>
+        <span id="hdr-name" class="hidden sm:inline"></span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- HERO del curso -->
+<div id="curso-hero" class="text-white" style="background:linear-gradient(135deg,#6d28d9,#8b5cf6)">
+  <div class="max-w-7xl mx-auto px-4 py-8">
+    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div class="flex items-center gap-5">
+        <div class="text-6xl" id="curso-icon">🗄️</div>
+        <div>
+          <div class="flex flex-wrap items-center gap-2 mb-1 text-white/70 text-sm">
+            <span id="curso-codigo" class="font-mono bg-white/20 px-2 py-0.5 rounded text-xs">IS-305</span>
+            <span>·</span><span id="curso-grupo-badge">Grupo A</span>
+            <span>·</span><span id="curso-programa-badge">Ing. de Sistemas</span>
+            <span>·</span><span id="curso-semestre-badge">6° Semestre</span>
+            <span>·</span><span id="curso-periodo-badge">2026-1</span>
+          </div>
+          <h1 class="text-2xl md:text-3xl font-black" id="curso-nombre">Bases de Datos II</h1>
+          <p class="text-white/80 mt-1 text-sm flex items-center gap-2">
+            <i class="fas fa-user"></i><span id="curso-profesor">Dra. Laura Sánchez</span>
+            <span class="mx-1">·</span>
+            <i class="fas fa-users"></i><span id="curso-estudiantes">28 estudiantes</span>
+          </p>
+        </div>
+      </div>
+      <div class="flex gap-2 flex-wrap">
+        <button onclick="showTab('asistencia')" class="bg-white/20 hover:bg-white/30 text-white text-sm font-semibold px-4 py-2 rounded-lg transition flex items-center gap-2">
+          <i class="fas fa-clipboard-list"></i> Asistencia
+        </button>
+        <button onclick="showTab('estudiantes')" class="bg-white/20 hover:bg-white/30 text-white text-sm font-semibold px-4 py-2 rounded-lg transition flex items-center gap-2">
+          <i class="fas fa-users"></i> Estudiantes
+        </button>
+      </div>
+    </div>
+
+    <!-- Progreso global -->
+    <div class="mt-5 grid grid-cols-3 md:grid-cols-6 gap-3">
+      <div class="bg-white/15 rounded-xl p-3 text-center">
+        <div class="text-xl font-black" id="stat-progreso">65%</div>
+        <div class="text-white/70 text-xs mt-0.5">Progreso</div>
+      </div>
+      <div class="bg-white/15 rounded-xl p-3 text-center">
+        <div class="text-xl font-black" id="stat-actividades">5</div>
+        <div class="text-white/70 text-xs mt-0.5">Actividades</div>
+      </div>
+      <div class="bg-white/15 rounded-xl p-3 text-center">
+        <div class="text-xl font-black" id="stat-pendientes">2</div>
+        <div class="text-white/70 text-xs mt-0.5">Pendientes</div>
+      </div>
+      <div class="bg-white/15 rounded-xl p-3 text-center">
+        <div class="text-xl font-black" id="stat-estudiantes">28</div>
+        <div class="text-white/70 text-xs mt-0.5">Estudiantes</div>
+      </div>
+      <div class="bg-white/15 rounded-xl p-3 text-center">
+        <div class="text-xl font-black" id="stat-recursos">5</div>
+        <div class="text-white/70 text-xs mt-0.5">Recursos</div>
+      </div>
+      <div class="bg-white/15 rounded-xl p-3 text-center">
+        <div class="text-xl font-black" id="stat-semanas">16</div>
+        <div class="text-white/70 text-xs mt-0.5">Semanas</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TABS de navegación -->
+<div class="bg-white border-b border-slate-200 sticky top-14 z-40">
+  <div class="max-w-7xl mx-auto px-4">
+    <div class="flex overflow-x-auto gap-0 tabs-scroll">
+      <button class="curso-tab active" data-tab="inicio" onclick="showTab('inicio')">
+        <i class="fas fa-home mr-1.5"></i>Inicio
+      </button>
+      <button class="curso-tab" data-tab="corte1" onclick="showTab('corte1')">
+        <i class="fas fa-layer-group mr-1.5"></i>Corte 1
+      </button>
+      <button class="curso-tab" data-tab="corte2" onclick="showTab('corte2')">
+        <i class="fas fa-layer-group mr-1.5"></i>Corte 2
+      </button>
+      <button class="curso-tab" data-tab="corte3" onclick="showTab('corte3')">
+        <i class="fas fa-layer-group mr-1.5"></i>Corte 3
+      </button>
+      <button class="curso-tab" data-tab="notas" onclick="showTab('notas')">
+        <i class="fas fa-star mr-1.5"></i>Notas
+      </button>
+      <button class="curso-tab" data-tab="asistencia" onclick="showTab('asistencia')">
+        <i class="fas fa-clipboard-list mr-1.5"></i>Asistencia
+      </button>
+      <button class="curso-tab" data-tab="estudiantes" onclick="showTab('estudiantes')">
+        <i class="fas fa-users mr-1.5"></i>Estudiantes
+      </button>
+      <button class="curso-tab" data-tab="recursos" onclick="showTab('recursos')">
+        <i class="fas fa-folder-open mr-1.5"></i>Recursos
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- CONTENIDO PRINCIPAL -->
+<div class="max-w-7xl mx-auto px-4 py-6">
+  <!-- TAB: INICIO -->
+  <div id="tab-inicio" class="curso-view active">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <!-- Columna principal -->
+      <div class="md:col-span-2 space-y-4">
+        <!-- Anuncios -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title"><i class="fas fa-bullhorn text-orange-500"></i> Anuncios</span>
+            <button id="btn-nuevo-anuncio" class="btn btn-primary btn-sm hidden" onclick="nuevoAnuncioModal()">
+              <i class="fas fa-plus mr-1"></i>Nuevo
+            </button>
+          </div>
+          <div id="anuncios-list" class="divide-y divide-slate-100"></div>
+        </div>
+        <!-- Actividades recientes -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title"><i class="fas fa-tasks text-blue-600"></i> Actividades recientes</span>
+            <button onclick="showTab('corte1')" class="text-xs text-blue-600 hover:underline">Ver por corte →</button>
+          </div>
+          <div id="actividades-recientes" class="divide-y divide-slate-100"></div>
+        </div>
+      </div>
+      <!-- Columna lateral -->
+      <div class="space-y-4">
+        <!-- Progreso por cortes -->
+        <div class="card">
+          <div class="card-header"><span class="card-title"><i class="fas fa-chart-pie text-purple-600"></i> Progreso por corte</span></div>
+          <div class="card-body space-y-4">
+            <div>
+              <div class="flex justify-between text-sm mb-1"><span class="font-semibold text-slate-700">Corte 1 <span class="text-xs text-slate-400">(30%)</span></span><span class="font-bold text-green-600">3.8</span></div>
+              <div class="progress-bar"><div class="progress-fill bg-green-500" style="width:76%"></div></div>
+            </div>
+            <div>
+              <div class="flex justify-between text-sm mb-1"><span class="font-semibold text-slate-700">Corte 2 <span class="text-xs text-slate-400">(30%)</span></span><span class="font-bold text-blue-600">4.0</span></div>
+              <div class="progress-bar"><div class="progress-fill bg-blue-500" style="width:80%"></div></div>
+            </div>
+            <div>
+              <div class="flex justify-between text-sm mb-1"><span class="font-semibold text-slate-700">Corte 3 <span class="text-xs text-slate-400">(40%)</span></span><span class="font-bold text-slate-400">—</span></div>
+              <div class="progress-bar"><div class="progress-fill bg-slate-300" style="width:0%"></div></div>
+              <p class="text-xs text-slate-400 mt-1">No iniciado</p>
+            </div>
+            <div class="border-t pt-3">
+              <div class="flex justify-between text-sm"><span class="font-bold text-slate-700">Nota parcial estimada</span><span class="font-black text-lg text-indigo-600">3.9</span></div>
+            </div>
+          </div>
+        </div>
+        <!-- Próximas entregas -->
+        <div class="card">
+          <div class="card-header"><span class="card-title"><i class="fas fa-clock text-red-500"></i> Próximas entregas</span></div>
+          <div id="proximas-entregas" class="divide-y divide-slate-100"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABS CORTES -->
+  <div id="tab-corte1" class="curso-view"></div>
+  <div id="tab-corte2" class="curso-view"></div>
+  <div id="tab-corte3" class="curso-view"></div>
+
+  <!-- TAB: NOTAS -->
+  <div id="tab-notas" class="curso-view"></div>
+
+  <!-- TAB: ASISTENCIA -->
+  <div id="tab-asistencia" class="curso-view"></div>
+
+  <!-- TAB: ESTUDIANTES -->
+  <div id="tab-estudiantes" class="curso-view"></div>
+
+  <!-- TAB: RECURSOS -->
+  <div id="tab-recursos" class="curso-view"></div>
+</div>
+
+<!-- MODAL GLOBAL -->
+<div class="modal-overlay" id="curso-modal">
+  <div class="modal-box" style="max-width:640px">
+    <div class="modal-header">
+      <h3 class="modal-title" id="curso-modal-title">Título</h3>
+      <button class="modal-close" onclick="closeCursoModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body" id="curso-modal-body"></div>
+    <div class="modal-footer" id="curso-modal-footer"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="c-toast">
+  <i id="c-toast-icon" class="fas fa-check-circle"></i>
+  <span id="c-toast-msg"></span>
+</div>
+
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/data.js"></script>
+<script src="assets/js/curso.js"></script>
+</body>
+</html>

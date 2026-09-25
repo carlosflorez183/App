@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>UniPlataforma — Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link rel="stylesheet" href="assets/css/main.css"/>
+</head>
+<body class="bg-slate-100">
+<div class="app-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon"><i class="fas fa-university"></i></div>
+      <div><div class="logo-text">UniPlataforma</div><div class="logo-sub">Sistema Integrado</div></div>
+    </div>
+    <div class="sidebar-user">
+      <div class="avatar" id="nav-avatar">?</div>
+      <div class="user-info">
+        <div class="user-name" id="nav-name">Cargando...</div>
+        <div class="user-role" id="nav-role"></div>
+      </div>
+    </div>
+    <nav class="sidebar-nav" id="sidebar-nav"></nav>
+    <div style="padding:12px 20px;border-top:1px solid rgba(255,255,255,.1);margin-top:auto;">
+      <button onclick="AUTH.logout()" class="w-full flex items-center gap-2 text-red-300 hover:text-white hover:bg-red-600 rounded-lg px-3 py-2 transition text-sm font-medium">
+        <i class="fas fa-sign-out-alt"></i> Cerrar Sesión
+      </button>
+    </div>
+  </aside>
+
+  <!-- CONTENT -->
+  <div class="content-area">
+    <header class="topbar">
+      <button class="icon-btn" onclick="toggleSidebar()" style="display:none" id="menu-btn">
+        <i class="fas fa-bars"></i>
+      </button>
+      <div>
+        <div class="topbar-title" id="page-title">Dashboard</div>
+        <div class="text-sm text-slate-500" id="page-subtitle">Bienvenido al sistema</div>
+      </div>
+      <div class="topbar-actions ml-auto">
+        <div class="hidden md:flex items-center gap-2 bg-slate-100 rounded-lg px-3 py-2 text-sm text-slate-500 border border-slate-200 w-52">
+          <i class="fas fa-search text-xs"></i>
+          <input type="text" placeholder="Buscar..." class="bg-transparent outline-none flex-1 text-slate-700 text-sm"/>
+        </div>
+        <div class="icon-btn relative" onclick="toggleNotif()">
+          <i class="fas fa-bell text-sm"></i><span class="dot"></span>
+        </div>
+        <div class="flex items-center gap-2 cursor-pointer bg-slate-100 rounded-lg px-3 py-1.5 border border-slate-200 hover:bg-slate-200 transition" onclick="showView('perfil')">
+          <div class="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold" id="topbar-avatar"></div>
+          <span class="text-sm font-medium text-slate-700 hidden md:inline" id="topbar-name">...</span>
+          <i class="fas fa-chevron-down text-xs text-slate-400"></i>
+        </div>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <div id="view-home" class="module-view active fade-in"></div>
+      <div id="view-academico" class="module-view fade-in"></div>
+      <div id="view-lms" class="module-view fade-in"></div>
+      <div id="view-admin" class="module-view fade-in"></div>
+      <div id="view-perfil" class="module-view fade-in"></div>
+    </main>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="global-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 class="modal-title" id="modal-title">Título</h3>
+      <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer" id="modal-footer"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <i id="toast-icon" class="fas fa-check-circle"></i>
+  <span id="toast-msg"></span>
+</div>
+
+<!-- NOTIFICACIONES -->
+<div id="notif-panel" class="hidden fixed right-4 top-16 w-80 bg-white rounded-xl shadow-2xl border border-slate-200 z-50">
+  <div class="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+    <span class="font-bold text-sm">Notificaciones</span>
+    <button class="text-xs text-blue-600 hover:underline" onclick="toggleNotif()">Cerrar</button>
+  </div>
+  <div class="max-h-80 overflow-y-auto" id="notif-list"></div>
+</div>
+
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/data.js"></script>
+<script src="assets/js/dashboard.js"></script>
+</body>
+</html>
