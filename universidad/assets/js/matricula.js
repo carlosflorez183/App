@@ -360,17 +360,17 @@ window.finalizarMatricula = () => {
 function openMatModal(title, body, footer) {
   document.getElementById('mat-modal-title').textContent = title;
   document.getElementById('mat-modal-body').innerHTML = body;
-  document.getElementById('mat-modal-footer').innerHTML = footer || '<button class="btn btn-secondary" onclick="closeMatModal()">Cerrar</button>';
+  document.getElementById('mat-modal-footer').innerHTML = footer || '<button class="btn b-secondary" onclick="closeMatModal()">Cerrar</button>';
   document.getElementById('mat-modal').classList.add('open');
 }
 function closeMatModal() { document.getElementById('mat-modal').classList.remove('open'); }
 document.getElementById('mat-modal').addEventListener('click', function(e){ if(e.target===this) closeMatModal(); });
 
 function showMToast(msg, type='success') {
+  const icons = {success:'✅',error:'❌',info:'ℹ️',warning:'⚠️'};
   const t = document.getElementById('m-toast');
-  const icons = {success:'fa-check-circle',error:'fa-times-circle',info:'fa-info-circle',warning:'fa-exclamation-triangle'};
   t.className = 'toast ' + type;
-  document.getElementById('m-toast-icon').className = 'fas ' + (icons[type]||'fa-info-circle');
+  document.getElementById('m-toast-icon').textContent = icons[type]||'✅';
   document.getElementById('m-toast-msg').textContent = msg;
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 3000);

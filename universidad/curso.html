@@ -4,228 +4,229 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>UniPlataforma — Curso</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link rel="stylesheet" href="assets/css/uni.css"/>
   <link rel="stylesheet" href="assets/css/main.css"/>
   <link rel="stylesheet" href="assets/css/curso.css"/>
+  <style>
+    body{background:#f1f5f9;font-family:'Segoe UI',system-ui,Arial,sans-serif}
+    /* ── Topbar ── */
+    .pg-top{background:#fff;border-bottom:1px solid #e2e8f0;position:sticky;top:0;z-index:50;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+    .pg-top-inner{max-width:1200px;margin:0 auto;padding:0 20px;height:52px;display:flex;align-items:center;gap:10px}
+    .back-btn{display:flex;align-items:center;gap:6px;color:#1e3a8a;font-size:13px;font-weight:600;background:none;border:none;cursor:pointer;padding:6px 10px;border-radius:8px;transition:background .15s;font-family:inherit}
+    .back-btn:hover{background:#eff6ff}
+    .sep{width:1px;height:18px;background:#e2e8f0}
+    .breadcrumb{display:flex;align-items:center;gap:6px;font-size:12px;color:#94a3b8;flex:1;overflow:hidden}
+    .breadcrumb a{color:#64748b;text-decoration:none;white-space:nowrap} .breadcrumb a:hover{color:#2563eb}
+    .breadcrumb strong{color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .hdr-right{display:flex;align-items:center;gap:8px;margin-left:auto;flex-shrink:0}
+    .hdr-pill{background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;padding:5px 12px;font-size:12px;color:#475569}
+    .hdr-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700}
+    /* ── Hero ── */
+    .curso-hero{color:#fff;padding:28px 0 0}
+    .hero-inner{max-width:1200px;margin:0 auto;padding:0 20px}
+    .hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+    .hero-ic{font-size:60px;line-height:1;flex-shrink:0}
+    .hero-info{flex:1}
+    .hero-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+    .hero-tag{background:rgba(255,255,255,.22);padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600}
+    .hero-name{font-size:26px;font-weight:900;line-height:1.2}
+    .hero-meta{font-size:13px;color:rgba(255,255,255,.75);margin-top:5px}
+    .hero-btns{display:flex;gap:8px;flex-wrap:wrap}
+    .hero-btn{background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s;font-family:inherit;display:flex;align-items:center;gap:6px}
+    .hero-btn:hover{background:rgba(255,255,255,.3)}
+    .hero-stats{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-top:16px}
+    .hs{background:rgba(255,255,255,.15);border-radius:10px;padding:10px;text-align:center}
+    .hs-v{font-size:20px;font-weight:900;line-height:1}
+    .hs-l{font-size:10px;color:rgba(255,255,255,.7);margin-top:3px}
+    /* ── Tabs ── */
+    .curso-tabs{background:#fff;border-bottom:2px solid #e2e8f0;position:sticky;z-index:40}
+    .ct-inner{max-width:1200px;margin:0 auto;padding:0 20px;display:flex;overflow-x:auto;scrollbar-width:none}
+    .ct-inner::-webkit-scrollbar{display:none}
+    .ct-btn{padding:13px 18px;font-size:13px;font-weight:600;color:#64748b;border:none;background:none;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:all .18s;font-family:inherit;display:flex;align-items:center;gap:5px}
+    .ct-btn:hover{color:#1e3a8a;background:#f8fafc}
+    .ct-btn.active{color:#1e3a8a;border-bottom-color:#1e3a8a}
+    /* ── Content ── */
+    .pg-content{max-width:1200px;margin:0 auto;padding:24px 20px}
+    .cv{display:none} .cv.active{display:block;animation:cfade .25s ease}
+    @keyframes cfade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+    /* ── Cards ── */
+    .card{background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.07);overflow:hidden;margin-bottom:16px}
+    .card-hd{padding:14px 18px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+    .card-ttl{font-size:14px;font-weight:700;color:#1e293b;display:flex;align-items:center;gap:6px}
+    .card-bd{padding:18px}
+    /* ── Corte header ── */
+    .corte-hd{border-radius:12px;padding:16px 18px;margin-bottom:14px;border-left:5px solid;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.07);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+    .c1-border{border-left-color:#10b981} .c2-border{border-left-color:#3b82f6} .c3-border{border-left-color:#8b5cf6}
+    /* ── Actividad item ── */
+    .act-item{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;margin-bottom:10px;transition:box-shadow .18s,border-color .18s}
+    .act-item:hover{box-shadow:0 2px 8px rgba(0,0,0,.08);border-color:#cbd5e1}
+    .act-ic-box{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+    /* ── Asistencia ── */
+    .asist-tbl{width:100%;border-collapse:collapse}
+    .asist-tbl th{background:#f8fafc;padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:1px solid #e2e8f0}
+    .asist-tbl td{padding:10px 12px;font-size:13px;border-bottom:1px solid #f1f5f9}
+    .asist-tbl tr:last-child td{border-bottom:none}
+    .a-btn{width:32px;height:32px;border-radius:7px;border:none;cursor:pointer;font-size:13px;font-weight:700;transition:transform .12s;display:inline-flex;align-items:center;justify-content:center}
+    .a-btn:hover{transform:scale(1.12)}
+    .a-p{background:#dcfce7;color:#15803d} .a-a{background:#fee2e2;color:#b91c1c} .a-t{background:#fef9c3;color:#854d0e} .a-n{background:#f1f5f9;color:#94a3b8}
+    /* ── Fecha chip ── */
+    .f-chip{padding:4px 14px;border-radius:20px;border:1.5px solid #e2e8f0;background:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap;color:#64748b;font-family:inherit}
+    .f-chip:hover{border-color:#3b82f6;color:#1d4ed8}
+    .f-chip.active{background:#1e3a8a;border-color:#1e3a8a;color:#fff}
+    /* ── Estudiante row ── */
+    .est-row{display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid #f1f5f9;transition:background .12s}
+    .est-row:last-child{border-bottom:none}
+    .est-row:hover{background:#f8fafc}
+    .est-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px;flex-shrink:0}
+    /* ── Nota input ── */
+    .nota-in{width:62px;text-align:center;padding:4px 6px;border:1.5px solid #d1d5db;border-radius:6px;font-size:14px;font-weight:700;outline:none;transition:border-color .15s}
+    .nota-in:focus{border-color:#3b82f6}
+    .nota-in.ok{border-color:#059669;background:#f0fdf4;color:#15803d}
+    .nota-in.fail{border-color:#dc2626;background:#fef2f2;color:#b91c1c}
+    /* ── Recurso item ── */
+    .res-row{display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid #f1f5f9;transition:background .12s}
+    .res-row:hover{background:#f8fafc}
+    /* ── Buttons ── */
+    .btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .18s;border:none;white-space:nowrap;font-family:inherit}
+    .b-primary{background:#1e3a8a;color:#fff}.b-primary:hover{background:#1e40af}
+    .b-secondary{background:#f1f5f9;color:#475569;border:1px solid #e2e8f0}.b-secondary:hover{background:#e2e8f0}
+    .b-success{background:#059669;color:#fff}.b-success:hover{background:#047857}
+    .b-danger{background:#dc2626;color:#fff}.b-danger:hover{background:#b91c1c}
+    .b-sm{padding:4px 10px;font-size:12px}
+    /* ── Badges ── */
+    .bs{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+    .bg-g{background:#dcfce7;color:#15803d}.bg-r{background:#fee2e2;color:#b91c1c}.bg-y{background:#fef9c3;color:#854d0e}.bg-b{background:#dbeafe;color:#1d4ed8}.bg-p{background:#ede9fe;color:#6d28d9}
+    /* ── Progress ── */
+    .prog-bar{height:8px;background:#e2e8f0;border-radius:999px;overflow:hidden}
+    .prog-fill{height:100%;border-radius:999px;transition:width .5s}
+    /* ── Modal ── */
+    .modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:300;opacity:0;pointer-events:none;transition:opacity .2s}
+    .modal-ov.open{opacity:1;pointer-events:all}
+    .modal-box{background:#fff;border-radius:16px;width:90%;max-width:620px;max-height:90vh;overflow-y:auto;transform:scale(.95);transition:transform .2s}
+    .modal-ov.open .modal-box{transform:scale(1)}
+    .modal-hd{padding:18px 22px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between}
+    .modal-ttl{font-size:16px;font-weight:700}
+    .modal-x{width:30px;height:30px;border-radius:7px;border:none;background:#f1f5f9;cursor:pointer;font-size:15px}
+    .modal-bd{padding:22px}
+    .modal-ft{padding:14px 22px;border-top:1px solid #f1f5f9;display:flex;justify-content:flex-end;gap:10px}
+    /* ── Toast ── */
+    .toast{position:fixed;bottom:22px;right:22px;background:#1e293b;color:#fff;padding:11px 18px;border-radius:10px;font-size:13px;font-weight:500;display:flex;align-items:center;gap:10px;box-shadow:0 6px 20px rgba(0,0,0,.2);z-index:999;transform:translateY(80px);opacity:0;transition:all .3s}
+    .toast.show{transform:translateY(0);opacity:1}
+    .toast.success{border-left:4px solid #059669}.toast.error{border-left:4px solid #dc2626}.toast.info{border-left:4px solid #3b82f6}.toast.warning{border-left:4px solid #d97706}
+    /* ── Forms ── */
+    .f-group{margin-bottom:14px}
+    .f-label{display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:5px}
+    .f-ctrl{width:100%;border:1.5px solid #d1d5db;border-radius:8px;padding:9px 12px;font-size:13.5px;color:#1e293b;background:#fff;outline:none;transition:border-color .18s;font-family:inherit}
+    .f-ctrl:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.1)}
+    /* ── Upload ── */
+    .upload-zona{border:2px dashed #cbd5e1;border-radius:12px;padding:28px;text-align:center;cursor:pointer;transition:all .2s;background:#f8fafc}
+    .upload-zona:hover{border-color:#3b82f6;background:#eff6ff}
+    /* ── Misc ── */
+    .hidden{display:none!important}
+    .divide-y>*+*{border-top:1px solid #f1f5f9}
+    .overflow-x{overflow-x:auto}
+    .av-blue{background:linear-gradient(135deg,#3b82f6,#6366f1)!important}
+    .av-green{background:linear-gradient(135deg,#059669,#10b981)!important}
+    .av-purple{background:linear-gradient(135deg,#7c3aed,#a78bfa)!important}
+    .av-red{background:linear-gradient(135deg,#dc2626,#f87171)!important}
+    .av-yellow{background:linear-gradient(135deg,#d97706,#fbbf24)!important}
+    @media(max-width:768px){.hero-stats{grid-template-columns:repeat(3,1fr)}.hero-top{flex-direction:column}.hdr-pill{display:none}}
+  </style>
 </head>
-<body class="bg-slate-100 min-h-screen">
+<body>
 
 <!-- TOPBAR -->
-<header class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
-  <div class="max-w-7xl mx-auto px-4 h-14 flex items-center gap-3">
-    <a href="dashboard.html" class="flex items-center gap-2 text-blue-800 hover:text-blue-600 transition font-semibold text-sm">
-      <i class="fas fa-arrow-left"></i><span class="hidden sm:inline">Volver al Dashboard</span>
-    </a>
-    <div class="h-5 w-px bg-slate-300 mx-1"></div>
-    <div class="flex items-center gap-2 text-xs text-slate-500">
-      <a href="dashboard.html" class="hover:text-blue-600 transition">Inicio</a>
-      <i class="fas fa-chevron-right text-xs"></i>
-      <a href="dashboard.html#lms" class="hover:text-blue-600 transition">Campus Virtual</a>
-      <i class="fas fa-chevron-right text-xs"></i>
-      <span id="bc-curso" class="text-slate-700 font-semibold truncate max-w-48">Cargando...</span>
+<div class="pg-top">
+  <div class="pg-top-inner">
+    <button class="back-btn" onclick="history.back()">← Volver</button>
+    <div class="sep"></div>
+    <div class="breadcrumb">
+      <a href="dashboard.html">Inicio</a> › <a href="dashboard.html">Campus Virtual</a> › <strong id="bc-curso">Cargando...</strong>
     </div>
-    <div class="ml-auto flex items-center gap-2">
-      <div class="hidden md:flex items-center gap-2 text-xs text-slate-500 bg-slate-100 rounded-lg px-3 py-1.5">
-        <i class="fas fa-calendar text-slate-400"></i>
-        <span id="hdr-semestre">2026-1</span>
-      </div>
-      <div class="flex items-center gap-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-lg px-3 py-1.5">
-        <div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold" id="hdr-avatar"></div>
-        <span id="hdr-name" class="hidden sm:inline"></span>
-      </div>
-    </div>
-  </div>
-</header>
-
-<!-- HERO del curso -->
-<div id="curso-hero" class="text-white" style="background:linear-gradient(135deg,#6d28d9,#8b5cf6)">
-  <div class="max-w-7xl mx-auto px-4 py-8">
-    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-      <div class="flex items-center gap-5">
-        <div class="text-6xl" id="curso-icon">🗄️</div>
-        <div>
-          <div class="flex flex-wrap items-center gap-2 mb-1 text-white/70 text-sm">
-            <span id="curso-codigo" class="font-mono bg-white/20 px-2 py-0.5 rounded text-xs">IS-305</span>
-            <span>·</span><span id="curso-grupo-badge">Grupo A</span>
-            <span>·</span><span id="curso-programa-badge">Ing. de Sistemas</span>
-            <span>·</span><span id="curso-semestre-badge">6° Semestre</span>
-            <span>·</span><span id="curso-periodo-badge">2026-1</span>
-          </div>
-          <h1 class="text-2xl md:text-3xl font-black" id="curso-nombre">Bases de Datos II</h1>
-          <p class="text-white/80 mt-1 text-sm flex items-center gap-2">
-            <i class="fas fa-user"></i><span id="curso-profesor">Dra. Laura Sánchez</span>
-            <span class="mx-1">·</span>
-            <i class="fas fa-users"></i><span id="curso-estudiantes">28 estudiantes</span>
-          </p>
-        </div>
-      </div>
-      <div class="flex gap-2 flex-wrap">
-        <button onclick="showTab('asistencia')" class="bg-white/20 hover:bg-white/30 text-white text-sm font-semibold px-4 py-2 rounded-lg transition flex items-center gap-2">
-          <i class="fas fa-clipboard-list"></i> Asistencia
-        </button>
-        <button onclick="showTab('estudiantes')" class="bg-white/20 hover:bg-white/30 text-white text-sm font-semibold px-4 py-2 rounded-lg transition flex items-center gap-2">
-          <i class="fas fa-users"></i> Estudiantes
-        </button>
-      </div>
-    </div>
-
-    <!-- Progreso global -->
-    <div class="mt-5 grid grid-cols-3 md:grid-cols-6 gap-3">
-      <div class="bg-white/15 rounded-xl p-3 text-center">
-        <div class="text-xl font-black" id="stat-progreso">65%</div>
-        <div class="text-white/70 text-xs mt-0.5">Progreso</div>
-      </div>
-      <div class="bg-white/15 rounded-xl p-3 text-center">
-        <div class="text-xl font-black" id="stat-actividades">5</div>
-        <div class="text-white/70 text-xs mt-0.5">Actividades</div>
-      </div>
-      <div class="bg-white/15 rounded-xl p-3 text-center">
-        <div class="text-xl font-black" id="stat-pendientes">2</div>
-        <div class="text-white/70 text-xs mt-0.5">Pendientes</div>
-      </div>
-      <div class="bg-white/15 rounded-xl p-3 text-center">
-        <div class="text-xl font-black" id="stat-estudiantes">28</div>
-        <div class="text-white/70 text-xs mt-0.5">Estudiantes</div>
-      </div>
-      <div class="bg-white/15 rounded-xl p-3 text-center">
-        <div class="text-xl font-black" id="stat-recursos">5</div>
-        <div class="text-white/70 text-xs mt-0.5">Recursos</div>
-      </div>
-      <div class="bg-white/15 rounded-xl p-3 text-center">
-        <div class="text-xl font-black" id="stat-semanas">16</div>
-        <div class="text-white/70 text-xs mt-0.5">Semanas</div>
+    <div class="hdr-right">
+      <span class="hdr-pill" id="hdr-semestre">2026-1</span>
+      <div style="display:flex;align-items:center;gap:7px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;padding:5px 12px">
+        <div class="hdr-av" id="hdr-avatar"></div>
+        <span style="font-size:13px;font-weight:600;color:#334155" id="hdr-name"></span>
       </div>
     </div>
   </div>
 </div>
 
-<!-- TABS de navegación -->
-<div class="bg-white border-b border-slate-200 sticky top-14 z-40">
-  <div class="max-w-7xl mx-auto px-4">
-    <div class="flex overflow-x-auto gap-0 tabs-scroll">
-      <button class="curso-tab active" data-tab="inicio" onclick="showTab('inicio')">
-        <i class="fas fa-home mr-1.5"></i>Inicio
-      </button>
-      <button class="curso-tab" data-tab="corte1" onclick="showTab('corte1')">
-        <i class="fas fa-layer-group mr-1.5"></i>Corte 1
-      </button>
-      <button class="curso-tab" data-tab="corte2" onclick="showTab('corte2')">
-        <i class="fas fa-layer-group mr-1.5"></i>Corte 2
-      </button>
-      <button class="curso-tab" data-tab="corte3" onclick="showTab('corte3')">
-        <i class="fas fa-layer-group mr-1.5"></i>Corte 3
-      </button>
-      <button class="curso-tab" data-tab="notas" onclick="showTab('notas')">
-        <i class="fas fa-star mr-1.5"></i>Notas
-      </button>
-      <button class="curso-tab" data-tab="asistencia" onclick="showTab('asistencia')">
-        <i class="fas fa-clipboard-list mr-1.5"></i>Asistencia
-      </button>
-      <button class="curso-tab" data-tab="estudiantes" onclick="showTab('estudiantes')">
-        <i class="fas fa-users mr-1.5"></i>Estudiantes
-      </button>
-      <button class="curso-tab" data-tab="recursos" onclick="showTab('recursos')">
-        <i class="fas fa-folder-open mr-1.5"></i>Recursos
-      </button>
+<!-- HERO -->
+<div class="curso-hero" id="curso-hero">
+  <div class="hero-inner">
+    <div class="hero-top">
+      <div style="display:flex;align-items:center;gap:18px">
+        <div class="hero-ic" id="curso-icon">📚</div>
+        <div class="hero-info">
+          <div class="hero-tags">
+            <span class="hero-tag" id="curso-codigo">IS-305</span>
+            <span class="hero-tag" id="curso-grupo-badge">Grupo A</span>
+            <span class="hero-tag" id="curso-programa-badge">Ing. de Sistemas</span>
+            <span class="hero-tag" id="curso-semestre-badge">6° Semestre</span>
+            <span class="hero-tag" id="curso-periodo-badge">2026-1</span>
+          </div>
+          <div class="hero-name" id="curso-nombre">Bases de Datos II</div>
+          <div class="hero-meta">👤 <span id="curso-profesor">Dra. Laura Sánchez</span> &nbsp;·&nbsp; 👥 <span id="curso-estudiantes">28 estudiantes</span></div>
+        </div>
+      </div>
+      <div class="hero-btns">
+        <button class="hero-btn" onclick="showTab('asistencia')">📋 Asistencia</button>
+        <button class="hero-btn" onclick="showTab('estudiantes')">👥 Estudiantes</button>
+      </div>
+    </div>
+    <div class="hero-stats">
+      <div class="hs"><div class="hs-v" id="stat-progreso">65%</div><div class="hs-l">Progreso</div></div>
+      <div class="hs"><div class="hs-v" id="stat-actividades">5</div><div class="hs-l">Actividades</div></div>
+      <div class="hs"><div class="hs-v" id="stat-pendientes">2</div><div class="hs-l">Pendientes</div></div>
+      <div class="hs"><div class="hs-v" id="stat-estudiantes">28</div><div class="hs-l">Estudiantes</div></div>
+      <div class="hs"><div class="hs-v" id="stat-recursos">5</div><div class="hs-l">Recursos</div></div>
+      <div class="hs"><div class="hs-v">16</div><div class="hs-l">Semanas</div></div>
     </div>
   </div>
 </div>
 
-<!-- CONTENIDO PRINCIPAL -->
-<div class="max-w-7xl mx-auto px-4 py-6">
-  <!-- TAB: INICIO -->
-  <div id="tab-inicio" class="curso-view active">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <!-- Columna principal -->
-      <div class="md:col-span-2 space-y-4">
-        <!-- Anuncios -->
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title"><i class="fas fa-bullhorn text-orange-500"></i> Anuncios</span>
-            <button id="btn-nuevo-anuncio" class="btn btn-primary btn-sm hidden" onclick="nuevoAnuncioModal()">
-              <i class="fas fa-plus mr-1"></i>Nuevo
-            </button>
-          </div>
-          <div id="anuncios-list" class="divide-y divide-slate-100"></div>
-        </div>
-        <!-- Actividades recientes -->
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title"><i class="fas fa-tasks text-blue-600"></i> Actividades recientes</span>
-            <button onclick="showTab('corte1')" class="text-xs text-blue-600 hover:underline">Ver por corte →</button>
-          </div>
-          <div id="actividades-recientes" class="divide-y divide-slate-100"></div>
-        </div>
-      </div>
-      <!-- Columna lateral -->
-      <div class="space-y-4">
-        <!-- Progreso por cortes -->
-        <div class="card">
-          <div class="card-header"><span class="card-title"><i class="fas fa-chart-pie text-purple-600"></i> Progreso por corte</span></div>
-          <div class="card-body space-y-4">
-            <div>
-              <div class="flex justify-between text-sm mb-1"><span class="font-semibold text-slate-700">Corte 1 <span class="text-xs text-slate-400">(30%)</span></span><span class="font-bold text-green-600">3.8</span></div>
-              <div class="progress-bar"><div class="progress-fill bg-green-500" style="width:76%"></div></div>
-            </div>
-            <div>
-              <div class="flex justify-between text-sm mb-1"><span class="font-semibold text-slate-700">Corte 2 <span class="text-xs text-slate-400">(30%)</span></span><span class="font-bold text-blue-600">4.0</span></div>
-              <div class="progress-bar"><div class="progress-fill bg-blue-500" style="width:80%"></div></div>
-            </div>
-            <div>
-              <div class="flex justify-between text-sm mb-1"><span class="font-semibold text-slate-700">Corte 3 <span class="text-xs text-slate-400">(40%)</span></span><span class="font-bold text-slate-400">—</span></div>
-              <div class="progress-bar"><div class="progress-fill bg-slate-300" style="width:0%"></div></div>
-              <p class="text-xs text-slate-400 mt-1">No iniciado</p>
-            </div>
-            <div class="border-t pt-3">
-              <div class="flex justify-between text-sm"><span class="font-bold text-slate-700">Nota parcial estimada</span><span class="font-black text-lg text-indigo-600">3.9</span></div>
-            </div>
-          </div>
-        </div>
-        <!-- Próximas entregas -->
-        <div class="card">
-          <div class="card-header"><span class="card-title"><i class="fas fa-clock text-red-500"></i> Próximas entregas</span></div>
-          <div id="proximas-entregas" class="divide-y divide-slate-100"></div>
-        </div>
-      </div>
-    </div>
+<!-- TABS -->
+<div class="curso-tabs" id="curso-tabs-bar">
+  <div class="ct-inner">
+    <button class="ct-btn active" data-tab="inicio"      onclick="showTab('inicio')">🏠 Inicio</button>
+    <button class="ct-btn"        data-tab="corte1"      onclick="showTab('corte1')">📗 Corte 1</button>
+    <button class="ct-btn"        data-tab="corte2"      onclick="showTab('corte2')">📘 Corte 2</button>
+    <button class="ct-btn"        data-tab="corte3"      onclick="showTab('corte3')">📙 Corte 3</button>
+    <button class="ct-btn"        data-tab="notas"       onclick="showTab('notas')">⭐ Notas</button>
+    <button class="ct-btn"        data-tab="asistencia"  onclick="showTab('asistencia')">📋 Asistencia</button>
+    <button class="ct-btn"        data-tab="estudiantes" onclick="showTab('estudiantes')">👥 Estudiantes</button>
+    <button class="ct-btn"        data-tab="recursos"    onclick="showTab('recursos')">📁 Recursos</button>
   </div>
-
-  <!-- TABS CORTES -->
-  <div id="tab-corte1" class="curso-view"></div>
-  <div id="tab-corte2" class="curso-view"></div>
-  <div id="tab-corte3" class="curso-view"></div>
-
-  <!-- TAB: NOTAS -->
-  <div id="tab-notas" class="curso-view"></div>
-
-  <!-- TAB: ASISTENCIA -->
-  <div id="tab-asistencia" class="curso-view"></div>
-
-  <!-- TAB: ESTUDIANTES -->
-  <div id="tab-estudiantes" class="curso-view"></div>
-
-  <!-- TAB: RECURSOS -->
-  <div id="tab-recursos" class="curso-view"></div>
 </div>
 
-<!-- MODAL GLOBAL -->
-<div class="modal-overlay" id="curso-modal">
-  <div class="modal-box" style="max-width:640px">
-    <div class="modal-header">
-      <h3 class="modal-title" id="curso-modal-title">Título</h3>
-      <button class="modal-close" onclick="closeCursoModal()"><i class="fas fa-times"></i></button>
+<!-- CONTENT -->
+<div class="pg-content">
+  <div id="tab-inicio"      class="cv active"></div>
+  <div id="tab-corte1"      class="cv"></div>
+  <div id="tab-corte2"      class="cv"></div>
+  <div id="tab-corte3"      class="cv"></div>
+  <div id="tab-notas"       class="cv"></div>
+  <div id="tab-asistencia"  class="cv"></div>
+  <div id="tab-estudiantes" class="cv"></div>
+  <div id="tab-recursos"    class="cv"></div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-ov" id="c-modal">
+  <div class="modal-box">
+    <div class="modal-hd">
+      <span class="modal-ttl" id="c-modal-title">Título</span>
+      <button class="modal-x" onclick="closeCModal()">✕</button>
     </div>
-    <div class="modal-body" id="curso-modal-body"></div>
-    <div class="modal-footer" id="curso-modal-footer"></div>
+    <div class="modal-bd" id="c-modal-body"></div>
+    <div class="modal-ft" id="c-modal-footer"></div>
   </div>
 </div>
 
 <!-- TOAST -->
-<div class="toast" id="c-toast">
-  <i id="c-toast-icon" class="fas fa-check-circle"></i>
-  <span id="c-toast-msg"></span>
-</div>
+<div class="toast" id="c-toast"><span id="c-toast-ic">✅</span><span id="c-toast-msg"></span></div>
 
 <script src="assets/js/auth.js"></script>
 <script src="assets/js/data.js"></script>

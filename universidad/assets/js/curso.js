@@ -603,27 +603,28 @@ function renderTabRecursos() {
 //  Helpers: Modal, Toast, Actividades
 // ============================================================
 function openCursoModal(title, body, footer) {
-  document.getElementById('curso-modal-title').textContent = title;
-  document.getElementById('curso-modal-body').innerHTML = body;
-  document.getElementById('curso-modal-footer').innerHTML = footer || '<button class="btn btn-secondary" onclick="closeCursoModal()">Cerrar</button>';
-  document.getElementById('curso-modal').classList.add('open');
+  document.getElementById('c-modal-title').textContent = title;
+  document.getElementById('c-modal-body').innerHTML = body;
+  document.getElementById('c-modal-footer').innerHTML = footer || '<button class="btn b-secondary" onclick="closeCModal()">Cerrar</button>';
+  document.getElementById('c-modal').classList.add('open');
 }
-function closeCursoModal() { document.getElementById('curso-modal').classList.remove('open'); }
-document.getElementById('curso-modal').addEventListener('click', function(e){ if(e.target===this) closeCursoModal(); });
+function closeCursoModal() { closeCModal(); }
+function closeCModal() { document.getElementById('c-modal').classList.remove('open'); }
+document.getElementById('c-modal').addEventListener('click', function(e){ if(e.target===this) closeCModal(); });
 
 function showCToast(msg, type='success') {
+  const icons = {success:'✅',error:'❌',info:'ℹ️',warning:'⚠️'};
   const t = document.getElementById('c-toast');
-  const icons = {success:'fa-check-circle',error:'fa-times-circle',info:'fa-info-circle',warning:'fa-exclamation-triangle'};
   t.className = 'toast ' + type;
-  document.getElementById('c-toast-icon').className = 'fas ' + (icons[type]||'fa-info-circle');
+  document.getElementById('c-toast-ic').textContent = icons[type]||'✅';
   document.getElementById('c-toast-msg').textContent = msg;
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 3200);
 }
 
 function showTab(name) {
-  document.querySelectorAll('.curso-view').forEach(v=>v.classList.remove('active'));
-  document.querySelectorAll('.curso-tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.cv').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.ct-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('tab-'+name)?.classList.add('active');
   document.querySelector(`[data-tab="${name}"]`)?.classList.add('active');
 }

@@ -1,6 +1,4 @@
-/* =============================================
-   UniPlataforma — Login Logic
-   ============================================= */
+/* UniPlataforma — Login */
 if (AUTH.isLoggedIn()) window.location.href = 'dashboard.html';
 
 function setDemo(role, user, pass) {
@@ -10,32 +8,32 @@ function setDemo(role, user, pass) {
 }
 
 document.getElementById('toggle-pass').addEventListener('click', function () {
-  const input = document.getElementById('password');
-  const icon = this.querySelector('i');
-  if (input.type === 'password') { input.type = 'text'; icon.className = 'fas fa-eye-slash text-sm'; }
-  else { input.type = 'password'; icon.className = 'fas fa-eye text-sm'; }
+  const inp = document.getElementById('password');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  this.textContent = inp.type === 'password' ? '👁' : '🙈';
 });
 
 document.getElementById('login-form').addEventListener('submit', function (e) {
   e.preventDefault();
   const username = document.getElementById('username').value.trim();
   const password = document.getElementById('password').value;
-  const errorDiv = document.getElementById('login-error');
-  const errorMsg = document.getElementById('login-error-msg');
-  if (!username || !password) { errorMsg.textContent = 'Por favor completa todos los campos.'; errorDiv.classList.remove('hidden'); return; }
+  const errDiv = document.getElementById('login-error');
+  const errMsg = document.getElementById('login-error-msg');
+
+  if (!username || !password) {
+    errMsg.textContent = 'Por favor completa todos los campos.';
+    errDiv.classList.add('show'); return;
+  }
+
   const result = AUTH.login(username, password);
   if (result.success) {
-    errorDiv.classList.add('hidden');
-    const btn = this.querySelector('button[type="submit"]');
-    btn.innerHTML = '<i class="fas fa-check-circle"></i> Verificando...';
-    btn.classList.add('bg-green-600'); btn.disabled = true;
-    setTimeout(() => { window.location.href = 'dashboard.html'; }, 800);
+    errDiv.classList.remove('show');
+    const btn = document.getElementById('btn-login');
+    btn.classList.add('loading');
+    btn.innerHTML = '✅ Verificando...';
+    setTimeout(() => { window.location.href = 'dashboard.html'; }, 700);
   } else {
-    errorMsg.textContent = result.error || 'Usuario o contraseña incorrectos.';
-    errorDiv.classList.remove('hidden');
+    errMsg.textContent = result.error || 'Usuario o contraseña incorrectos.';
+    errDiv.classList.add('show');
   }
 });
-
-const style = document.createElement('style');
-style.textContent = `@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}`;
-document.head.appendChild(style);
