@@ -87,6 +87,7 @@ function buildSidebar() {
       el.className = 'nav-item'; el.id = 'nav-' + item.id;
       el.innerHTML = `<span class="ni">${item.ic}</span><span>${item.label}</span>${item.badge ? `<span class="nb">${item.badge}</span>` : ''}`;
       el.onclick = () => {
+        setActiveNav(item.id);
         if (item.view) showView(item.view, item.tab);
         else showView('home');
         if (window.innerWidth < 768) document.getElementById('sidebar').classList.remove('open');
@@ -107,21 +108,23 @@ function showView(view, tab) {
   const el = document.getElementById('view-' + view);
   if (!el) { if (view === 'matricula') { window.location.href = 'matricula.html'; } return; }
   el.classList.add('active');
+
   const titles = {
-    home: ['Dashboard', `Bienvenido, ${session.name.split(' ')[0]}`],
-    academico: ['Gestión Académica', 'Notas, certificados y pagos'],
-    lms: ['Campus Virtual', 'Cursos, tareas y recursos'],
-    admin: ['Módulo Administrativo', 'Dependencias universitarias'],
-    perfil: ['Mi Perfil', 'Información personal'],
+    home:      ['Dashboard',             `Bienvenido, ${session.name.split(' ')[0]}`],
+    academico: ['Gestión Académica',     'Notas, certificados y pagos'],
+    lms:       ['Campus Virtual',        'Cursos, tareas y recursos'],
+    admin:     ['Módulo Administrativo', 'Dependencias universitarias'],
+    perfil:    ['Mi Perfil',             'Información personal'],
   };
   const [title, subtitle] = titles[view] || ['UniPlataforma', ''];
-  document.getElementById('page-title').textContent = title;
+  document.getElementById('page-title').textContent    = title;
   document.getElementById('page-subtitle').textContent = subtitle;
-  if (view === 'home') renderHome();
+
+  if (view === 'home')           renderHome();
   else if (view === 'academico') renderAcademico(tab);
-  else if (view === 'lms') renderLMS(tab);
-  else if (view === 'admin') renderAdmin(tab);
-  else if (view === 'perfil') renderPerfil();
+  else if (view === 'lms')       renderLMS(tab);
+  else if (view === 'admin')     renderAdmin(tab);
+  else if (view === 'perfil')    renderPerfil();
 }
 
 /* ── TOAST ── */
