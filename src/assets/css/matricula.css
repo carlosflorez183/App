@@ -1,0 +1,230 @@
+/* =============================================
+   UniPlataforma — Estilos Matrícula
+   ============================================= */
+
+/* ---- Stepper ---- */
+.step-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 60px;
+}
+.step-circle {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.25);
+  border: 2px solid rgba(255,255,255,0.4);
+  color: rgba(255,255,255,0.7);
+  font-weight: 700;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+}
+.step-item.active .step-circle {
+  background: white;
+  border-color: white;
+  color: #1e3a8a;
+}
+.step-item.done .step-circle {
+  background: #10b981;
+  border-color: #10b981;
+  color: white;
+}
+.step-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.6);
+  white-space: nowrap;
+}
+.step-item.active .step-label { color: white; }
+.step-item.done .step-label { color: rgba(255,255,255,0.8); }
+
+.step-line {
+  flex: 1;
+  height: 2px;
+  background: rgba(255,255,255,0.3);
+  margin-bottom: 18px;
+  min-width: 20px;
+}
+
+/* ---- Pasos ---- */
+.paso { display: none; }
+.paso.active { display: block; animation: fadeInUp 0.3s ease; }
+@keyframes fadeInUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+/* ---- Modalidad cards ---- */
+.modalidad-card {
+  border: 2px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+  background: white;
+}
+.modalidad-card:hover {
+  border-color: #6366f1;
+  box-shadow: 0 4px 16px rgba(99,102,241,0.15);
+  transform: translateY(-2px);
+}
+.modalidad-card.selected {
+  border-color: #1e3a8a;
+  background: #eff6ff;
+  box-shadow: 0 4px 16px rgba(30,58,138,0.15);
+}
+.modalidad-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  margin: 0 auto 12px;
+}
+
+/* ---- Programa card ---- */
+.programa-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: white;
+}
+.programa-item:hover { border-color: #6366f1; background: #f5f3ff; }
+.programa-item.selected { border-color: #1e3a8a; background: #eff6ff; }
+.programa-dot {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+/* ---- Semestre cards ---- */
+.semestre-card {
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  text-align: center;
+  background: white;
+  transition: all 0.2s;
+}
+.semestre-card:hover { border-color: #10b981; transform: translateY(-2px); }
+.semestre-card.selected { border-color: #059669; background: #f0fdf4; }
+.semestre-card .sem-num {
+  font-size: 28px;
+  font-weight: 900;
+  color: #1e293b;
+  line-height: 1;
+}
+.semestre-card .sem-label { font-size: 11px; color: #64748b; margin-top: 4px; font-weight: 600; }
+
+/* ---- Materia row ---- */
+.materia-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.15s;
+}
+.materia-row:last-child { border-bottom: none; }
+.materia-row:hover { background: #f8fafc; }
+.materia-row.blocked { opacity: 0.5; pointer-events: none; }
+.materia-row.selected { background: #eff6ff; }
+
+.mat-check {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 2px solid #cbd5e1;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: transparent;
+  font-size: 12px;
+}
+.mat-check:hover { border-color: #6366f1; }
+.mat-check.checked { background: #1e3a8a; border-color: #1e3a8a; color: white; }
+
+.mat-tipo {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+.mat-basica { background: #dbeafe; color: #1d4ed8; }
+.mat-profesional { background: #ede9fe; color: #6d28d9; }
+.mat-electiva { background: #dcfce7; color: #15803d; }
+.mat-humanidades { background: #fef9c3; color: #854d0e; }
+
+.mat-estado-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+.mat-disponible { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+.mat-cursada { background: #f0fdf4; color: #059669; }
+.mat-habilitada { background: #fef9c3; color: #854d0e; }
+.mat-bloqueada { background: #fee2e2; color: #b91c1c; }
+
+/* ---- Cart item ---- */
+.cart-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  transition: background 0.15s;
+}
+.cart-item:hover { background: #f8fafc; }
+.cart-remove {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: none;
+  background: #fee2e2;
+  color: #b91c1c;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.cart-remove:hover { background: #fecaca; }
+
+/* ---- Resumen confirm ---- */
+.confirm-section {
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.confirm-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 13.5px;
+}
+.confirm-row:last-child { border-bottom: none; }
