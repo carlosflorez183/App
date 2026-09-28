@@ -347,6 +347,10 @@ select.form-control { appearance:auto; }
 .particle-2 { width:200px;height:200px;background:#818cf8;bottom:40px;right:-60px;animation-delay:2s; }
 .particle-3 { width:140px;height:140px;background:#34d399;top:40%;left:62%;animation-delay:4s; }
 .particle-4 { width:100px;height:100px;background:#f472b6;top:62%;left:8%;animation-delay:6s; }
+.p1 { animation-delay:0s; }
+.p2 { animation-delay:2s; }
+.p3 { animation-delay:4s; }
+.p4 { animation-delay:6s; }
 @keyframes float { 0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(-18px) scale(1.04)} }
 
 /* Input con icono */

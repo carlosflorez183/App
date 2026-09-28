@@ -1,15 +1,20 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { menuForRole, NAV_SEC_STYLE } from '../config/navMenu';
 
 export default function Sidebar({ currentView, currentTab, onNavigate, isOpen, onClose }) {
   const { user, logout, roleLabels } = useAuth();
   const navigate = useNavigate();
+  const { pathname, search } = useLocation();
 
   if (!user) return null;
 
-  const isEst = user.role === 'estudiante';
-  const isProf = user.role === 'profesor';
+  const isRouteActive = (item) => {
+    if (pathname !== item.to) return false;
+    if (!item.tab) return !search;
+    return new URLSearchParams(search).get('tab') === item.tab;
+  };
 
   const isItemActive = (view, tab) => {
     if (tab) {
@@ -109,133 +114,35 @@ export default function Sidebar({ currentView, currentTab, onNavigate, isOpen, o
           </div>
         </div>
 
-        {/* Menú de Navegación idéntico al original */}
+        {/* Menú de navegación dirigido por rol (src/config/navMenu.js) */}
         <nav className="sidebar-nav" style={{ flex: 1, padding: '10px 0' }}>
-          {/* PRINCIPAL */}
-          <div className="nav-sec" style={{ padding: '8px 20px 3px', color: 'rgba(255,255,255,.4)', fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>
-            PRINCIPAL
-          </div>
-          <div
-            className={`nav-item ${isItemActive('home') ? 'active' : ''}`}
-            onClick={() => { onNavigate('home'); onClose(); }}
-          >
-            <span className="ni">🏠</span>
-            <span>Inicio</span>
-          </div>
-
-          {/* ACADÉMICO */}
-          <div className="nav-sec" style={{ padding: '8px 20px 3px', color: 'rgba(255,255,255,.4)', fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginTop: 10 }}>
-            ACADÉMICO
-          </div>
-          {isEst && (
-            <>
-              <div
-                className={`nav-item ${isItemActive('academico', 'notas') ? 'active' : ''}`}
-                onClick={() => { onNavigate('academico', 'notas'); onClose(); }}
-              >
-                <span className="ni">⭐</span>
-                <span>Mis Notas</span>
+          {menuForRole(user.role).map((sec) => (
+            <div key={sec.section}>
+              <div className="nav-sec" style={{ ...NAV_SEC_STYLE, marginTop: 10 }}>
+                {sec.section.toUpperCase()}
               </div>
-              <div
-                className={`nav-item ${isItemActive('academico', 'certificados') ? 'active' : ''}`}
-                onClick={() => { onNavigate('academico', 'certificados'); onClose(); }}
-              >
-                <span className="ni">📜</span>
-                <span>Certificados</span>
-              </div>
-              <div
-                className={`nav-item ${isItemActive('academico', 'pagos') ? 'active' : ''}`}
-                onClick={() => { onNavigate('academico', 'pagos'); onClose(); }}
-              >
-                <span className="ni">💳</span>
-                <span>Pagos / Volante</span>
-              </div>
-              <div
-                className={`nav-item ${isItemActive('academico', 'horario') ? 'active' : ''}`}
-                onClick={() => { onNavigate('academico', 'horario'); onClose(); }}
-              >
-                <span className="ni">📅</span>
-                <span>Mi Horario</span>
-              </div>
-            </>
-          )}
-
-          {isProf && (
-            <>
-              <div
-                className={`nav-item ${isItemActive('academico', 'registro_notas') ? 'active' : ''}`}
-                onClick={() => { onNavigate('academico', 'registro_notas'); onClose(); }}
-              >
-                <span className="ni">⭐</span>
-                <span>Registro Notas</span>
-              </div>
-              <div
-                className={`nav-item ${isItemActive('academico', 'notas') ? 'active' : ''}`}
-                onClick={() => { onNavigate('academico', 'notas'); onClose(); }}
-              >
-                <span className="ni">📋</span>
-                <span>Ver Notas</span>
-              </div>
-              <div
-                className={`nav-item ${isItemActive('academico', 'certificados') ? 'active' : ''}`}
-                onClick={() => { onNavigate('academico', 'certificados'); onClose(); }}
-              >
-                <span className="ni">📜</span>
-                <span>Certificados</span>
-              </div>
-            </>
-          )}
-
-          {/* CAMPUS VIRTUAL */}
-          <div className="nav-sec" style={{ padding: '8px 20px 3px', color: 'rgba(255,255,255,.4)', fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginTop: 10 }}>
-            CAMPUS VIRTUAL
-          </div>
-          <div
-            className={`nav-item ${isItemActive('lms', 'cursos') ? 'active' : ''}`}
-            onClick={() => { onNavigate('lms', 'cursos'); onClose(); }}
-          >
-            <span className="ni">📚</span>
-            <span>Mis Cursos</span>
-          </div>
-          <div
-            className={`nav-item ${isItemActive('lms', 'tareas') ? 'active' : ''}`}
-            onClick={() => { onNavigate('lms', 'tareas'); onClose(); }}
-          >
-            <span className="ni">✅</span>
-            <span>Tareas</span>
-            <span className="nb">2</span>
-          </div>
-          <div
-            className={`nav-item ${isItemActive('lms', 'recursos') ? 'active' : ''}`}
-            onClick={() => { onNavigate('lms', 'recursos'); onClose(); }}
-          >
-            <span className="ni">📁</span>
-            <span>Recursos</span>
-          </div>
-
-          {/* MATRÍCULA */}
-          <div className="nav-sec" style={{ padding: '8px 20px 3px', color: 'rgba(255,255,255,.4)', fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginTop: 10 }}>
-            MATRÍCULA
-          </div>
-          <div
-            className="nav-item"
-            onClick={() => { navigate('/matricula'); onClose(); }}
-          >
-            <span className="ni">📝</span>
-            <span>Matricular Materias</span>
-          </div>
-
-          {/* PERSONAL */}
-          <div className="nav-sec" style={{ padding: '8px 20px 3px', color: 'rgba(255,255,255,.4)', fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginTop: 10 }}>
-            PERSONAL
-          </div>
-          <div
-            className={`nav-item ${isItemActive('perfil') ? 'active' : ''}`}
-            onClick={() => { onNavigate('perfil'); onClose(); }}
-          >
-            <span className="ni">👤</span>
-            <span>Mi Perfil</span>
-          </div>
+              {sec.items.map((item) => {
+                const active = item.kind === 'view'
+                  ? isItemActive(item.view, item.tab)
+                  : isRouteActive(item);
+                return (
+                  <div
+                    key={item.key}
+                    className={`nav-item ${active ? 'active' : ''}`}
+                    onClick={() => {
+                      if (item.kind === 'view') onNavigate(item.view, item.tab);
+                      else navigate(`${item.to}${item.tab ? `?tab=${item.tab}` : ''}`);
+                      onClose();
+                    }}
+                  >
+                    <span className="ni">{item.icon}</span>
+                    <span>{item.label}</span>
+                    {item.badge ? <span className="nb">{item.badge}</span> : null}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         {/* Footer Cerrar Sesión */}

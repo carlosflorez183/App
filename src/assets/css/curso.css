@@ -217,6 +217,83 @@
 .av-red { background: linear-gradient(135deg, #dc2626, #f87171) !important; }
 .av-yellow { background: linear-gradient(135deg, #d97706, #fbbf24) !important; }
 
+/* ── Asistencia ── */
+.asist-tbl { width: 100%; border-collapse: collapse; }
+.asist-tbl th {
+  background: #f8fafc;
+  padding: 9px 12px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  border-bottom: 1px solid #e2e8f0;
+}
+.asist-tbl td { padding: 10px 12px; font-size: 13px; border-bottom: 1px solid #f1f5f9; }
+.asist-tbl tr:last-child td { border-bottom: none; }
+.a-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.a-p { background: #dcfce7; color: #15803d; }
+.a-a { background: #fee2e2; color: #b91c1c; }
+.a-t { background: #fef9c3; color: #854d0e; }
+.a-n { background: #f1f5f9; color: #94a3b8; }
+
+/* ── Fecha chip ── */
+.f-chip {
+  padding: 4px 14px;
+  border-radius: 20px;
+  border: 1.5px solid #e2e8f0;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: #64748b;
+}
+.f-chip.active { background: #1e3a8a; border-color: #1e3a8a; color: #fff; }
+
+/* ── Estudiante row ── */
+.est-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background .12s;
+}
+.est-row:last-child { border-bottom: none; }
+.est-row:hover { background: #f8fafc; }
+.est-av {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+/* ── Recurso item ── */
+.res-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background .12s;
+}
+.res-row:hover { background: #f8fafc; }
+
 @media (max-width: 768px) {
   .hero-stats { grid-template-columns: repeat(3, 1fr); }
   .hero-top { flex-direction: column; }

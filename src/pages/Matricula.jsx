@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { INITIAL_DATA, formatCurrency } from '../data/mockData';
 
-export default function Matricula() {
+export default function Matricula({ readOnly = false }) {
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -30,7 +30,7 @@ export default function Matricula() {
     (acc, m) => acc + m.creditos,
     0
   );
-  const maxCreditos = 18;
+  const maxCreditos = 23;
 
   const toggleMateria = (materia) => {
     if (materia.estado === 'cursada' || materia.estado === 'bloqueada') return;
@@ -44,6 +44,24 @@ export default function Matricula() {
       }
       setSeleccionadas([...seleccionadas, materia.id]);
     }
+  };
+
+  // Al cambiar de modalidad, el programa y las materias elegidas dejarian de
+  // corresponder, asi que se resincronizan con la nueva modalidad.
+  const selectModalidad = (m) => {
+    setModalidad(m);
+    if (modalidad?.id === m.id) return;
+    const primero = INITIAL_DATA.matricula.programas.find((p) => p.modalidadId === m.id);
+    if (primero) setPrograma(primero);
+    setSeleccionadas([]);
+  };
+
+  // Las materias cargadas pertenecen a un solo programa: al cambiar de
+  // programa se limpia la seleccion para no arrastrar asignaturas ajenas.
+  const selectPrograma = (p) => {
+    setPrograma(p);
+    if (programa?.id === p.id) return;
+    setSeleccionadas([]);
   };
 
   const pasosList = [
@@ -94,10 +112,14 @@ export default function Matricula() {
           </button>
           <div style={{ width: 1, height: 18, background: '#cbd5e1' }} />
           <span style={{ fontSize: 13, fontWeight: 700, color: '#1e293b' }}>
-            Proceso de Matrícula Académica 2026-2
+            {readOnly ? 'Consulta de Plan de Estudios' : 'Proceso de Matrícula Académica 2026-2'}
           </span>
           <div style={{ marginLeft: 'auto', fontSize: 12, color: '#64748b' }}>
-            Estudiante: <strong>{user?.name}</strong> ({user?.code})
+            {readOnly ? (
+              <>Consulta: <strong>{user?.name}</strong> ({user?.code})</>
+            ) : (
+              <>Estudiante: <strong>{user?.name}</strong> ({user?.code})</>
+            )}
           </div>
         </div>
       </header>
@@ -110,23 +132,35 @@ export default function Matricula() {
               <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', margin: 0 }}>Portal de Autogestión</p>
               <h2 style={{ fontSize: 24, fontWeight: 900, margin: '4px 0' }}>Matrícula en Línea</h2>
               <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', margin: 0 }}>
-                {programa?.nombre} — Semestre {semestre}
+                {readOnly
+                  ? 'Consulta de plan de estudios — no modifica la matrícula del estudiante'
+                  : `${programa?.nombre} — Semestre ${semestre}`}
               </p>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ background: 'rgba(255,255,255,0.18)', borderRadius: 12, padding: '8px 18px', textAlign: 'center' }}>
-                <div style={{ fontSize: 22, fontWeight: 900 }}>{creditosSeleccionados} / {maxCreditos}</div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.8)' }}>Créditos Seleccionados</div>
-              </div>
-              <div style={{ background: 'rgba(255,255,255,0.18)', borderRadius: 12, padding: '8px 18px', textAlign: 'center' }}>
-                <div style={{ fontSize: 22, fontWeight: 900 }}>{seleccionadas.length}</div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.8)' }}>Materias</div>
-              </div>
+              {readOnly ? (
+                <div style={{ background: 'rgba(255,255,255,0.18)', borderRadius: 12, padding: '8px 18px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 22, fontWeight: 900 }}>{materiasDisponibles.length}</div>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.8)' }}>Asignaturas del semestre</div>
+                </div>
+              ) : (
+                <>
+                  <div style={{ background: 'rgba(255,255,255,0.18)', borderRadius: 12, padding: '8px 18px', textAlign: 'center' }}>
+                    <div style={{ fontSize: 22, fontWeight: 900 }}>{creditosSeleccionados} / {maxCreditos}</div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.8)' }}>Créditos Seleccionados</div>
+                  </div>
+                  <div style={{ background: 'rgba(255,255,255,0.18)', borderRadius: 12, padding: '8px 18px', textAlign: 'center' }}>
+                    <div style={{ fontSize: 22, fontWeight: 900 }}>{seleccionadas.length}</div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.8)' }}>Materias</div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
           {/* Barra de progreso de pasos */}
+          {!readOnly && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 24 }}>
             {pasosList.map((p, idx) => {
               const isDone = paso > p.num;
@@ -169,24 +203,83 @@ export default function Matricula() {
               );
             })}
           </div>
+          )}
         </div>
       </div>
 
       {/* Contenedor del contenido del paso */}
       <div style={{ maxWidth: 1200, margin: '24px auto', padding: '0 20px' }}>
+        {readOnly && (
+          <div className="fade-in">
+            <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 18, marginBottom: 16, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b' }}>Programa:</span>
+              <select
+                value={programa?.id || ''}
+                onChange={(e) => {
+                  setPrograma(INITIAL_DATA.matricula.programas.find((p) => p.id === Number(e.target.value)));
+                  setSemestre(1);
+                }}
+                style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13 }}
+              >
+                {INITIAL_DATA.matricula.programas.map((p) => (
+                  <option key={p.id} value={p.id}>{p.icon} {p.nombre}</option>
+                ))}
+              </select>
+              <span style={{ fontSize: 11, color: '#94a3b8' }}>
+                Plan de estudios completo. La matrícula la realiza el estudiante en su portal.
+              </span>
+            </div>
+
+            {Array.from({ length: programa?.semestres || 10 }, (_, i) => i + 1).map((s) => {
+              const ms = INITIAL_DATA.matricula.materias.filter((m) => m.programaId === programa?.id && m.semestre === s);
+              if (ms.length === 0) return null;
+              return (
+                <div key={s} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 18, marginBottom: 12 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+                    <span style={{ fontWeight: 800, fontSize: 15 }}>Semestre {s}</span>
+                    <span style={{ fontSize: 12, color: '#64748b', fontWeight: 700 }}>
+                      {ms.length} asignaturas · {ms.reduce((a, m) => a + m.creditos, 0)} créditos
+                    </span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 8 }}>
+                    {ms.map((m) => (
+                      <div key={m.id} style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: '10px 12px' }}>
+                        <div style={{ fontSize: 11, color: '#1e3a8a', fontWeight: 800 }}>{m.codigo}</div>
+                        <div style={{ fontSize: 13, color: '#1e293b', fontWeight: 600 }}>{m.nombre}</div>
+                        <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 3 }}>
+                          {m.creditos} cr · {m.area} · {m.profesor}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {!readOnly && (
+        <>
         {/* ========================================================= */}
         {/* PASO 0: MODALIDAD                                         */}
         {/* ========================================================= */}
         {paso === 0 && (
           <div className="fade-in">
             <h3 style={{ fontSize: 18, fontWeight: 800, color: '#1e293b', marginBottom: 6 }}>1. Selecciona el Nivel de Formación</h3>
-            <p style={{ fontSize: 13, color: '#64748b', marginBottom: 20 }}>Elige la modalidad académica correspondiente a tu plan curricular</p>
+            <p style={{ fontSize: 13, color: '#64748b', marginBottom: 6 }}>Elige la modalidad académica correspondiente a tu plan curricular</p>
+            <p style={{ fontSize: 12, color: '#2563eb', marginBottom: 20, fontWeight: 600 }}>
+              Haz doble clic en la modalidad para seleccionarla y continuar al programa.
+            </p>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
               {INITIAL_DATA.matricula.modalidades.map((m) => (
                 <div
                   key={m.id}
-                  onClick={() => setModalidad(m)}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => selectModalidad(m)}
+                  onDoubleClick={() => { selectModalidad(m); setPaso(1); }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); selectModalidad(m); } }}
                   style={{
                     background: '#fff',
                     borderRadius: 16,
@@ -194,6 +287,7 @@ export default function Matricula() {
                     border: `2px solid ${modalidad?.id === m.id ? '#2563eb' : '#e2e8f0'}`,
                     boxShadow: modalidad?.id === m.id ? '0 8px 24px rgba(37,99,235,0.12)' : '0 1px 3px rgba(0,0,0,0.05)',
                     cursor: 'pointer',
+                    userSelect: 'none',
                     transition: 'all 0.15s'
                   }}
                 >
@@ -206,24 +300,6 @@ export default function Matricula() {
                 </div>
               ))}
             </div>
-
-            <div style={{ marginTop: 24, display: 'flex', justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => setPaso(1)}
-                style={{
-                  background: '#1e3a8a',
-                  color: '#fff',
-                  border: 'none',
-                  padding: '12px 24px',
-                  borderRadius: 10,
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: 'pointer'
-                }}
-              >
-                Continuar a Programa →
-              </button>
-            </div>
           </div>
         )}
 
@@ -233,20 +309,29 @@ export default function Matricula() {
         {paso === 1 && (
           <div className="fade-in">
             <h3 style={{ fontSize: 18, fontWeight: 800, color: '#1e293b', marginBottom: 6 }}>2. Selecciona tu Programa Académico</h3>
-            <p style={{ fontSize: 13, color: '#64748b', marginBottom: 20 }}>Mostrando carreras en la modalidad: <strong>{modalidad.nombre}</strong></p>
+            <p style={{ fontSize: 13, color: '#64748b', marginBottom: 6 }}>Mostrando carreras en la modalidad: <strong>{modalidad.nombre}</strong></p>
+            <p style={{ fontSize: 12, color: '#2563eb', marginBottom: 20, fontWeight: 600 }}>
+              Haz doble clic en el programa para seleccionarlo y continuar a las materias.
+            </p>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
               {programasFiltrados.map((p) => (
                 <div
                   key={p.id}
-                  onClick={() => setPrograma(p)}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => selectPrograma(p)}
+                  onDoubleClick={() => { selectPrograma(p); setPaso(2); }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); selectPrograma(p); } }}
                   style={{
                     background: '#fff',
                     borderRadius: 16,
                     padding: 20,
                     border: `2px solid ${programa?.id === p.id ? '#2563eb' : '#e2e8f0'}`,
                     boxShadow: programa?.id === p.id ? '0 8px 24px rgba(37,99,235,0.12)' : '0 1px 3px rgba(0,0,0,0.05)',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                    transition: 'all 0.15s'
                   }}
                 >
                   <div style={{ fontSize: 32, marginBottom: 8 }}>{p.icon}</div>
@@ -264,18 +349,12 @@ export default function Matricula() {
               ))}
             </div>
 
-            <div style={{ marginTop: 24, display: 'flex', justifyContent: 'space-between' }}>
+            <div style={{ marginTop: 24, display: 'flex', justifyContent: 'flex-start' }}>
               <button
                 onClick={() => setPaso(0)}
                 style={{ background: '#fff', border: '1px solid #cbd5e1', padding: '12px 20px', borderRadius: 10, fontWeight: 700, cursor: 'pointer' }}
               >
                 ← Atrás
-              </button>
-              <button
-                onClick={() => setPaso(2)}
-                style={{ background: '#1e3a8a', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: 10, fontWeight: 700, cursor: 'pointer' }}
-              >
-                Continuar a Selección de Materias →
               </button>
             </div>
           </div>
@@ -293,9 +372,9 @@ export default function Matricula() {
               </div>
 
               {/* Selector de Semestre */}
-              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b' }}>Semestre:</span>
-                {[1, 2, 6, 7].map((s) => (
+                {Array.from({ length: programa?.semestres || 10 }, (_, i) => i + 1).map((s) => (
                   <button
                     key={s}
                     onClick={() => setSemestre(s)}
@@ -539,6 +618,8 @@ export default function Matricula() {
               )}
             </div>
           </div>
+        )}
+        </>
         )}
       </div>
     </div>

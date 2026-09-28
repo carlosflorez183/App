@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 
-export default function Topbar({ title, subtitle, onToggleSidebar, notifications, onMarkNotifRead }) {
+export default function Topbar({ title, subtitle, onNavigate, onToggleSidebar, notifications, onMarkNotifRead, onOpenNotif }) {
   const { user } = useAuth();
   const [showNotifs, setShowNotifs] = useState(false);
   const [searchVal, setSearchVal] = useState('');
@@ -16,6 +16,16 @@ export default function Topbar({ title, subtitle, onToggleSidebar, notifications
       </div>
 
       <div className="tb-actions">
+        {/* Menú lateral en móvil */}
+        <button
+          type="button"
+          className="ic-btn tb-burger"
+          onClick={onToggleSidebar}
+          aria-label="Abrir menú de navegación"
+        >
+          ☰
+        </button>
+
         {/* Barra de búsqueda clásica */}
         <div className="tb-search">
           <span style={{ fontSize: 13, color: '#64748b' }}>🔍</span>
@@ -43,11 +53,16 @@ export default function Topbar({ title, subtitle, onToggleSidebar, notifications
               <div style={{ maxHeight: 280, overflowY: 'auto' }}>
                 {notifications && notifications.length > 0 ? (
                   notifications.map((n) => (
-                    <div
+                    <button
                       key={n.id}
+                      type="button"
                       className="notif-item"
-                      onClick={() => onMarkNotifRead && onMarkNotifRead(n.id)}
-                      style={{ cursor: 'pointer', background: n.leida ? '#fff' : '#f0f9ff' }}
+                      onClick={() => {
+                        if (onMarkNotifRead) onMarkNotifRead(n.id);
+                        if (onOpenNotif) onOpenNotif(n);
+                        setShowNotifs(false);
+                      }}
+                      style={{ cursor: 'pointer', background: n.leida ? '#fff' : '#f0f9ff', width: '100%', textAlign: 'left', border: 'none', fontFamily: 'inherit' }}
                     >
                       <div
                         className="notif-ic"
@@ -61,7 +76,7 @@ export default function Topbar({ title, subtitle, onToggleSidebar, notifications
                         <small>{n.tiempo}</small>
                       </div>
                       {!n.leida && <div className="notif-dot" />}
-                    </div>
+                    </button>
                   ))
                 ) : (
                   <div style={{ padding: 18, textAlign: 'center', color: '#94a3b8', fontSize: 12 }}>
@@ -73,16 +88,21 @@ export default function Topbar({ title, subtitle, onToggleSidebar, notifications
           )}
         </div>
 
-        {/* Tarjeta de usuario */}
-        <div className="tb-user">
+        {/* Tarjeta de usuario — clicable: lleva a Mi Perfil */}
+        <button
+          type="button"
+          className="tb-user"
+          onClick={() => onNavigate && onNavigate('perfil')}
+          title="Ver mi perfil"
+          aria-label={`Ver mi perfil — ${user?.name || 'usuario'}`}
+        >
           <div className={`tb-av ${user?.avatarClass || 'av-blue'}`}>
             {user?.avatar || 'CA'}
           </div>
           <span className="tb-name">
             {user?.name ? user.name.split(' ')[0] : 'Carlos'}
           </span>
-          <span style={{ fontSize: 10, color: '#94a3b8' }}>▾</span>
-        </div>
+        </button>
       </div>
     </div>
   );

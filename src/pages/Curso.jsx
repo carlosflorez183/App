@@ -13,9 +13,7 @@ export default function Curso() {
   const cursoInfo = INITIAL_DATA.cursos_info[curso.id] || { programa: 'Ing. de Sistemas', semestre: 6 };
 
   const [activeTab, setActiveTab] = useState('inicio');
-  const [actividades, setActividades] = useState(
-    INITIAL_DATA.actividades.filter((a) => a.cursoId === curso.id)
-  );
+  const actividades = INITIAL_DATA.actividades.filter((a) => a.cursoId === curso.id);
   const anuncios = INITIAL_DATA.anuncios.filter((a) => a.cursoId === curso.id);
 
   const pendientesCount = actividades.filter((a) => a.estado_est === 'pendiente').length;

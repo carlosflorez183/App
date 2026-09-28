@@ -5,11 +5,21 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Matricula from './pages/Matricula';
 import Curso from './pages/Curso';
+import Admin from './pages/Admin';
+import Admisiones from './pages/Admisiones';
+import Docente from './pages/Docente';
+import Rectoria from './pages/Rectoria';
+import TalentoHumano from './pages/TalentoHumano';
+import Contabilidad from './pages/Contabilidad';
 
-function ProtectedRoute({ children }) {
+// Sin sesión: al login. Con sesión pero sin el rol permitido: al dashboard.
+function ProtectedRoute({ children, roles }) {
   const { user } = useAuth();
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+  if (roles && !roles.includes(user.role)) {
+    return <Navigate to="/dashboard" replace />;
   }
   return children;
 }
@@ -19,6 +29,15 @@ function RootRedirect() {
   return <Navigate to={user ? "/dashboard" : "/login"} replace />;
 }
 
+// Cualquier rol autenticado puede consultar el plan de estudios, en modo lectura.
+function ConsultaPensum() {
+  return (
+    <ProtectedRoute>
+      <Matricula readOnly />
+    </ProtectedRoute>
+  );
+}
+
 export default function App() {
   return (
     <AuthProvider>
@@ -26,7 +45,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<RootRedirect />} />
           <Route path="/login" element={<Login />} />
-          
+
           <Route
             path="/dashboard"
             element={
@@ -35,19 +54,73 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Solo el estudiante puede ejecutar el proceso de matrícula. */}
           <Route
             path="/matricula"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute roles={['estudiante']}>
                 <Matricula />
               </ProtectedRoute>
             }
           />
+
+          <Route path="/pensum" element={<ConsultaPensum />} />
+
           <Route
             path="/curso/:id"
             element={
               <ProtectedRoute>
                 <Curso />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute roles={['admin']}>
+                <Admin />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admisiones"
+            element={
+              <ProtectedRoute roles={['admin', 'admisiones']}>
+                <Admisiones />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/docente"
+            element={
+              <ProtectedRoute roles={['profesor']}>
+                <Docente />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/rectoria"
+            element={
+              <ProtectedRoute roles={['rectoria']}>
+                <Rectoria />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/talento-humano"
+            element={
+              <ProtectedRoute roles={['talento_humano']}>
+                <TalentoHumano />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/contabilidad"
+            element={
+              <ProtectedRoute roles={['contabilidad']}>
+                <Contabilidad />
               </ProtectedRoute>
             }
           />

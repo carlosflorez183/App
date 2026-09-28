@@ -42,6 +42,7 @@ export default function Login() {
     { key: 'RECTOR', label: 'Rectoría', badge: 'RECTOR / rector123', color: '#ef4444' },
     { key: 'TALENTO', label: 'Talento Humano', badge: 'TALENTO / 123456', color: '#f59e0b' },
     { key: 'CONTA', label: 'Contabilidad', badge: 'CONTA / 123456', color: '#06b6d4' },
+  { key: 'ADMI', label: 'Admisiones', badge: 'ADMI / 123456', color: '#a855f7' },
   ];
 
   return (
