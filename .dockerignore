@@ -1,0 +1,26 @@
+node_modules
+dist
+dist-ssr
+.git
+.gitignore
+.github
+
+# Solo se necesitan en la etapa de build del Dockerfile
+smoke.html
+src/smoke.jsx
+scripts/
+docker-compose.yml
+
+# Dockerfile, .dockerignore y nginx.conf si se necesitan en la imagen
+
+# Documentos y configs que no afectan al build
+*.log
+npm-debug.log*
+.vscode
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

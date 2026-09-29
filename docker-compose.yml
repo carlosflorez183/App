@@ -1,0 +1,10 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: uni-plataforma
+    container_name: uni-plataforma
+    ports:
+      - "8080:80"
+    restart: unless-stopped
