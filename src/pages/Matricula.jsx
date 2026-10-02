@@ -1,28 +1,38 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { INITIAL_DATA, formatCurrency } from '../data/mockData';
+import { formatCurrency } from '../data/mockData';
+import { usePersistentData } from '../hooks/usePersistentData';
 
 export default function Matricula({ readOnly = false }) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  // Plan de estudios desde el estado compartido (API con respaldo al mock).
+  const [data] = usePersistentData();
 
   const [paso, setPaso] = useState(0);
-  const [modalidad, setModalidad] = useState(INITIAL_DATA.matricula.modalidades[0]);
-  const [programa, setPrograma] = useState(INITIAL_DATA.matricula.programas[0]);
+  const [modalidad, setModalidad] = useState(data.matricula.modalidades[0]);
+  const [programa, setPrograma] = useState(data.matricula.programas[0]);
   const [semestre, setSemestre] = useState(6);
-  const [seleccionadas, setSeleccionadas] = useState([602, 603]); // IS-305 y IS-310 por defecto
+  // Preselecciona dos materias disponibles del semestre por defecto. Se deriva
+  // del plan para no depender de ids fijos (el mock y la base numeran distinto).
+  const [seleccionadas, setSeleccionadas] = useState(() =>
+    data.matricula.materias
+      .filter((m) => m.programaId === programa?.id && m.semestre === 6 && m.estado === 'disponible')
+      .slice(0, 2)
+      .map((m) => m.id)
+  );
   const [matriculaFinalizada, setMatriculaFinalizada] = useState(false);
 
-  const programasFiltrados = INITIAL_DATA.matricula.programas.filter(
+  const programasFiltrados = data.matricula.programas.filter(
     (p) => p.modalidadId === modalidad?.id
   );
 
-  const materiasDisponibles = INITIAL_DATA.matricula.materias.filter(
+  const materiasDisponibles = data.matricula.materias.filter(
     (m) => m.programaId === programa?.id && m.semestre === semestre
   );
 
-  const materiasSeleccionadasObj = INITIAL_DATA.matricula.materias.filter((m) =>
+  const materiasSeleccionadasObj = data.matricula.materias.filter((m) =>
     seleccionadas.includes(m.id)
   );
 
@@ -51,7 +61,7 @@ export default function Matricula({ readOnly = false }) {
   const selectModalidad = (m) => {
     setModalidad(m);
     if (modalidad?.id === m.id) return;
-    const primero = INITIAL_DATA.matricula.programas.find((p) => p.modalidadId === m.id);
+    const primero = data.matricula.programas.find((p) => p.modalidadId === m.id);
     if (primero) setPrograma(primero);
     setSeleccionadas([]);
   };
@@ -216,12 +226,12 @@ export default function Matricula({ readOnly = false }) {
               <select
                 value={programa?.id || ''}
                 onChange={(e) => {
-                  setPrograma(INITIAL_DATA.matricula.programas.find((p) => p.id === Number(e.target.value)));
+                  setPrograma(data.matricula.programas.find((p) => p.id === Number(e.target.value)));
                   setSemestre(1);
                 }}
                 style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13 }}
               >
-                {INITIAL_DATA.matricula.programas.map((p) => (
+                {data.matricula.programas.map((p) => (
                   <option key={p.id} value={p.id}>{p.icon} {p.nombre}</option>
                 ))}
               </select>
@@ -231,7 +241,7 @@ export default function Matricula({ readOnly = false }) {
             </div>
 
             {Array.from({ length: programa?.semestres || 10 }, (_, i) => i + 1).map((s) => {
-              const ms = INITIAL_DATA.matricula.materias.filter((m) => m.programaId === programa?.id && m.semestre === s);
+              const ms = data.matricula.materias.filter((m) => m.programaId === programa?.id && m.semestre === s);
               if (ms.length === 0) return null;
               return (
                 <div key={s} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 18, marginBottom: 12 }}>
@@ -272,7 +282,7 @@ export default function Matricula({ readOnly = false }) {
             </p>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
-              {INITIAL_DATA.matricula.modalidades.map((m) => (
+              {data.matricula.modalidades.map((m) => (
                 <div
                   key={m.id}
                   role="button"

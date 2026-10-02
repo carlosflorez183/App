@@ -1,0 +1,646 @@
+// =============================================
+//  UniPlataforma — Esquema de base de datos
+//  PostgreSQL + Prisma
+//
+//  Convenciones:
+//  - Los campos de estado se guardan como String (no enum) para que agregar un
+//    valor nuevo sea un simple UPDATE y no una migración.
+//  - El dinero usa Float. Los valores del demo (millones de COP) están muy por
+//    debajo del límite exacto de 2^53, así que no hay error de redondeo.
+// =============================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Usuarios de la plataforma. `role` gobierna qué módulos puede ver.
+model Usuario {
+  id          Int      @id @default(autoincrement())
+  usuario     String   @unique
+  password    String
+  nombre      String
+  role        String
+  codigo      String?
+  email       String?
+  telefono    String?
+  direccion   String?
+  programaId  Int?
+  semestre    String?
+  avatar      String?
+  avatarClass String?
+  activo      Boolean  @default(true)
+  creadoEn    DateTime @default(now())
+
+  programa      Programa? @relation(fields: [programaId], references: [id])
+  estudiante    Estudiante?
+  docente       Docente?
+
+  @@index([role])
+  @@map("usuarios")
+}
+
+/// Nivel de formación: Pregrado, Posgrado, Tecnología.
+model Modalidad {
+  id          Int     @id @default(autoincrement())
+  nombre      String  @unique
+  descripcion String?
+  icon        String?
+  bgClass     String?
+
+  programas Programa[]
+
+  @@map("modalidades")
+}
+
+/// Programa académico. `snies` es el código oficial ante el MEN.
+model Programa {
+  id           Int     @id @default(autoincrement())
+  modalidadId  Int
+  nombre       String
+  facultad     String
+  semestres    Int
+  creditos     Int
+  cupo         Int
+  matriculados Int
+  snies        String?
+  jornada      String?
+  icon         String?
+  bgClass      String?
+  fuente       String?
+  activo       Boolean @default(true)
+
+  modalidad Modalidad @relation(fields: [modalidadId], references: [id])
+  materias  Materia[]
+  aspirantes Aspirante[]
+  estudiantes Estudiante[]
+  notas     Nota[]
+  usuarios  Usuario[]
+
+  @@unique([modalidadId, nombre])
+  @@index([modalidadId])
+  @@map("programas")
+}
+
+/// Asignatura de un plan de estudio.
+model Materia {
+  id             Int      @id @default(autoincrement())
+  programaId     Int
+  semestre       Int
+  codigo         String
+  nombre         String
+  area           String?
+  creditos       Int
+  profesor       String?
+  horas          Int?
+  estado         String   @default("disponible")
+  prerrequisitoId Int?
+
+  programa      Programa @relation(fields: [programaId], references: [id], onDelete: Cascade)
+  prerrequisito Materia? @relation("Prerrequisitos", fields: [prerrequisitoId], references: [id])
+  requisitosDe  Materia[] @relation("Prerrequisitos")
+  horarios      Horario[]
+
+  @@unique([programaId, codigo])
+  @@index([programaId, semestre])
+  @@map("materias")
+}
+
+/// Horario de una asignatura (varios por materia).
+model Horario {
+  id      Int    @id @default(autoincrement())
+  materiaId Int
+  dia     String
+  bloque  String
+
+  materia Materia @relation(fields: [materiaId], references: [id], onDelete: Cascade)
+
+  @@index([materiaId])
+  @@map("horarios")
+}
+
+/// Periodo del proceso de admisión.
+model ProcesoAdmision {
+  id               Int     @id @default(autoincrement())
+  nombre           String  @unique
+  fechaApertura    DateTime?
+  fechaCierre      DateTime?
+  fechaResultados  DateTime?
+  fechaInscripcion DateTime?
+  cuposTotales     Int
+  estado           String
+  procesoAbierto   Boolean @default(false)
+
+  aspirantes Aspirante[]
+
+  @@map("procesos_admision")
+}
+
+/// Persona que aplica un proceso de admisión.
+model Aspirante {
+  id           Int     @id @default(autoincrement())
+  procesoId    Int
+  programaId   Int
+  nombre       String
+  documento    String  @unique
+  puntajeIcfes Int
+  examen       Int
+  promedio     Float
+  fecha        DateTime
+  estado       String
+  documentos   String
+
+  proceso  ProcesoAdmision @relation(fields: [procesoId], references: [id], onDelete: Cascade)
+  programa Programa        @relation(fields: [programaId], references: [id])
+
+  estudiante Estudiante?
+
+  @@index([procesoId])
+  @@index([programaId])
+  @@index([estado])
+  @@map("aspirantes")
+}
+
+/// Estudiante matriculado. `estado` incluye activo, retirado, graduado,
+/// en_inscripcion, matriculado.
+model Estudiante {
+  id            String  @id
+  nombre        String
+  documento     String  @unique
+  correo        String?
+  telefono      String?
+  direccion     String?
+  programaId    Int
+  semestre      Int
+  jornada       String?
+  promedio      Float
+  estado        String
+  documentos    String
+  fechaIngreso  DateTime
+  aspiranteId   Int?    @unique
+  usuarioId     Int?    @unique
+
+  programa  Programa  @relation(fields: [programaId], references: [id])
+  aspirante Aspirante? @relation(fields: [aspiranteId], references: [id])
+  usuario   Usuario?   @relation(fields: [usuarioId], references: [id])
+  pagos     Pago[]
+  notas     Nota[]
+  certificados CertificadoEmitido[]
+  asistencias AsistenciaRegistro[]
+  entregas  Entrega[]
+  inscripciones Inscripcion[]
+
+  @@index([programaId])
+  @@index([estado])
+  @@map("estudiantes")
+}
+
+/// Concepto cobrado al estudiante. `estado`: pagado, pendiente, vencido.
+model Pago {
+  id           Int     @id @default(autoincrement())
+  estudianteId String
+  concepto     String
+  tipo         String
+  valor        Float
+  fechaLimite  DateTime?
+  fechaPago    DateTime?
+  estado       String
+  referencia   String?
+
+  estudiante Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
+
+  @@index([estudianteId])
+  @@index([estado])
+  @@map("pagos")
+}
+
+/// Materia matriculada con sus notas por corte.
+model Nota {
+  id         Int     @id @default(autoincrement())
+  estudianteId String
+  programaId Int
+  codigo     String
+  nombre     String
+  creditos   Int
+  profesor   String?
+  nota1      Float?
+  nota2      Float?
+  nota3      Float?
+  definitiva Float?
+  estado     String
+  periodo    String
+  /// Cortes que el docente escribio a mano en el registro, separados por coma
+  /// ("1,3"). El resto se calcula con las notas de las entregas ya calificadas
+  /// de ese corte: por eso una nota puesta a mano no se pisa sola.
+  cortesManuales String?
+
+  estudiante Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
+  programa   Programa   @relation(fields: [programaId], references: [id])
+
+  @@unique([estudianteId, periodo, codigo])
+  @@index([estudianteId])
+  @@index([profesor])
+  @@map("notas")
+}
+
+/// Curso del campus virtual.
+model Curso {
+  id          Int     @id @default(autoincrement())
+  nombre      String
+  codigo      String
+  profesor    String
+  docenteId   String?
+  grupo       String
+  estudiantes Int     @default(0)
+  icono       String?
+  color       String?
+  progreso    Int     @default(0)
+
+  docente     Docente? @relation(fields: [docenteId], references: [id])
+  actividades Actividad[]
+  anuncios    Anuncio[]
+  asistencias AsistenciaSesion[]
+  mensajes    ForoMensaje[]
+  inscripciones Inscripcion[]
+
+  @@index([codigo])
+  @@index([docenteId])
+  @@map("cursos")
+}
+
+/// Inscripción de un estudiante a un curso del campus virtual.
+///
+/// Antes `Curso.estudiantes` era un número suelto, sin forma de saber QUIÉN
+/// estaba en cada curso: el registro de notas del docente no tenía una lista
+/// de alumnos de dónde sacar filas. Esta tabla es esa lista.
+/// `estado`: matriculado, retirado.
+model Inscripcion {
+  id           Int      @id @default(autoincrement())
+  estudianteId String
+  cursoId      Int
+  periodo      String   @default("2026-1")
+  estado       String   @default("matriculado")
+  inscritoEn   DateTime @default(now())
+
+  estudiante Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
+  curso      Curso      @relation(fields: [cursoId], references: [id], onDelete: Cascade)
+
+  @@unique([estudianteId, cursoId])
+  @@index([cursoId])
+  @@index([estudianteId])
+  @@map("inscripciones")
+}
+
+/// Entregable de un curso. `estadoEst`: pendiente, entregado, calificado.
+/// `tipo`: taller, proyecto, quiz, informe (del seed) y además
+/// actividad, parcial y foro cuando los crea el docente desde el campus.
+/// `fechaInicio` y `fechaCierre` acotan la ventana en la que se puede
+/// entregar: se abre y se cierra sola, como en Moodle.
+model Actividad {
+  id           Int     @id @default(autoincrement())
+  cursoId      Int
+  corte        Int
+  titulo       String
+  tipo         String
+  fechaEntrega DateTime?
+  fechaInicio  DateTime?
+  fechaCierre  DateTime?
+  descripcion  String?
+  puntos       Int
+  estadoEst    String
+  nota         Float?
+
+  /* Material de apoyo que el docente adjunta al crear la actividad: el
+     enunciado, las diapositivas o la guia que el estudiante debe leer. Se
+     guarda igual que el archivo de la entrega, en base64 dentro del registro. */
+  archivo       String?
+  archivoB64    String?
+  archivoMime   String?
+  archivoTamano Int?
+
+  curso     Curso      @relation(fields: [cursoId], references: [id], onDelete: Cascade)
+  preguntas Pregunta[]
+  entregas  Entrega[]
+
+  @@index([cursoId])
+  @@map("actividades")
+}
+
+/// Pregunta de un parcial. `opciones` es la lista de respuestas y
+/// `correcta` el índice (base 0) de la buena.
+model Pregunta {
+  id          Int     @id @default(autoincrement())
+  actividadId Int
+  enunciado   String
+  opciones    Json
+  correcta    Int     @default(0)
+  puntos      Int     @default(1)
+
+  actividad Actividad @relation(fields: [actividadId], references: [id], onDelete: Cascade)
+
+  @@index([actividadId])
+  @@map("preguntas")
+}
+
+/// Lo que un estudiante entrega para una actividad o parcial.
+///
+/// `estado`: pendiente, entregado, calificado.
+/// `archivo` guarda el nombre del adjunto subido y `contenido` el texto que
+/// el estudiante escribió cuando la entrega no lleva archivo. `respuestas`
+/// guarda, para un parcial, un objeto { "<preguntaId>": <indice elegido> }.
+model Entrega {
+  id            Int       @id @default(autoincrement())
+  actividadId   Int
+  estudianteId  String
+    estado        String    @default("pendiente")
+    /* `archivo` es el nombre original que ve el docente; `archivoB64` guarda el
+       contenido en base64 para poder descargarlo y abrirlo sin depender de un
+       disco externo. Se recorta a 4 MB en la ruta de entrega. */
+    archivo       String?
+    archivoB64    String?
+    archivoMime   String?
+    archivoTamano Int?
+    contenido     String?
+  respuestas    Json?
+  nota          Float?
+  comentario    String?
+  entregadoEn   DateTime?
+  calificacionEn DateTime?
+
+  actividad  Actividad  @relation(fields: [actividadId], references: [id], onDelete: Cascade)
+  estudiante Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
+
+  @@unique([actividadId, estudianteId])
+  @@index([actividadId])
+  @@index([estudianteId])
+  @@map("entregas")
+}
+
+/// Sesión de asistencia de un curso.
+model AsistenciaSesion {
+  id      Int      @id @default(autoincrement())
+  cursoId Int
+  fecha   DateTime
+  tema    String?
+  estado  String   @default("abierta")
+
+  curso     Curso               @relation(fields: [cursoId], references: [id], onDelete: Cascade)
+  registros AsistenciaRegistro[]
+
+  @@index([cursoId])
+  @@map("asistencias_sesion")
+}
+
+/// Estado de un estudiante en una sesión.
+/// `estado`: presente, tardanza, ausente.
+model AsistenciaRegistro {
+  id              Int     @id @default(autoincrement())
+  sesionId        Int
+  estudianteId    String
+  estado          String  @default("presente")
+  justificacion   String?
+
+  sesion     AsistenciaSesion @relation(fields: [sesionId], references: [id], onDelete: Cascade)
+  estudiante Estudiante       @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
+
+  @@unique([sesionId, estudianteId])
+  @@index([estudianteId])
+  @@map("asistencias_registro")
+}
+
+/// Mensaje de un foro de curso.
+model ForoMensaje {
+  id      Int      @id @default(autoincrement())
+  cursoId Int
+  tema    String
+  autor   String
+  mensaje String
+  fecha   DateTime @default(now())
+
+  curso Curso @relation(fields: [cursoId], references: [id], onDelete: Cascade)
+
+  @@index([cursoId])
+  @@map("foro_mensajes")
+}
+
+/// Anuncio del curso.
+model Anuncio {
+  id        Int     @id @default(autoincrement())
+  cursoId   Int
+  titulo    String
+  contenido String
+  fecha     DateTime
+  autor     String
+
+  curso Curso @relation(fields: [cursoId], references: [id], onDelete: Cascade)
+
+  @@index([cursoId])
+  @@map("anuncios")
+}
+
+/// Certificado a nombre de un estudiante.
+/// `estado`: solicitado, en_proceso, entregado.
+/// `solicitado` distingue el origen:
+///   - con fecha  -> lo pidió el propio alumno (aparece en su bandeja)
+///   - null       -> lo emitió Registro directamente (aparece en el módulo de admisiones)
+model CertificadoEmitido {
+  id           Int       @id @default(autoincrement())
+  estudianteId String
+  matricula    String
+  tipo         String
+  fecha        DateTime?
+  solicitado   DateTime?
+  estado       String
+
+  estudiante Estudiante @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
+
+  @@index([estudianteId])
+  @@index([estado])
+  @@map("certificados_emitidos")
+}
+
+/// Docente. `id` es el código institucional (DOC-0045) y se enlaza con el
+/// usuario del sistema mediante `usuarioId`.
+model Docente {
+  id        String  @id
+  nombre    String
+  area      String?
+  titulo    String?
+  email     String?
+  estado    String  @default("activo")
+  categoria String?
+  usuarioId Int?    @unique
+
+  usuario Usuario? @relation(fields: [usuarioId], references: [id])
+  cursos   Curso[]
+
+  @@index([estado])
+  @@map("docentes")
+}
+
+/// Empleado no docente (administrativo). Alimenta Talento Humano y Contabilidad.
+model Empleado {
+  id          Int     @id @default(autoincrement())
+  nombre      String
+  cargo       String
+  dependencia String
+  tipo        String
+  salario     Float
+  estado      String
+  ingreso     DateTime?
+  documento   String
+
+  @@index([dependencia])
+  @@map("empleados")
+}
+
+/// Movimiento de Tesorería.
+model Movimiento {
+  id       Int     @id @default(autoincrement())
+  concepto String
+  tipo     String
+  valor    Float
+  fecha    DateTime
+  cuenta   String
+
+  @@index([fecha])
+  @@index([tipo])
+  @@map("movimientos")
+}
+
+/// Proyecto de la institución, para el seguimiento de Rectoría.
+model Proyecto {
+  id          Int     @id @default(autoincrement())
+  nombre      String
+  area        String
+  responsable String
+  presupuesto Float
+  ejecutado   Float
+  avance      Int
+  estado      String
+  inicio      DateTime?
+  fin         DateTime?
+
+  @@map("proyectos")
+}
+
+/// Notificación de la campana. `roles` vacío significa "para todos los roles".
+/// `destino` guarda la ruta o vista a la que lleva al hacer clic.
+model Notificacion {
+  id     Int      @id @default(autoincrement())
+  titulo String
+  msg    String
+  tipo   String
+  tiempo String
+  leida  Boolean  @default(false)
+  roles  String[] @default([])
+  destino Json?
+  orden  Int      @default(0)
+
+  @@map("notificaciones")
+}
+
+/// Criterio de ponderación del proceso de admisión.
+model ConfigPonderacion {
+  id         Int     @id @default(autoincrement())
+  clave      String  @unique
+  nombre     String
+  peso       Int
+  obligatorio Boolean
+  descripcion String?
+
+  @@map("config_ponderacion")
+}
+
+/// Documento exigido al aspirante.
+model RequisitoDocumento {
+  id         Int     @id @default(autoincrement())
+  clave      String  @unique
+  nombre     String
+  obligatorio Boolean
+  vigente    Boolean
+
+  @@map("requisitos_documento")
+}
+
+/// Fecha del calendario académico.
+model Evento {
+  id    Int     @id @default(autoincrement())
+  fecha Int
+  titulo String
+  tipo  String
+
+  @@map("eventos")
+}
+
+/// Convocatoria de contratación docente publicada por Talento Humano.
+/// `estado`: abierta, cerrada, en_evaluacion, resuelta.
+model Convocatoria {
+  id         Int      @id @default(autoincrement())
+  cargo      String
+  area       String
+  dependencia String?
+  vinculo    String   @default("catedra")
+  cupos      Int      @default(1)
+  apertura   DateTime
+  cierre     DateTime
+  estado     String   @default("abierta")
+  requisitos String?
+
+  postulados ConvocatoriaPostulado[]
+
+  @@index([estado])
+  @@map("convocatorias")
+}
+
+/// Postulación a una convocatoria.
+model ConvocatoriaPostulado {
+  id            Int     @id @default(autoincrement())
+  convocatoriaId Int
+  nombre        String
+  documento     String
+  titulo        String?
+  experiencia   Int     @default(0)
+  puntaje       Float?
+  estado        String  @default("recibida")
+
+  convocatoria Convocatoria @relation(fields: [convocatoriaId], references: [id], onDelete: Cascade)
+
+  @@index([convocatoriaId])
+  @@map("convocatorias_postulados")
+}
+
+/// Capacitación docente. `estado`: programada, en_curso, finalizada.
+model Capacitacion {
+  id       Int     @id @default(autoincrement())
+  nombre   String
+  tema     String
+  fecha    DateTime
+  horas    Int     @default(4)
+  docente  String?
+  cupos    Int     @default(20)
+  inscritos Int    @default(0)
+  estado   String  @default("programada")
+
+  @@index([estado])
+  @@map("capacitaciones")
+}
+
+/// Egreso de la universidad. `estado`: registrado, aprobado, pagado.
+model Gasto {
+  id          Int      @id @default(autoincrement())
+  concepto    String
+  categoria   String
+  dependencia String?
+  valor       Float
+  fecha       DateTime
+  estado      String   @default("registrado")
+  comprobante String?
+
+  @@index([categoria])
+  @@map("gastos")
+}

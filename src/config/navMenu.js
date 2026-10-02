@@ -26,23 +26,40 @@ export const NAV_MENU = [
   {
     section: 'Campus Virtual',
     items: [
-      { key: 'cursos', label: 'Mis Cursos', icon: '📚', kind: 'view', view: 'lms', tab: 'cursos', roles: '*' },
-      { key: 'tareas', label: 'Tareas', icon: '✅', kind: 'view', view: 'lms', tab: 'tareas', badge: 2, roles: ['estudiante', 'profesor'] },
-      { key: 'recursos', label: 'Recursos', icon: '📁', kind: 'view', view: 'lms', tab: 'recursos', roles: '*' },
+      { key: 'cursos', label: 'Mis Cursos', icon: '📚', kind: 'view', view: 'lms', tab: 'cursos', roles: ['estudiante', 'profesor'] },
+      /* Para el estudiante es la lista de lo que tiene por entregar. Para el
+         docente es lo contrario: lo que recibio y tiene que revisar y
+         calificar. Son dos trabajos distintos y no pueden llamarse igual. */
+      { key: 'tareas', label: 'Tareas', icon: '✅', kind: 'view', view: 'lms', tab: 'tareas', badge: 2, roles: ['estudiante'] },
+      { key: 'tareas', label: 'Por Calificar', icon: '📝', kind: 'view', view: 'lms', tab: 'tareas', roles: ['profesor'] },
+      { key: 'recursos', label: 'Recursos', icon: '📁', kind: 'view', view: 'lms', tab: 'recursos', roles: ['estudiante', 'profesor'] },
     ],
   },
   {
     section: 'Matrícula',
     items: [
       { key: 'matricular', label: 'Matricular Materias', icon: '📝', kind: 'route', to: '/matricula', roles: ['estudiante'] },
-      { key: 'consultar_pensum', label: 'Consultar Pensum', icon: '📖', kind: 'route', to: '/pensum', roles: ['admin', 'rectoria', 'talento_humano', 'contabilidad', 'profesor', 'admisiones'] },
+      { key: 'consultar_pensum', label: 'Consultar Pensum', icon: '📖', kind: 'route', to: '/pensum', roles: ['admisiones'] },
+    ],
+  },
+  {
+    section: 'Admisiones y Registro',
+    items: [
+      { key: 'adm_resumen', label: 'Resumen', icon: '🏠', kind: 'route', to: '/admisiones', tab: 'resumen', roles: ['admisiones'] },
+      { key: 'adm_aspirantes', label: 'Aspirantes', icon: '👥', kind: 'route', to: '/admisiones', tab: 'aspirantes', roles: ['admisiones'] },
+      { key: 'adm_procesos', label: 'Procesos', icon: '🗓️', kind: 'route', to: '/admisiones', tab: 'procesos', roles: ['admisiones'] },
+      { key: 'adm_documentos', label: 'Documentos', icon: '📎', kind: 'route', to: '/admisiones', tab: 'documentos', roles: ['admisiones'] },
+      { key: 'adm_registro', label: 'Registro', icon: '🎓', kind: 'route', to: '/admisiones', tab: 'registro', roles: ['admisiones'] },
+      { key: 'adm_expedientes', label: 'Expedientes', icon: '📁', kind: 'route', to: '/admisiones', tab: 'expedientes', roles: ['admisiones'] },
+      { key: 'adm_cuenta', label: 'Estado de cuenta', icon: '💳', kind: 'route', to: '/admisiones', tab: 'cuenta', roles: ['admisiones'] },
+      { key: 'adm_certificados', label: 'Certificados', icon: '📜', kind: 'route', to: '/admisiones', tab: 'certificados', roles: ['admisiones'] },
+      { key: 'adm_reportes', label: 'Reportes', icon: '📈', kind: 'route', to: '/admisiones', tab: 'reportes', roles: ['admisiones'] },
     ],
   },
   {
     section: 'Administración',
     items: [
       { key: 'admin', label: 'Panel de Administración', icon: '🛠️', kind: 'route', to: '/admin', roles: ['admin'] },
-      { key: 'admisiones', label: 'Admisiones', icon: '🎓', kind: 'route', to: '/admisiones', roles: ['admin', 'admisiones'] },
       { key: 'rectoria', label: 'Rectoría e Indicadores', icon: '🏛️', kind: 'route', to: '/rectoria', roles: ['rectoria'] },
       { key: 'docente', label: 'Mi Cátedra', icon: '👨‍🏫', kind: 'route', to: '/docente', roles: ['profesor'] },
       { key: 'talento_humano', label: 'Talento Humano', icon: '🧑‍💼', kind: 'route', to: '/talento-humano', roles: ['talento_humano'] },
@@ -64,6 +81,17 @@ export const menuForRole = (role) =>
       items: sec.items.filter((i) => i.roles === '*' || i.roles.includes(role)),
     }))
     .filter((sec) => sec.items.length > 0);
+
+/* Pestaña que muestra cada módulo cuando se entra sin ?tab=.
+   El Sidebar la necesita para resaltar el ítem correcto en /admisiones. */
+export const TAB_POR_DEFECTO = {
+  '/admisiones': 'resumen',
+  '/admin': 'resumen',
+  '/rectoria': 'indicadores',
+  '/docente': 'cursos',
+  '/talento-humano': 'planta',
+  '/contabilidad': 'recaudo',
+};
 
 export const NAV_SEC_STYLE = {
   padding: '8px 20px 3px',

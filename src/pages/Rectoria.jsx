@@ -4,11 +4,13 @@
    ============================================= */
 import React from 'react';
 import ModuleLayout from '../components/ModuleLayout';
+import AsignacionDocentes from '../components/AsignacionDocentes';
 import { formatCurrency } from '../data/mockData';
 
 const TABS = [
   { key: 'indicadores', label: 'Indicadores', icon: '📈' },
   { key: 'programas', label: 'Oferta académica', icon: '🎓' },
+  { key: 'docentes', label: 'Asignación docente', icon: '🧑‍🏫' },
   { key: 'admisiones', label: 'Admisiones', icon: '🎯' },
   { key: 'sostenibilidad', label: 'Sostenibilidad', icon: '💰' },
 ];
@@ -127,6 +129,22 @@ export default function Rectoria() {
                   })}
                 </tbody>
               </table>
+            </div>
+          );
+        }
+
+        if (tab === 'docentes') {
+          /* La dirección reparte la carga académica. Es la misma tabla que ve
+             Administración: el componente vive aparte para que las dos
+             pantallas sean la misma información y no dos versiones. */
+          return (
+            <div>
+              <div style={{ fontSize: 13, color: '#475569', marginBottom: 14 }}>
+                Como dirección de programa puede asignar qué docente dicta cada curso. El cambio queda
+                guardado de inmediato y es el docente asignado quien puede abrir el curso, registrar
+                notas y calificar entregas.
+              </div>
+              <AsignacionDocentes />
             </div>
           );
         }

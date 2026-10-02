@@ -19,20 +19,18 @@ export default function Login() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    setTimeout(() => {
-      const res = login(username, password);
-      setLoading(false);
-      if (res.success) {
-        navigate('/dashboard');
-      } else {
-        setError(res.error || 'Credenciales inválidas');
-      }
-    }, 300);
+    const res = await login(username, password);
+    setLoading(false);
+    if (res.success) {
+      navigate('/dashboard');
+    } else {
+      setError(res.error || 'Credenciales inválidas');
+    }
   };
 
   const demos = [
@@ -42,7 +40,7 @@ export default function Login() {
     { key: 'RECTOR', label: 'Rectoría', badge: 'RECTOR / rector123', color: '#ef4444' },
     { key: 'TALENTO', label: 'Talento Humano', badge: 'TALENTO / 123456', color: '#f59e0b' },
     { key: 'CONTA', label: 'Contabilidad', badge: 'CONTA / 123456', color: '#06b6d4' },
-  { key: 'ADMI', label: 'Admisiones', badge: 'ADMI / 123456', color: '#a855f7' },
+    { key: 'ADMI', label: 'Admisiones', badge: 'ADMI / 123456', color: '#a855f7' },
   ];
 
   return (
@@ -210,7 +208,7 @@ export default function Login() {
         </div>
 
         <p style={{ textAlign: 'center', color: 'rgba(255,255,255,.5)', fontSize: 11, marginTop: 20 }}>
-          © 2026 UniPlataforma — React v18 + Vite
+          © 2026 UniPlataforma
         </p>
       </div>
     </div>

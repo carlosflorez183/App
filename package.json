@@ -8,6 +8,7 @@
     "build": "vite build",
     "lint": "oxlint",
     "smoke": "node scripts/smoke.mjs",
+    "acciones": "node scripts/acciones.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

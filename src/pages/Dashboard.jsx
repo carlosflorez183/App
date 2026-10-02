@@ -1,14 +1,30 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { formatCurrency, formatDate } from '../data/mockData';
+import { formatCurrency, formatDate, notificacionesDeRol } from '../data/mockData';
 import { usePersistentData } from '../hooks/usePersistentData';
+import {
+  actualizarActividad,
+  listarPorCalificar,
+  marcarNotificacionLeida,
+  solicitarCertificado,
+} from '../api/client';
 import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
+import PanelInicio, { tienePanelPropio } from '../components/PanelInicio';
 import { menuForRole } from '../config/navMenu';
 
 export default function Dashboard() {
-  const { user, roleLabels, logout, updateProfile } = useAuth();
+  const { user: sesion, roleLabels, logout, updateProfile } = useAuth();
+  /* `user` puede llegar nulo mientras se valida la sesión, y también se queda
+     nulo si el token vence a media pantalla (p. ej. al cambiar de cuenta en
+     otra pestaña). Leer user.role a mano reventaba la página entera con
+     "cannot read properties of null"; con un usuario vacío el enrutador
+     muestra el login y no se pierde nada. */
+  const user = sesion || {
+    name: '', role: '', code: '', username: '', email: '', phone: '', address: '',
+    avatar: '', avatarClass: 'av-blue', program: '', department: '', semester: null,
+  };
   const navigate = useNavigate();
   const [urlParams] = useSearchParams();
 
@@ -30,7 +46,7 @@ export default function Dashboard() {
   );
   const [currentTab, setCurrentTab] = useState(() => urlParams.get('tab') || '');
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [data, setData] = usePersistentData();
+  const [data, setData, { recargar }] = usePersistentData();
 
   // Si la URL pide una pestaña que este rol no tiene, se usa la primera suya.
   const tabDe = (lista, porDefecto) =>
@@ -57,6 +73,25 @@ export default function Dashboard() {
   const [editando, setEditando] = useState(false);
   const [perfilDraft, setPerfilDraft] = useState(() => toDraft(user));
   const [perfilMsg, setPerfilMsg] = useState(null);
+
+  /* Bandeja "Por Calificar" del docente: lo que sus estudiantes entregaron y
+     sigue sin nota. Se pide al servidor y no se arma con el estado de la
+     actividad, porque una actividad puede tener 30 entregas y ninguna
+     calificada. Va antes del corte por `user` para no romper el orden de los
+     hooks en los reintentos de autenticacion. */
+  const esDocente = user?.role === 'profesor';
+  const [porCalificar, setPorCalificar] = useState([]);
+  const [errorBandeja, setErrorBandeja] = useState('');
+  const cargarBandeja = useCallback(async () => {
+    if (!esDocente) return;
+    try {
+      setPorCalificar(await listarPorCalificar());
+      setErrorBandeja('');
+    } catch (err) {
+      setErrorBandeja(err.message);
+    }
+  }, [esDocente]);
+  useEffect(() => { cargarBandeja(); }, [cargarBandeja]);
 
   if (!user) {
     navigate('/login');
@@ -125,6 +160,7 @@ export default function Dashboard() {
       ...prev,
       notificaciones: prev.notificaciones.map((n) => (n.id === id ? { ...n, leida: true } : n)),
     }));
+    marcarNotificacionLeida(id).catch(() => {}).finally(recargar);
   };
 
   const handleOpenNotif = (n) => {
@@ -136,18 +172,29 @@ export default function Dashboard() {
       navigate(`/curso/${d.cursoId}`);
       return;
     }
+    // Notificaciones de un módulo administrativo apuntan a su propia ruta.
+    if (d.ruta) {
+      navigate(`${d.ruta}${d.tab ? `?tab=${d.tab}` : ''}`);
+      return;
+    }
     if (d.vista) handleNavigate(d.vista, d.tab || null);
   };
 
   const toggleFiltro = (actual, nuevo, setter) => setter(actual === nuevo ? 'todas' : nuevo);
 
   const handleEntregarTarea = (actId) => {
+    const act = data.actividades.find((a) => a.id === actId);
     setData((prev) => ({
       ...prev,
       actividades: prev.actividades.map((a) =>
         a.id === actId ? { ...a, estado_est: 'entregado' } : a
       ),
     }));
+    if (act) {
+      actualizarActividad(act.cursoId, actId, { estadoEst: 'entregado' })
+        .catch(() => {})
+        .finally(recargar);
+    }
     setModalEntrega(null);
     alert('¡Tarea entregada exitosamente! 🎉');
   };
@@ -164,6 +211,7 @@ export default function Dashboard() {
       ...prev,
       certificados: [nuevo, ...prev.certificados],
     }));
+    solicitarCertificado(tipo).catch(() => {}).finally(recargar);
     setModalCert(null);
     alert(`Solicitud de ${tipo} enviada correctamente. Disponible en 2 a 5 días hábiles.`);
   };
@@ -180,6 +228,10 @@ export default function Dashboard() {
   const tasaEntrega = data.actividades.length
     ? Math.round((tareasEntregadas.length / data.actividades.length) * 100)
     : 0;
+
+  /* El docente no gestiona pagos ni tiene notas propias: su portada muestra
+     sus cursos y actividades, no un promedio ni un volumetrico de pagos. */
+  const totalEstudiantes = data.cursos.reduce((acc, c) => acc + (c.estudiantes || 0), 0);
 
   // Cálculos de Pagos
   const totalPagado = data.pagos
@@ -206,7 +258,7 @@ export default function Dashboard() {
   let topbarSub = 'Bienvenido al sistema institucional';
   if (currentView === 'academico') {
     topbarTitle = 'Gestión Académica';
-    topbarSub = 'Notas, certificados y pagos';
+    topbarSub = esDocente ? 'Registro de notas y certificados' : 'Notas, certificados y pagos';
   } else if (currentView === 'lms') {
     topbarTitle = 'Campus Virtual';
     topbarSub = 'Cursos, tareas y recursos';
@@ -233,7 +285,7 @@ export default function Dashboard() {
           subtitle={topbarSub}
           onNavigate={handleNavigate}
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-          notifications={data.notificaciones}
+          notifications={notificacionesDeRol(data.notificaciones, user.role)}
           onMarkNotifRead={handleMarkNotifRead}
           onOpenNotif={handleOpenNotif}
         />
@@ -256,74 +308,157 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 20 }}>
-                <button
-                  type="button"
-                  className="stat-card stat-card-btn"
-                  onClick={() => handleNavigate('academico', 'notas')}
-                  title="Ver mis notas"
-                >
-                  <div className="stat-ic" style={{ background: '#dbeafe' }}>⭐</div>
-                  <div>
-                    <div className="stat-v">{promedioActual}</div>
-                    <div className="stat-l">Promedio actual</div>
-                    <div className="stat-go">Ver notas →</div>
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  className="stat-card stat-card-btn"
-                  onClick={() => handleNavigate('academico', 'notas')}
-                  title="Ver materias matriculadas"
-                >
-                  <div className="stat-ic" style={{ background: '#dcfce7' }}>📚</div>
-                  <div>
-                    <div className="stat-v">{materiasPeriodo.length}</div>
-                    <div className="stat-l">Materias activas</div>
-                    <div className="stat-go">Ver materias →</div>
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  className="stat-card stat-card-btn"
-                  onClick={() => { setTareasFiltro('pendientes'); handleNavigate('lms', 'tareas'); }}
-                  title="Ver tareas pendientes"
-                >
-                  <div className="stat-ic" style={{ background: '#ede9fe' }}>✅</div>
-                  <div>
-                    <div className="stat-v">{tareasPendientes.length}</div>
-                    <div className="stat-l">Tareas pendientes</div>
-                    <div className="stat-go">Ver tareas →</div>
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  className="stat-card stat-card-btn"
-                  onClick={() => { setPagosFiltro('pendientes'); handleNavigate('academico', 'pagos'); }}
-                  title="Ver pagos pendientes"
-                >
-                  <div className="stat-ic" style={{ background: '#fef9c3' }}>💳</div>
-                  <div>
-                    <div className="stat-v">{pagosPendientes}</div>
-                    <div className="stat-l">Pagos pendientes</div>
-                    <div className="stat-go">Ver pagos →</div>
-                  </div>
-                </button>
-              </div>
+              {/* Los roles administrativos no tienen notas, cursos ni tareas:
+                  su portada es la del panel del cargo, no la del estudiante. */}
+              {tienePanelPropio(user.role) ? (
+                <PanelInicio role={user.role} data={data} />
+              ) : (
+                <div>
+                  {/* El docente no tiene notas ni volumetricos de pago: su
+                      portada muestra lo suyo (cursos, actividades y
+                      estudiantes). El alumno si ve promedio y pagos. */}
+                  {esDocente ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 20 }}>
+                      <button
+                        type="button"
+                        className="stat-card stat-card-btn"
+                        onClick={() => handleNavigate('lms', 'cursos')}
+                        title="Ver mis cursos"
+                      >
+                        <div className="stat-ic" style={{ background: '#7c3aed' }}>📚</div>
+                        <div>
+                          <div className="stat-v">{data.cursos.length}</div>
+                          <div className="stat-l">Mis cursos</div>
+                          <div className="stat-go">Ver cursos →</div>
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        className="stat-card stat-card-btn"
+                        onClick={() => handleNavigate('lms', 'tareas')}
+                        title="Ver entregas por revisar"
+                      >
+                        <div className="stat-ic" style={{ background: '#ede9fe' }}>📝</div>
+                        <div>
+                          <div className="stat-v">{porCalificar.filter((e) => !e.calificada).length}</div>
+                          <div className="stat-l">Por calificar</div>
+                          <div className="stat-go">Revisar entregas →</div>
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        className="stat-card stat-card-btn"
+                        onClick={() => handleNavigate('lms', 'cursos')}
+                        title="Ver estudiantes"
+                      >
+                        <div className="stat-ic" style={{ background: '#dcfce7' }}>👥</div>
+                        <div>
+                          <div className="stat-v">{totalEstudiantes}</div>
+                          <div className="stat-l">Estudiantes</div>
+                          <div className="stat-go">Ver cursos →</div>
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        className="stat-card stat-card-btn"
+                        onClick={() => navigate('/docente?tab=notas')}
+                        title="Ir al registro de notas"
+                      >
+                        <div className="stat-ic" style={{ background: '#dbeafe' }}>📝</div>
+                        <div>
+                          <div className="stat-v">{data.materias.length}</div>
+                          <div className="stat-l">Asignaturas</div>
+                          <div className="stat-go">Registrar notas →</div>
+                        </div>
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 20 }}>
+                      <button
+                        type="button"
+                        className="stat-card stat-card-btn"
+                        onClick={() => handleNavigate('academico', 'notas')}
+                        title="Ver mis notas"
+                      >
+                        <div className="stat-ic" style={{ background: '#dbeafe' }}>⭐</div>
+                        <div>
+                          <div className="stat-v">{promedioActual}</div>
+                          <div className="stat-l">Promedio actual</div>
+                          <div className="stat-go">Ver notas →</div>
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        className="stat-card stat-card-btn"
+                        onClick={() => handleNavigate('academico', 'notas')}
+                        title="Ver materias matriculadas"
+                      >
+                        <div className="stat-ic" style={{ background: '#dcfce7' }}>📚</div>
+                        <div>
+                          <div className="stat-v">{materiasPeriodo.length}</div>
+                          <div className="stat-l">Materias activas</div>
+                          <div className="stat-go">Ver materias →</div>
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        className="stat-card stat-card-btn"
+                        onClick={() => { setTareasFiltro('pendientes'); handleNavigate('lms', 'tareas'); }}
+                        title="Ver tareas pendientes"
+                      >
+                        <div className="stat-ic" style={{ background: '#ede9fe' }}>✅</div>
+                        <div>
+                          <div className="stat-v">{tareasPendientes.length}</div>
+                          <div className="stat-l">Tareas pendientes</div>
+                          <div className="stat-go">Ver tareas →</div>
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        className="stat-card stat-card-btn"
+                        onClick={() => { setPagosFiltro('pendientes'); handleNavigate('academico', 'pagos'); }}
+                        title="Ver pagos pendientes"
+                      >
+                        <div className="stat-ic" style={{ background: '#fef9c3' }}>💳</div>
+                        <div>
+                          <div className="stat-v">{pagosPendientes}</div>
+                          <div className="stat-l">Pagos pendientes</div>
+                          <div className="stat-go">Ver pagos →</div>
+                        </div>
+                      </button>
+                    </div>
+                  )}
 
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
                 <div className="card">
                   <div className="card-hd"><span className="card-ttl">⚡ Accesos Rápidos</span></div>
                   <div className="card-bd">
                     <div className="qa-grid">
-                      <button onClick={() => handleNavigate('academico', 'notas')} className="qa-btn">
-                        <div className="qa-ic" style={{ background: '#3b82f6' }}>⭐</div>
-                        <span className="qa-lbl">Mis Notas</span>
-                      </button>
-                      <button onClick={() => handleNavigate('academico', 'pagos')} className="qa-btn">
-                        <div className="qa-ic" style={{ background: '#059669' }}>💳</div>
-                        <span className="qa-lbl">Pagos</span>
-                      </button>
+                      {/* Notas y Pagos son del alumno: el docente abre su
+                          registro de notas, no un promedio que no gestiona. */}
+                      {esDocente ? (
+                        <button onClick={() => navigate('/docente?tab=notas')} className="qa-btn">
+                          <div className="qa-ic" style={{ background: '#3b82f6' }}>📝</div>
+                          <span className="qa-lbl">Registro Notas</span>
+                        </button>
+                      ) : (
+                        <button onClick={() => handleNavigate('academico', 'notas')} className="qa-btn">
+                          <div className="qa-ic" style={{ background: '#3b82f6' }}>⭐</div>
+                          <span className="qa-lbl">Mis Notas</span>
+                        </button>
+                      )}
+                      {esDocente && (
+                        <button onClick={() => handleNavigate('lms', 'tareas')} className="qa-btn">
+                          <div className="qa-ic" style={{ background: '#059669' }}>💬</div>
+                          <span className="qa-lbl">Foros</span>
+                        </button>
+                      )}
+                      {!esDocente && (
+                        <button onClick={() => handleNavigate('academico', 'pagos')} className="qa-btn">
+                          <div className="qa-ic" style={{ background: '#059669' }}>💳</div>
+                          <span className="qa-lbl">Pagos</span>
+                        </button>
+                      )}
                       <button onClick={() => handleNavigate('academico', 'certificados')} className="qa-btn">
                         <div className="qa-ic" style={{ background: '#d97706' }}>📜</div>
                         <span className="qa-lbl">Certificados</span>
@@ -333,13 +468,15 @@ export default function Dashboard() {
                         <span className="qa-lbl">Mis Cursos</span>
                       </button>
                       <button onClick={() => handleNavigate('lms', 'tareas')} className="qa-btn">
-                        <div className="qa-ic" style={{ background: '#ea580c' }}>✅</div>
-                        <span className="qa-lbl">Tareas</span>
+                        <div className="qa-ic" style={{ background: '#ea580c' }}>{esDocente ? '📝' : '✅'}</div>
+                        <span className="qa-lbl">{esDocente ? 'Por Calificar' : 'Tareas'}</span>
                       </button>
-                      <button onClick={() => navigate('/matricula')} className="qa-btn">
-                        <div className="qa-ic" style={{ background: '#4338ca' }}>📝</div>
-                        <span className="qa-lbl">Matrícula</span>
-                      </button>
+                      {!esDocente && (
+                        <button onClick={() => navigate('/matricula')} className="qa-btn">
+                          <div className="qa-ic" style={{ background: '#4338ca' }}>📝</div>
+                          <span className="qa-lbl">Matrícula</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -376,9 +513,11 @@ export default function Dashboard() {
                         </div>
                       </div>
                     ))}
-                  </div>
                 </div>
               </div>
+            </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -740,8 +879,97 @@ export default function Dashboard() {
                 ))}
               </div>
 
-              {/* ── SUBPESTAÑA: TAREAS (EXACTO A IMAGEN 3) ── */}
-              {tabLms === 'tareas' && (
+              {/* ── SUBPESTAÑA: TAREAS ──
+                  Para el estudiante son las actividades que tiene por
+                  entregar. Para el docente es la bandeja de lo que recibio
+                  y tiene que revisar: ver el documento y poner la nota. */}
+              {tabLms === 'tareas' && esDocente && (
+                <div data-testid="docente-por-calificar">
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 20 }}>
+                    <div className="stat-card">
+                      <div className="stat-ic" style={{ background: '#ffedd5' }}>⏰</div>
+                      <div>
+                        <div className="stat-v" style={{ color: '#ea580c' }}>
+                          {porCalificar.filter((e) => !e.calificada).length}
+                        </div>
+                        <div className="stat-l">Sin calificar</div>
+                      </div>
+                    </div>
+                    <div className="stat-card">
+                      <div className="stat-ic" style={{ background: '#dcfce7' }}>✅</div>
+                      <div>
+                        <div className="stat-v" style={{ color: '#059669' }}>
+                          {porCalificar.filter((e) => e.calificada).length}
+                        </div>
+                        <div className="stat-l">Calificadas</div>
+                      </div>
+                    </div>
+                    <div className="stat-card">
+                      <div className="stat-ic" style={{ background: '#dbeafe' }}>📄</div>
+                      <div>
+                        <div className="stat-v" style={{ color: '#2563eb' }}>
+                          {porCalificar.filter((e) => e.archivo).length}
+                        </div>
+                        <div className="stat-l">Con documento</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {errorBandeja && (
+                    <div className="card" style={{ padding: 16, marginBottom: 16, color: '#991b1b', fontSize: 13 }}>
+                      No se pudo cargar la bandeja: {errorBandeja}
+                    </div>
+                  )}
+
+                  <div className="card">
+                    <div className="card-hd">
+                      <span className="card-ttl">📝 Entregas por revisar</span>
+                      <button type="button" className="btn b-outline b-sm" onClick={cargarBandeja}>
+                        Actualizar
+                      </button>
+                    </div>
+                    <div>
+                      {porCalificar.length === 0 ? (
+                        <div style={{ padding: '28px 20px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                          No hay entregas por revisar. Cuando un estudiante entregue algo, aparecerá aquí.
+                        </div>
+                      ) : (
+                        porCalificar.map((e) => (
+                          <div
+                            key={e.entregaId}
+                            style={{ padding: '14px 20px', borderBottom: '1px solid #f1f5f9', display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}
+                          >
+                            <div style={{ flex: 1, minWidth: 220 }}>
+                              <p style={{ fontWeight: 700, color: '#1e293b', fontSize: 14, margin: '0 0 2px' }}>
+                                {e.estudiante}
+                              </p>
+                              <p style={{ fontSize: 12, color: '#64748b', margin: 0 }}>
+                                {e.titulo} · Corte {e.corte} · {e.puntos} pts
+                              </p>
+                              <p style={{ fontSize: 11, color: '#94a3b8', margin: '3px 0 0' }}>
+                                {e.archivo ? `📎 ${e.archivo}` : e.tieneRespuestas ? '📝 Respuestas del parcial' : 'Sin documento'}
+                                {e.entregadoEn ? ` · ${formatDate(e.entregadoEn)}` : ''}
+                              </p>
+                            </div>
+                            <span className={`bs ${e.calificada ? 'bg-g' : 'bg-y'}`}>
+                              {e.calificada ? `Nota ${e.nota}` : 'Sin calificar'}
+                            </span>
+                        <button
+                          type="button"
+                          className="btn b-primary b-sm"
+                          onClick={() => navigate(`/curso/${e.cursoId}?tab=entrega&id=${e.actividadId}&est=${e.estudianteId}&volver=actividad`)}
+                        >
+                              {e.calificada ? 'Ver hoja' : 'Revisar y calificar'}
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {tabLms === 'tareas' && !esDocente && (
                 <div>
                   {/* 3 Tarjetas KPI — clicables = filtro */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 20 }}>
@@ -861,9 +1089,22 @@ export default function Dashboard() {
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                     <strong style={{ color: '#334155' }}>{data.cursos.length} cursos activos — 2026-1</strong>
-                    <button onClick={() => navigate('/matricula')} className="btn b-outline b-sm">
-                      📝 Ir a Matrícula
-                    </button>
+                    {esDocente ? (
+                      /* El docente no se matricula a si mismo: matricula a los
+                         alumnos de SU curso, asi que el botón lo lleva a la
+                         lista de inscritos del primer curso que tiene. */
+                      <button
+                        onClick={() => data.cursos[0] && navigate(`/curso/${data.cursos[0].id}?tab=estudiantes`)}
+                        className="btn b-outline b-sm"
+                        disabled={!data.cursos.length}
+                      >
+                        👥 Inscribir estudiantes
+                      </button>
+                    ) : (
+                      <button onClick={() => navigate('/matricula')} className="btn b-outline b-sm">
+                        📝 Ir a Matrícula
+                      </button>
+                    )}
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
                     {data.cursos.map((c) => (
@@ -891,6 +1132,21 @@ export default function Dashboard() {
                               }}
                             />
                           </div>
+                          {/* Acceso directo a la matriculacion del propio curso:
+                              abrir el curso y luego buscar la pestaña hace
+                              demasiado trabajo para una acción frecuente. */}
+                          {esDocente && (
+                            <button
+                              className="btn b-outline b-sm"
+                              style={{ marginTop: 10, width: '100%' }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/curso/${c.id}?tab=estudiantes`);
+                              }}
+                            >
+                              👥 Gestionar inscritos
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}

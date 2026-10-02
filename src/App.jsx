@@ -29,10 +29,11 @@ function RootRedirect() {
   return <Navigate to={user ? "/dashboard" : "/login"} replace />;
 }
 
-// Cualquier rol autenticado puede consultar el plan de estudios, en modo lectura.
+// El plan de estudios en modo lectura lo consulta Admisiones; el administrador
+// lo tiene dentro de su propio panel. Los demás roles no lo necesitan.
 function ConsultaPensum() {
   return (
-    <ProtectedRoute>
+    <ProtectedRoute roles={['admisiones']}>
       <Matricula readOnly />
     </ProtectedRoute>
   );
@@ -84,10 +85,12 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          {/* Admisiones es exclusivo del proceso de admisión. El administrador
+              tiene su propio panel en /admin y no entra a este módulo. */}
           <Route
             path="/admisiones"
             element={
-              <ProtectedRoute roles={['admin', 'admisiones']}>
+              <ProtectedRoute roles={['admisiones']}>
                 <Admisiones />
               </ProtectedRoute>
             }

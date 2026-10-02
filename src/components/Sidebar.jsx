@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { menuForRole, NAV_SEC_STYLE } from '../config/navMenu';
+import { menuForRole, NAV_SEC_STYLE, TAB_POR_DEFECTO } from '../config/navMenu';
 
 export default function Sidebar({ currentView, currentTab, onNavigate, isOpen, onClose }) {
   const { user, logout, roleLabels } = useAuth();
@@ -13,7 +13,10 @@ export default function Sidebar({ currentView, currentTab, onNavigate, isOpen, o
   const isRouteActive = (item) => {
     if (pathname !== item.to) return false;
     if (!item.tab) return !search;
-    return new URLSearchParams(search).get('tab') === item.tab;
+    // Entrar a /admisiones sin ?tab= abre la pestaña por defecto, no deja
+    // el menú sin nada resaltado.
+    const actual = new URLSearchParams(search).get('tab') || TAB_POR_DEFECTO[item.to];
+    return actual === item.tab;
   };
 
   const isItemActive = (view, tab) => {

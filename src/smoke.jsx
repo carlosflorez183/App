@@ -36,11 +36,14 @@ const ROLES_DEMO = {
 };
 
 const rolPedido = new URLSearchParams(window.location.search).get('rol');
+// Siempre debe haber sesión: las páginas usan `user.role`. Sin token, el
+// estado cae al mock, que es justo lo que el smoke quiere comprobar.
 if (rolPedido && ROLES_DEMO[rolPedido]) {
   localStorage.setItem('uni_session', JSON.stringify(ROLES_DEMO[rolPedido]));
 } else {
-  localStorage.removeItem('uni_session');
+  localStorage.setItem('uni_session', JSON.stringify(ROLES_DEMO.estudiante));
 }
+localStorage.removeItem('uni_token');
 const ETIQUETA_ROL = rolPedido && ROLES_DEMO[rolPedido] ? rolPedido : 'estudiante';
 
 class Boundary extends React.Component {
@@ -76,16 +79,19 @@ const addTabs = (nombre, Componente, tabs) => {
           <Componente />
         </MemoryRouter>
       ),
-    });
+  });
+
+  // Un caso que solo muestra su aviso de "cargando" tampoco sirve: significa que
+  // el módulo no能否衔接上要看具体是哪一处——是要我继续某项修改，还是接着前面某个话题？说明一下就行。
   });
 };
 
-addTabs('Admin', Admin, ['resumen', 'programas', 'pensum', 'docentes', 'matricula', 'finanzas']);
-addTabs('Admisiones', Admisiones, ['aspirantes', 'procesos', 'ponderacion', 'documentos']);
-addTabs('Docente', Docente, ['cursos', 'notas', 'actividades']);
+addTabs('Admin', Admin, ['resumen', 'usuarios', 'estudiantes', 'programas', 'pensum', 'docentes', 'matricula', 'finanzas']);
+addTabs('Admisiones', Admisiones, ['resumen', 'aspirantes', 'procesos', 'documentos', 'registro', 'expedientes', 'cuenta', 'certificados', 'reportes']);
+addTabs('Docente', Docente, ['cursos', 'notas', 'actividades', 'asistencia', 'foro']);
 addTabs('Rectoria', Rectoria, ['indicadores', 'programas', 'admisiones', 'sostenibilidad']);
-addTabs('TalentoHumano', TalentoHumano, ['planta', 'carga', 'areas']);
-addTabs('Contabilidad', Contabilidad, ['recaudo', 'cartera', 'conciliacion']);
+addTabs('TalentoHumano', TalentoHumano, ['planta', 'convocatorias', 'capacitaciones', 'carga', 'areas']);
+addTabs('Contabilidad', Contabilidad, ['recaudo', 'cartera', 'conciliacion', 'egresos']);
 
 CASOS.push({
   caso: 'Matricula:editable',
@@ -164,6 +170,18 @@ setTimeout(() => {
     }
   });
 
+  // Y un caso que sigue esperando datos del servidor tampoco: delata que el
+    // módulo se quedó en su estado de carga. Se exceptúa cuando ya mostró un
+    // error, porque entonces la respuesta llegó y la decisión es del rol.
+  document.querySelectorAll('[data-smoke]').forEach((nodo) => {
+    const caso = nodo.getAttribute('data-caso');
+    const esperando = nodo.querySelector('[data-cargando]');
+    const conError = /No se pudo|No pudo/.test(nodo.textContent || '');
+    if (esperando && !conError) {
+      lineas.push(`PENDIENTE ${caso} :: se quedo en el aviso de carga`);
+    }
+  });
+
   const pre = document.createElement('pre');
   pre.id = 'smoke-result';
   pre.textContent =
@@ -171,4 +189,4 @@ setTimeout(() => {
     `CASOS=${CASOS.length}\n` +
     (lineas.length ? lineas.join('\n') : `OK ${CASOS.length} casos renderizan contenido`);
   document.body.appendChild(pre);
-}, 4000);
+}, 9000);

@@ -172,14 +172,151 @@ const MATERIAS_OTROS_PROGRAMAS = Object.entries(PLANES).flatMap(
 
 export const FUENTES = FUENTES_PLANES;
 
+/* =============================================
+   Estudiantes matriculados.
+   Es el registro que consume Admisiones y Registro:
+   expedientes, estado de cuenta y certificados.
+   Se construye de forma determinista (sin azar)
+   para que el demo sea estable entre recargas.
+   ============================================= */
+
+const ASPIRANTES = [
+  { id:'ASP-0001', nombre:'Mariana Restrepo Hoyos', documento:'1.008.774.215', programaId:1, puntajeIcfes:412, examen:78, promedio:4.62, fecha:'2026-05-12', estado:'admitido', documentos:'completo' },
+  { id:'ASP-0002', nombre:'Juan Pablo Cardona', documento:'1.019.882.204', programaId:1, puntajeIcfes:388, examen:71, promedio:4.41, fecha:'2026-05-14', estado:'en_proceso', documentos:'pendiente' },
+  { id:'ASP-0003', nombre:'Laura Fernanda Gómez', documento:'1.032.117.450', programaId:5, puntajeIcfes:401, examen:74, promedio:4.55, fecha:'2026-05-18', estado:'admitido', documentos:'completo' },
+  { id:'ASP-0004', nombre:'Andrés Felipe Ortiz', documento:'1.021.663.908', programaId:2, puntajeIcfes:352, examen:66, promedio:4.08, fecha:'2026-05-20', estado:'en_proceso', documentos:'pendiente' },
+  { id:'ASP-0005', nombre:'Sofía Palacio Naranjo', documento:'1.044.209.775', programaId:4, puntajeIcfes:377, examen:82, promedio:4.70, fecha:'2026-05-22', estado:'admitido', documentos:'completo' },
+  { id:'ASP-0006', nombre:'Daniel Esteban Ríos', documento:'1.016.554.331', programaId:9, puntajeIcfes:298, examen:69, promedio:3.85, fecha:'2026-05-23', estado:'rechazado', documentos:'completo' },
+  { id:'ASP-0007', nombre:'Valentina Cruz Mesa', documento:'1.037.441.029', programaId:3, puntajeIcfes:365, examen:70, promedio:4.33, fecha:'2026-05-25', estado:'en_proceso', documentos:'incompleto' },
+  { id:'ASP-0008', nombre:'Nicolás Arturo Prieto', documento:'1.028.771.690', programaId:6, puntajeIcfes:344, examen:75, promedio:4.28, fecha:'2026-05-27', estado:'admitido', documentos:'completo' },
+  { id:'ASP-0009', nombre:'Camila Andrea Pérez', documento:'1.041.996.517', programaId:5, puntajeIcfes:395, examen:68, promedio:4.47, fecha:'2026-05-28', estado:'en_proceso', documentos:'pendiente' },
+  { id:'ASP-0010', nombre:'Sebastián Lozano Vega', documento:'1.013.332.884', programaId:8, puntajeIcfes:421, examen:88, promedio:4.75, fecha:'2026-06-01', estado:'admitido', documentos:'completo' },
+  { id:'ASP-0011', nombre:'Isabella Moreno Rojas', documento:'1.035.668.142', programaId:7, puntajeIcfes:409, examen:85, promedio:4.60, fecha:'2026-06-02', estado:'admitido', documentos:'completo' },
+  { id:'ASP-0012', nombre:'Tomás Alejandro Ruiz', documento:'1.009.887.213', programaId:1, puntajeIcfes:331, examen:64, promedio:3.92, fecha:'2026-06-04', estado:'rechazado', documentos:'completo' },
+  { id:'ASP-0013', nombre:'Manuela Ochoa Pérez', documento:'1.048.330.761', programaId:10, puntajeIcfes:287, examen:72, promedio:4.05, fecha:'2026-06-05', estado:'en_proceso', documentos:'incompleto' },
+  { id:'ASP-0014', nombre:'Samuel Betancur López', documento:'1.026.774.508', programaId:3, puntajeIcfes:358, examen:73, promedio:4.29, fecha:'2026-06-08', estado:'admitido', documentos:'completo' },
+];
+
+// Estudiantes que ya venían de periodos anteriores, para que el registro no
+// tengan solo admisiones del 2026-1.
+const PREVIOS = [
+  { nombre:'Carlos Andrés Martínez', documento:'1.023.445.671', codigo:'20231001', programaId:1, semestre:6, promedio:4.20, nota1:4.2, nota2:3.8, estado:'activo',  ingreso:'2023-08-01' },
+  { nombre:'Ana Lucía Ospina',        documento:'1.031.774.290', codigo:'20231002', programaId:4, semestre:7, promedio:3.95, nota1:3.9, nota2:4.1, estado:'activo',  ingreso:'2023-08-01' },
+  { nombre:'Diego Fernando Ruiz',     documento:'1.019.552.803', codigo:'20231003', programaId:2, semestre:8, promedio:2.85, nota1:2.5, nota2:3.0, estado:'retirado', ingreso:'2022-08-01' },
+  { nombre:'Valentina Torres',        documento:'1.043.908.115', codigo:'20231004', programaId:5, semestre:5, promedio:4.72, nota1:4.8, nota2:4.7, estado:'activo',  ingreso:'2024-02-01' },
+  { nombre:'Sebastián Mora',          documento:'1.037.221.664', codigo:'20231005', programaId:6, semestre:8, promedio:3.60, nota1:3.5, nota2:3.8, estado:'activo',  ingreso:'2022-08-01' },
+  { nombre:'Isabella García',         documento:'1.046.335.027', codigo:'20231006', programaId:3, semestre:7, promedio:4.15, nota1:4.0, nota2:4.2, estado:'graduado', ingreso:'2021-08-01' },
+];
+
+const CONCEPTOS = [
+  { concepto:'Matrícula Semestre 2026-1',   valor:3850000, tipo:'matricula' },
+  { concepto:'Seguro estudiantil',         valor:96000,   tipo:'matricula' },
+  { concepto:'Laboratorio y materiales',   valor:320000,  tipo:'matricula' },
+  { concepto:'Certificados y constancias', valor:85000,  tipo:'certificado' },
+  { concepto:'Derechos de grado',          valor:1250000, tipo:'grado' },
+];
+
+// Perfil de pago por estudiante. Es fijo (no aleatorio) para que la cartera
+// tenga siempre los tres escenarios: al día, con saldo y en mora.
+const PERFIL_PAGO = ['al_dia','pendiente','al_dia','mora','pendiente','al_dia','pendiente','al_dia','pendiente','mora','al_dia','pendiente','al_dia'];
+const CICLO_DOCS = ['completo','completo','pendiente','completo','incompleto'];
+const JORNADAS   = ['Diurno','Nocturno'];
+
+const slug = (nombre) =>
+  nombre
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z ]/g, '')
+    .trim()
+    .replace(/\s+/g, '.');
+
+const pagosDe = (indice, perfil, semestre) =>
+  CONCEPTOS
+    .filter((c) => c.tipo !== 'grado' || semestre >= 8)
+    .map((c, i) => {
+      const ultimo = i === CONCEPTOS.filter((x) => x.tipo !== 'grado' || semestre >= 8).length - 1;
+      let est = 'pagado';
+      if (perfil !== 'al_dia' && ultimo) est = 'pendiente';
+      if (perfil === 'mora' && ultimo) est = 'vencido';
+      return {
+        id: `PG-${indice + 1}-${i + 1}`,
+        concepto: c.concepto,
+        tipo: c.tipo,
+        valor: c.valor,
+        // Todos los cobros vencen a mitad de cada mes del periodo.
+        fecha_limite: `2026-0${i < 3 ? 2 : 3}-15`,
+        fecha_pago: est === 'pagado' ? `2026-0${i < 3 ? 1 : 2}-${10 + (i % 9)}` : null,
+        estado: est,
+        referencia: est === 'pagado' ? `PAG-2026${i < 3 ? '02' : '03'}-${String(indice + 1).padStart(3, '0')}` : null,
+      };
+    });
+
+const construirEstudiantes = () => {
+  const lista = [];
+
+  PREVIOS.forEach((e, i) => {
+    lista.push({
+      id: e.codigo,
+      nombre: e.nombre,
+      documento: e.documento,
+      correo: slug(e.nombre) + '@uni.edu.co',
+      telefono: `31${2 + (i % 7)} ${100 + i * 37} ${2000 + i * 111}`,
+      direccion: `Cra. ${10 + i} #${20 + i}-${11 + i}, Bogotá`,
+      programaId: e.programaId,
+      semestre: e.semestre,
+      jornada: JORNADAS[i % 2],
+      promedio: e.promedio,
+      estado: e.estado,
+      documentos: CICLO_DOCS[i % CICLO_DOCS.length],
+      fechaIngreso: e.ingreso,
+      admisioId: null,
+      pagos: pagosDe(i, e.estado === 'retirado' ? 'mora' : PERFIL_PAGO[i], e.semestre),
+    });
+  });
+
+  ASPIRANTES.filter((a) => a.estado === 'admitido').forEach((a, i) => {
+    const n = i + PREVIOS.length;
+    lista.push({
+      id: `2026${String(1000 + i)}`,
+      nombre: a.nombre,
+      documento: a.documento,
+      correo: slug(a.nombre) + '@uni.edu.co',
+      telefono: `31${3 + (i % 6)} ${200 + i * 41} ${3000 + i * 97}`,
+      direccion: `Cll. ${40 + i} #${30 + i}-${21 + i}, Bogotá`,
+      programaId: a.programaId,
+      semestre: 1,
+      jornada: JORNADAS[(i + 1) % 2],
+      promedio: a.promedio,
+      // El proceso vigente tiene abierta la inscripción de admitidos.
+      estado: 'en_inscripcion',
+      documentos: a.documentos,
+      fechaIngreso: '2026-07-15',
+      admisioId: a.id,
+      pagos: pagosDe(n, PERFIL_PAGO[n], 1),
+    });
+  });
+
+  return lista;
+};
+
+export const ESTUDIANTES = construirEstudiantes();
+
 export const INITIAL_DATA = {
   materias: [
-    { id:1, codigo:'IS-602', nombre:'Ingeniería de Software',        creditos:4, profesor:'Mg. Torres',       nota1:4.8, nota2:4.5, nota3:null, definitiva:null, estado:'en_curso', periodo:'2026-1' },
+    { id:1, codigo:'IS-602', nombre:'Ingeniería de Software',        creditos:4, profesor:'Dra. Laura Sánchez', nota1:4.8, nota2:4.5, nota3:null, definitiva:null, estado:'en_curso', periodo:'2026-1' },
     { id:2, codigo:'IS-603', nombre:'Redes Computacionales I',      creditos:4, profesor:'Ing. Suárez',      nota1:3.5, nota2:4.0, nota3:null, definitiva:null, estado:'en_curso', periodo:'2026-1' },
     { id:3, codigo:'IS-601', nombre:'Arquitectura del Computador',   creditos:4, profesor:'Dr. Ramírez',      nota1:4.2, nota2:3.8, nota3:4.5, definitiva:4.2, estado:'aprobado', periodo:'2026-1' },
     { id:4, codigo:'MAT-302', nombre:'Cálculo Integral',             creditos:4, profesor:'Dra. Mendez',      nota1:2.8, nota2:3.1, nota3:2.5, definitiva:2.8, estado:'reprobado', periodo:'2025-2' },
     { id:5, codigo:'IS-402', nombre:'Programación Orientada a Objetos', creditos:4, profesor:'Dra. Mendez',   nota1:4.6, nota2:4.7, nota3:4.9, definitiva:4.7, estado:'aprobado', periodo:'2025-2' },
     { id:6, codigo:'HUM-601', nombre:'Ética',                         creditos:2, profesor:'Lic. Vargas',      nota1:4.0, nota2:4.2, nota3:4.1, definitiva:4.1, estado:'aprobado', periodo:'2025-2' },
+  ],
+  /* Certificados que emite Registro/Admisiones a nombre de un estudiante.
+     Es distinto de `certificados`, que son las solicitudes del propio alumno. */
+  certificadosEmitidos: [
+    { id:'CE-0001', estudianteId:'20231006', tipo:'Certificado de Calificaciones', fecha:'2026-08-05', estado:'entregado', matricula:'20231006' },
+    { id:'CE-0002', estudianteId:'20231001', tipo:'Paz y Salvo Financiero',       fecha:'2026-08-12', estado:'entregado', matricula:'20231001' },
+    { id:'CE-0003', estudianteId:'20231004', tipo:'Constancia de Notas',          fecha:null,         estado:'solicitado', matricula:'20231004' },
   ],
   certificados: [
     { id:1, tipo:'Certificado de Estudios', fecha:'2026-07-15', estado:'disponible', solicitado:'2026-07-10' },
@@ -194,7 +331,7 @@ export const INITIAL_DATA = {
     { id:4, concepto:'Seguro Estudiantil 2026', valor:45000, fecha_limite:'2026-03-01', fecha_pago:'2026-02-28', estado:'pagado', referencia:'PAG-20260228-003' },
   ],
   cursos: [
-    { id:1, nombre:'Ingeniería de Software',       codigo:'IS-602', profesor:'Mg. Torres',    grupo:'A', estudiantes:32, icon:'💻', color:'linear-gradient(135deg,#6d28d9,#8b5cf6)', progreso:50 },
+    { id:1, nombre:'Ingeniería de Software',       codigo:'IS-602', profesor:'Dra. Laura Sánchez', grupo:'A', estudiantes:32, icon:'💻', color:'linear-gradient(135deg,#6d28d9,#8b5cf6)', progreso:50 },
     { id:2, nombre:'Redes Computacionales I',     codigo:'IS-603', profesor:'Ing. Suárez',   grupo:'B', estudiantes:28, icon:'🌐', color:'linear-gradient(135deg,#0369a1,#0ea5e9)', progreso:65 },
     { id:3, nombre:'Arquitectura del Computador',  codigo:'IS-601', profesor:'Dr. Ramírez',   grupo:'A', estudiantes:30, icon:'🔌', color:'linear-gradient(135deg,#065f46,#10b981)', progreso:100 },
   ],
@@ -211,7 +348,7 @@ export const INITIAL_DATA = {
     { id:10, cursoId:3, corte:3, titulo:'Proyecto Final — Processor Simple', tipo:'proyecto', fechaEntrega:'2026-09-25', descripcion:'Implementar un procesador simple en HDL con su unidad de control.',                   puntos:80,  estado_est:'pendiente',  nota:null },
   ],
   anuncios: [
-    { id:1, cursoId:1, titulo:'Cambio de horario — semana del 25 ago', contenido:'La clase del martes 26 se traslada al miércoles 27 a las 8am. Laboratorio B-205.', fecha:'2026-08-21', autor:'Mg. Torres' },
+    { id:1, cursoId:1, titulo:'Cambio de horario — semana del 25 ago', contenido:'La clase del martes 26 se traslada al miércoles 27 a las 8am. Laboratorio B-205.', fecha:'2026-08-21', autor:'Dra. Laura Sánchez' },
     { id:2, cursoId:2, titulo:'Material de apoyo disponible', contenido:'Se subió la guía de direccionamiento IP y la plantilla de la práctica en la sección de recursos.', fecha:'2026-08-20', autor:'Ing. Suárez' },
   ],
   empleados: [
@@ -238,11 +375,52 @@ export const INITIAL_DATA = {
     { id:3, nombre:'Acreditación Programa Ingeniería', area:'Calidad', responsable:'Rectoría', presupuesto:25000000, ejecutado:8000000, avance:32, estado:'en_ejecucion', inicio:'2026-02-01', fin:'2027-06-30' },
     { id:4, nombre:'Sistema Bienestar Estudiantil', area:'Bienestar', responsable:'Bienestar', presupuesto:35000000, ejecutado:35000000, avance:100, estado:'completado', inicio:'2025-08-01', fin:'2026-07-31' },
   ],
+  // Cada notificación declara sus roles (roles: '*' = todos) y un destino:
+  //   destino.vista/tab -> vista del Dashboard, destino.ruta/tab -> ruta propia del módulo,
+  //   destino.cursoId -> detalle de un curso.
   notificaciones: [
-    { id:1, titulo:'Nota publicada', msg:'Quiz SQL: 27/30 puntos', tipo:'success', tiempo:'Hace 2 horas', leida:false, destino:{ vista:'academico', tab:'notas' } },
-    { id:2, titulo:'Tarea por vencer', msg:'Taller Normalización 3FN vence el 25 ago', tipo:'warning', tiempo:'Hace 5 horas', leida:false, destino:{ vista:'lms', tab:'tareas', filtroTareas:'pendientes' } },
-    { id:3, titulo:'Nuevo anuncio', msg:'Ingeniería de Software: Cambio de horario', tipo:'info', tiempo:'Hace 1 día', leida:false, destino:{ cursoId:1 } },
-    { id:4, titulo:'Volante disponible', msg:'Matrícula 2026-2 ya está disponible', tipo:'info', tiempo:'Hace 3 días', leida:true, destino:{ vista:'academico', tab:'pagos', filtroPagos:'pendientes' } },
+    /* ---------- Estudiante ---------- */
+    { id:101, roles:['estudiante'], titulo:'Nota publicada', msg:'Quiz SQL: 27/30 puntos', tipo:'success', tiempo:'Hace 2 horas', leida:false, destino:{ vista:'academico', tab:'notas' } },
+    { id:102, roles:['estudiante'], titulo:'Tarea por vencer', msg:'Taller Normalización 3FN vence el 25 ago', tipo:'warning', tiempo:'Hace 5 horas', leida:false, destino:{ vista:'lms', tab:'tareas', filtroTareas:'pendientes' } },
+    { id:103, roles:['estudiante'], titulo:'Nuevo anuncio', msg:'Ingeniería de Software: Cambio de horario', tipo:'info', tiempo:'Hace 1 día', leida:false, destino:{ cursoId:1 } },
+    { id:104, roles:['estudiante'], titulo:'Volante disponible', msg:'Matrícula 2026-2 ya está disponible', tipo:'info', tiempo:'Hace 3 días', leida:true, destino:{ vista:'academico', tab:'pagos', filtroPagos:'pendientes' } },
+
+    /* ---------- Profesor ---------- */
+    { id:201, roles:['profesor'], titulo:'Entregas por calificar', msg:'3 submissions sin nota en Bases de Datos', tipo:'warning', tiempo:'Hace 1 hora', leida:false, destino:{ vista:'lms', tab:'tareas', filtroTareas:'entregadas' } },
+    { id:202, roles:['profesor'], titulo:'Acta de nota pendiente', msg:'IS-310 tiene 28students sin confirmar', tipo:'warning', tiempo:'Hace 4 horas', leida:false, destino:{ vista:'academico', tab:'notas' } },
+    { id:203, roles:['profesor'], titulo:'Nuevo anuncio', msg:'Ingeniería de Software: Cambio de horario', tipo:'info', tiempo:'Hace 1 día', leida:false, destino:{ cursoId:1 } },
+    { id:204, roles:['profesor'], titulo:'Cátedra iniciada', msg:'Programación de Videojuegos abre su periodo de notas', tipo:'info', tiempo:'Hace 2 días', leida:true, destino:{ vista:'academico', tab:'cursos' } },
+
+    /* ---------- Admisiones y Registro ---------- */
+    { id:301, roles:['admisiones','admin'], titulo:'Expedientes incompletos', msg:'5 aspirantes con documentación pendiente', tipo:'warning', tiempo:'Hace 30 minutos', leida:false, destino:{ ruta:'/admisiones', tab:'documentos' } },
+    { id:302, roles:['admisiones','admin'], titulo:'Aspirantes sin decisión', msg:'5 resultados en proceso por definir', tipo:'warning', tiempo:'Hace 2 horas', leida:false, destino:{ ruta:'/admisiones', tab:'aspirantes' } },
+    { id:303, roles:['admisiones','admin'], titulo:'Pendientes de matrícula', msg:'7 admitidos por matricular', tipo:'info', tiempo:'Hace 5 horas', leida:false, destino:{ ruta:'/admisiones', tab:'registro' } },
+    { id:304, roles:['admisiones','admin'], titulo:'Certificado solicitado', msg:'1 trámite esperando emisión', tipo:'info', tiempo:'Hace 1 día', leida:false, destino:{ ruta:'/admisiones', tab:'certificados' } },
+    { id:305, roles:['admisiones','admin'], titulo:'Cartera en mora', msg:'3 estudiantes con saldo vencido', tipo:'warning', tiempo:'Hace 2 días', leida:false, destino:{ ruta:'/admisiones', tab:'cuenta' } },
+
+    /* ---------- Administración ---------- */
+    { id:401, roles:['admin'], titulo:'Programas sin cupo asignado', msg:'2 programas requieren definir la oferta de cupos', tipo:'warning', tiempo:'Hace 1 hora', leida:false, destino:{ ruta:'/admin', tab:'programas' } },
+    { id:402, roles:['admin'], titulo:'Docentes por vincular', msg:'2 docentes sin programa asignado', tipo:'info', tiempo:'Hace 3 horas', leida:false, destino:{ ruta:'/admin', tab:'docentes' } },
+    { id:403, roles:['admin'], titulo:'Proceso de admisiones activo', msg:'El periodo 2026-2 está en etapa de resultados', tipo:'info', tiempo:'Hace 1 día', leida:false, destino:{ ruta:'/admisiones' } },
+    { id:404, roles:['admin'], titulo:'Reporte financiero disponible', msg:'Ejecución presupuestal corte a agosto', tipo:'success', tiempo:'Hace 3 días', leida:true, destino:{ ruta:'/admin', tab:'finanzas' } },
+
+    /* ---------- Rectoría ---------- */
+    { id:501, roles:['rectoria'], titulo:'Indicadores bajo meta', msg:'3 indicadores de Convergence están en rojo', tipo:'warning', tiempo:'Hace 1 hora', leida:false, destino:{ ruta:'/rectoria', tab:'indicadores' } },
+    { id:502, roles:['rectoria'], titulo:'Ejecución presupuestal', msg:'62% del presupuesto anual comprometido', tipo:'info', tiempo:'Hace 4 horas', leida:false, destino:{ ruta:'/rectoria', tab:'sostenibilidad' } },
+    { id:503, roles:['rectoria'], titulo:'Programas en riesgo', msg:'2 programas con baja matrícula de primer semestre', tipo:'warning', tiempo:'Hace 1 día', leida:false, destino:{ ruta:'/rectoria', tab:'programas' } },
+    { id:504, roles:['rectoria'], titulo:'Tasa de admisión', msg:'El proceso 2026-2 cerró con 50% de admitidos', tipo:'success', tiempo:'Hace 4 días', leida:true, destino:{ ruta:'/rectoria', tab:'admisiones' } },
+
+    /* ---------- Talento Humano ---------- */
+    { id:601, roles:['talento_humano'], titulo:'Sobrecarga académica', msg:'2 docentes superan el 120% de la carga', tipo:'warning', tiempo:'Hace 2 horas', leida:false, destino:{ ruta:'/talento-humano', tab:'carga' } },
+    { id:602, roles:['talento_humano'], titulo:'Plaza vacante', msg:'Ingeniería de Software sin docente titular', tipo:'info', tiempo:'Hace 6 horas', leida:false, destino:{ ruta:'/talento-humano', tab:'planta' } },
+    { id:603, roles:['talento_humano'], titulo:'Áreas sin cubrir', msg:'1 área depende de un docente por contrato', tipo:'warning', tiempo:'Hace 1 día', leida:false, destino:{ ruta:'/talento-humano', tab:'areas' } },
+    { id:604, roles:['talento_humano'], titulo:'Aptitud en riesgo', msg:'1 docente próximo a cumplir 70 años', tipo:'info', tiempo:'Hace 3 días', leida:true, destino:{ ruta:'/talento-humano', tab:'planta' } },
+
+    /* ---------- Contabilidad ---------- */
+    { id:701, roles:['contabilidad'], titulo:'Conciliación pendiente', msg:'2 Extractos bancarios sin cuadrar', tipo:'warning', tiempo:'Hace 45 minutos', leida:false, destino:{ ruta:'/contabilidad', tab:'conciliacion' } },
+    { id:702, roles:['contabilidad'], titulo:'Recaudo del día', msg:'Cierre de caja con 48 transacciones', tipo:'info', tiempo:'Hace 3 horas', leida:false, destino:{ ruta:'/contabilidad', tab:'recaudo' } },
+    { id:703, roles:['contabilidad'], titulo:'Cartera en mora', msg:'3 estudiantes con saldo vencido', tipo:'warning', tiempo:'Hace 1 día', leida:false, destino:{ ruta:'/contabilidad', tab:'cartera' } },
+    { id:704, roles:['contabilidad'], titulo:'Comprobantes sin enviar', msg:'4 recibos quedan pendientes de envío', tipo:'info', tiempo:'Hace 2 días', leida:false, destino:{ ruta:'/contabilidad', tab:'recaudo' } },
   ],
   eventos: [
     { fecha:22, titulo:'Entrega UML IS-310', tipo:'tarea' },
@@ -250,14 +428,8 @@ export const INITIAL_DATA = {
     { fecha:27, titulo:'Clase BD II (cambio)', tipo:'clase' },
     { fecha:28, titulo:'Informe Requisitos', tipo:'tarea' },
   ],
-  listaEstudiantes: [
-    { id:1, nombre:'Carlos Andrés Martínez', codigo:'20231001', nota1:4.2, nota2:3.8 },
-    { id:2, nombre:'Ana Lucía Ospina', codigo:'20231002', nota1:3.9, nota2:4.1 },
-    { id:3, nombre:'Diego Fernando Ruiz', codigo:'20231003', nota1:2.5, nota2:3.0 },
-    { id:4, nombre:'Valentina Torres', codigo:'20231004', nota1:4.8, nota2:4.7 },
-    { id:5, nombre:'Sebastián Mora', codigo:'20231005', nota1:3.5, nota2:3.8 },
-    { id:6, nombre:'Isabella García', codigo:'20231006', nota1:4.0, nota2:4.2 },
-  ],
+  listaEstudiantes: PREVIOS.map((e) => ({ id:e.codigo, nombre:e.nombre, codigo:e.codigo, nota1:e.nota1, nota2:e.nota2 })),
+  estudiantes: ESTUDIANTES,
   cursos_info: {
     1: { programa:'Ing. de Sistemas y Computación', semestre:6 },
     2: { programa:'Ing. de Sistemas y Computación', semestre:6 },
@@ -298,22 +470,7 @@ export const INITIAL_DATA = {
       { id:'doc-4', nombre:'Certificado de matrícula de bachillerato', obligatorio:true, vigente:false },
       { id:'doc-5', nombre:'Formato de matrícula', obligatorio:true, vigente:false },
     ],
-    aspirantes: [
-      { id:'ASP-0001', nombre:'Mariana Restrepo Hoyos', documento:'1.023.445.671', programaId:1, puntajeIcfes:412, examen:78, promedio:4.62, fecha:'2026-05-12', estado:'admitido', documentos:'completo' },
-      { id:'ASP-0002', nombre:'Juan Pablo Cardona', documento:'1.019.882.204', programaId:1, puntajeIcfes:388, examen:71, promedio:4.41, fecha:'2026-05-14', estado:'en_proceso', documentos:'pendiente' },
-      { id:'ASP-0003', nombre:'Laura Fernanda Gómez', documento:'1.032.117.450', programaId:5, puntajeIcfes:401, examen:74, promedio:4.55, fecha:'2026-05-18', estado:'admitido', documentos:'completo' },
-      { id:'ASP-0004', nombre:'Andrés Felipe Ortiz', documento:'1.021.663.908', programaId:2, puntajeIcfes:352, examen:66, promedio:4.08, fecha:'2026-05-20', estado:'en_proceso', documentos:'pendiente' },
-      { id:'ASP-0005', nombre:'Sofía Palacio Naranjo', documento:'1.044.209.775', programaId:4, puntajeIcfes:377, examen:82, promedio:4.70, fecha:'2026-05-22', estado:'admitido', documentos:'completo' },
-      { id:'ASP-0006', nombre:'Daniel Esteban Ríos', documento:'1.016.554.331', programaId:9, puntajeIcfes:298, examen:69, promedio:3.85, fecha:'2026-05-23', estado:'rechazado', documentos:'completo' },
-      { id:'ASP-0007', nombre:'Valentina Cruz MESA', documento:'1.037.441.029', programaId:3, puntajeIcfes:365, examen:70, promedio:4.33, fecha:'2026-05-25', estado:'en_proceso', documentos:'incompleto' },
-      { id:'ASP-0008', nombre:'Nicolás Arturo Prieto', documento:'1.028.771.690', programaId:6, puntajeIcfes:344, examen:75, promedio:4.28, fecha:'2026-05-27', estado:'admitido', documentos:'completo' },
-      { id:'ASP-0009', nombre:'Camila Andrea Pérez', documento:'1.041.996.517', programaId:5, puntajeIcfes:395, examen:68, promedio:4.47, fecha:'2026-05-28', estado:'en_proceso', documentos:'pendiente' },
-      { id:'ASP-0010', nombre:'Sebastián Lozano Vega', documento:'1.013.332.884', programaId:8, puntajeIcfes:421, examen:88, promedio:4.75, fecha:'2026-06-01', estado:'admitido', documentos:'completo' },
-      { id:'ASP-0011', nombre:'Isabella Moreno Rojas', documento:'1.035.668.142', programaId:7, puntajeIcfes:409, examen:85, promedio:4.60, fecha:'2026-06-02', estado:'admitido', documentos:'completo' },
-      { id:'ASP-0012', nombre:'Tomás Alejandro Ruiz', documento:'1.009.887.213', programaId:1, puntajeIcfes:331, examen:64, promedio:3.92, fecha:'2026-06-04', estado:'rechazado', documentos:'completo' },
-      { id:'ASP-0013', nombre:'Manuela Ochoa Pérez', documento:'1.048.330.761', programaId:10, puntajeIcfes:287, examen:72, promedio:4.05, fecha:'2026-06-05', estado:'en_proceso', documentos:'incompleto' },
-      { id:'ASP-0014', nombre:'Samuel Betancur López', documento:'1.026.774.508', programaId:3, puntajeIcfes:358, examen:73, promedio:4.29, fecha:'2026-06-08', estado:'admitido', documentos:'completo' },
-    ],
+    aspirantes: ASPIRANTES,
   },
 
   matricula: {
@@ -406,7 +563,28 @@ export const formatCurrency = (val) => {
 };
 
 export const formatDate = (dateStr) => {
-  if (!dateStr) return '—';
-  const d = new Date(dateStr + 'T00:00:00');
-  return d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
-};
+      if (!dateStr) return '-';
+      /* La API entrega fechas ya completas ("2026-09-22T00:00:00.000Z"), pero el
+         mock y los <input type="date"> las mandan como "2026-09-22". Concatenar
+         'T00:00:00' a un valor que ya trae hora lo vuelve "Invalid Date". */
+      const d = new Date(/^\d{4}-\d{2}-\d{2}$/.test(dateStr) ? `${dateStr}T00:00:00` : dateStr);
+      if (Number.isNaN(d.getTime())) return '-';
+      return d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
+    };
+
+  /* Fecha CON hora, para cuando importa el momento y no solo el dia: una
+     entrega que cierra a las 10:00 no es lo mismo que una que cierra a las
+     22:00. Formato: "20/10/2026, 10:00 a. m.". */
+  export const formatDateTime = (dateStr) => {
+      if (!dateStr) return '-';
+      const d = new Date(/^\d{4}-\d{2}-\d{2}$/.test(dateStr) ? `${dateStr}T00:00:00` : dateStr);
+      if (Number.isNaN(d.getTime())) return '-';
+      return `${d.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' })}, ${d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true }).replace(/\s/g, ' ')}`;
+    };
+
+/* Cada rol ve únicamente su propia bandeja. `roles: '*'` (o ausente) hace que la
+   notificación se muestre a todos los roles. */
+export const notificacionesDeRol = (lista, rol) =>
+  (lista || []).filter(
+    (n) => !n.roles || n.roles === '*' || n.roles.includes(rol)
+  );
