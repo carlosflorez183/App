@@ -36,9 +36,11 @@ model Usuario {
   activo      Boolean  @default(true)
   creadoEn    DateTime @default(now())
 
-  programa      Programa? @relation(fields: [programaId], references: [id])
+programa      Programa?  @relation(fields: [programaId], references: [id])
   estudiante    Estudiante?
   docente       Docente?
+  empleado      Empleado?
+  certificadosLaborales CertificadoEmpleado[]
 
   @@index([role])
   @@map("usuarios")
@@ -482,20 +484,157 @@ model Docente {
   @@map("docentes")
 }
 
-/// Empleado no docente (administrativo). Alimenta Talento Humano y Contabilidad.
+/// Empleado no docente (administrativo) o docente que cobra por nómina.
+/// Alimenta Talento Humano y Contabilidad.
+///
+/// `usuarioId` lo enlaza con el usuario del sistema: sin ese link no hay forma
+/// de saber qué empleados son los mismos que entrando a la plataforma, ni de
+/// auditar quién expidió un certificado.
 model Empleado {
   id          Int     @id @default(autoincrement())
   nombre      String
   cargo       String
   dependencia String
+  /// planta, administrativo, hora_catedra.
   tipo        String
   salario     Float
   estado      String
   ingreso     DateTime?
   documento   String
+  /// Base sobre la que se calculan aportes y retención. Por defecto es el
+  /// mismo `salario`, pero un docente de cátedra cobra por hora y eso cambia
+  /// la base. Si está vacío se usa `salario`.
+  baseSalarial Float?
+  usuarioId     Int?    @unique
+
+  usuario       Usuario?              @relation(fields: [usuarioId], references: [id])
+  liquidaciones Liquidacion[]
+  certificados  CertificadoEmpleado[]
 
   @@index([dependencia])
+  @@index([estado])
   @@map("empleados")
+}
+
+/// Una corrida de nómina: el corte de un mes para toda la planta.
+///
+/// El periodo es único. Recalcular un mes es rehacer la corrida, no agregar una
+/// segunda: dos liquidaciones del mismo empleado para el mismo mes harían que
+/// el certificado mostrara doble.
+model Nomina {
+  id               Int      @id @default(autoincrement())
+  periodo          String   @unique
+  fechaPago        DateTime
+  /// abierta, cerrada, pagada.
+  estado           String   @default("pagada")
+  /// Valor de la UVT usado en esta corrida. Se guarda con la liquidación a
+  /// propósito: la retención se puede recalcular con otra UVT, pero un
+  /// certificado ya emitido debe seguir mostrando lo que realmente se cobró.
+  uvt              Float    @default(42950)
+  /// Valor del salario mínimo mensual vigente, para el fondo de solidaridad.
+  smlmv            Float    @default(1300000)
+  totalDevengado   Float    @default(0)
+  totalDeducciones Float    @default(0)
+  totalNeto        Float    @default(0)
+  cerradoEn        DateTime?
+  creadoEn         DateTime @default(now())
+
+  liquidaciones Liquidacion[]
+  certificados  CertificadoEmpleado[]
+
+  @@map("nominas")
+}
+
+/// Lo que se le liquidó a un empleado en una corrida.
+///
+/// Se guarda el resultado del cálculo completo, no solo el neto: un certificado
+/// de ingresos y retenciones tiene que poder mostrar la base gravable, la renta
+/// exenta y la retención, y eso ya no se puede recalcular meses después porque
+/// la UVT y el salario pueden haber cambiado.
+model Liquidacion {
+  id          Int     @id @default(autoincrement())
+  nominaId    Int
+  empleadoId  Int
+  salarioBase Float
+  devengado   Float
+  deducciones Float
+  neto        Float
+  /// Resultado del cálculo de retención, guardado campo por campo.
+  baseRetencion Float @default(0)
+  rentaExenta   Float @default(0)
+  baseGravable  Float @default(0)
+  retencion     Float @default(0)
+
+  nomina     Nomina     @relation(fields: [nominaId], references: [id], onDelete: Cascade)
+  empleado   Empleado   @relation(fields: [empleadoId], references: [id], onDelete: Cascade)
+  conceptos  Concepto[]
+  certificados CertificadoEmpleado[]
+
+  @@unique([nominaId, empleadoId])
+  @@index([empleadoId])
+  @@map("liquidaciones")
+}
+
+/// Renglón de una liquidación.
+///
+/// Se guarda cada concepto por separado y no como un total porque el
+/// certificado necesita desglosar qué fue devengo y qué fue descuento: los
+/// aportes a salud y pensión se restan de la base de retención, el fondo de
+/// solidaridad no, y esa diferencia no se ve si solo se guarda la suma.
+model Concepto {
+  id            Int     @id @default(autoincrement())
+  liquidacionId Int
+  /// devengado o deduccion.
+  tipo          String
+  codigo        String
+  nombre        String
+  valor         Float
+  /// Base sobre la que se calculó, cuando el concepto es un porcentaje.
+  base          Float?
+  /// Porcentaje aplicado, cuando el concepto es un porcentaje.
+  porcentaje    Float?
+  orden         Int     @default(0)
+
+  liquidacion Liquidacion @relation(fields: [liquidacionId], references: [id], onDelete: Cascade)
+
+  @@index([liquidacionId])
+  @@map("conceptos")
+}
+
+/// Documento que expide Talento Humano a un empleado.
+///
+/// Es una tabla aparte de `CertificadoEmitido` (la de estudiantes) a propósito:
+/// aquellos son documentos académicos con matrícula, notas y programa; estos son
+/// laborales con cargo, dependencia, salario y retención. Ni los datos, ni el
+/// texto del certificado, ni el proceso de emisión se parecen, y mezclarlos en
+/// una sola tabla obligaría a dejar campos vacíos según el caso.
+model CertificadoEmpleado {
+  id            Int      @id @default(autoincrement())
+  empleadoId    Int
+  /// Corrida de nómina de la que salen los números. Un certificado de ingresos
+  /// cubre un periodo completo, no una liquidación suelta, así que apunta a la
+  /// corrida y no solo a la liquidación del empleado.
+  nominaId      Int?
+  liquidacionId Int?
+  /// constancia_laboral, certificado_ingresos, ingresos_retenciones.
+  tipo          String
+  /// Mes certificado, "2026-08". Solo lo piden los certificados de ingresos.
+  periodo       String?
+  fecha         DateTime?
+  /// solicitado, en_proceso, entregado.
+  estado        String   @default("entregado")
+  /// Usuario que lo expidió, para auditar.
+  emitidoPor    Int?
+  solicitado    DateTime?
+
+  empleado    Empleado     @relation(fields: [empleadoId], references: [id], onDelete: Cascade)
+  nomina      Nomina?      @relation(fields: [nominaId], references: [id])
+  liquidacion Liquidacion? @relation(fields: [liquidacionId], references: [id])
+  emisor      Usuario?     @relation(fields: [emitidoPor], references: [id])
+
+  @@index([empleadoId])
+  @@index([tipo])
+  @@map("certificados_empleado")
 }
 
 /// Movimiento de Tesorería.

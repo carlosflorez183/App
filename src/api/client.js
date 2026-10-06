@@ -102,6 +102,46 @@ export const emitirCertificado = (estudianteId, tipo) =>
 export const solicitarCertificado = (tipo) =>
   api('/certificados', { method: 'POST', body: { tipo } });
 
+/* ── Descargar el certificado ──
+   El PDF lo arma el servidor, no el navegador: se pide el archivo y se entrega
+   al navegador como una descarga normal. No se puede usar `api()` porque esa
+   espera un JSON y aquí llega un application/pdf.
+
+   El nombre del archivo lo manda el servidor en `content-disposition`, así que
+   no hay que inventarlo aquí: si el servidor lo renombra, el archivo baja con
+   el nombre correcto sin tocar el portal. */
+export async function descargarCertificado(id) {
+  const init = { headers: {} };
+  const t = getToken();
+  if (t) init.headers.Authorization = `Bearer ${t}`;
+  const res = await fetch(`${BASE}/certificados/${id}/pdf`, init);
+  if (!res.ok) {
+    let mensaje = `HTTP ${res.status}`;
+    try {
+      const cuerpo = await res.json();
+      mensaje = cuerpo?.message || cuerpo?.error || mensaje;
+    } catch { /* la respuesta no era JSON: se deja el HTTP */ }
+    throw new ApiError(mensaje, res.status);
+  }
+  const tipo = (res.headers.get('content-type') || '').split(';')[0];
+  if (tipo !== 'application/pdf') {
+    throw new ApiError(`El servidor devolvió ${tipo || 'un tipo raro'} en vez de un PDF`, res.status);
+  }
+  const disposition = res.headers.get('content-disposition') || '';
+  const nombre = /filename="([^"]+)"/.exec(disposition)?.[1] || `certificado-${id}.pdf`;
+  const url = URL.createObjectURL(await res.blob());
+  const enlace = document.createElement('a');
+  enlace.href = url;
+  enlace.download = nombre;
+  document.body.appendChild(enlace);
+  enlace.click();
+  enlace.remove();
+  /* Sin revocar la URL, el archivo se queda en memoria y en descargas
+     repetidas acaba dando error en el navegador. */
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+  return nombre;
+}
+
 export const registrarPago = (id, cambios) =>
   api(`/admisiones/pagos/${id}`, { method: 'PATCH', body: cambios });
 
@@ -134,10 +174,29 @@ export const actualizarEstudianteAdmin = (id, cambios) =>
 export const actualizarDocente = (id, cambios) =>
   api(`/admin/docentes/${encodeURIComponent(id)}`, { method: 'PATCH', body: cambios });
 
-export const actualizarPrograma = (id, cambios) =>
-  api(`/admin/programas/${id}`, { method: 'PATCH', body: cambios });
-
-export const listarFinanzasAdmin = () => api('/admin/finanzas');
+export const listarNominas = () => api('/talento-humano/nominas');
+export const crearNomina = (data) => api('/talento-humano/nominas', { method: 'POST', body: data });
+export const obtenerNomina = (id) => api(`/talento-humano/nominas/${id}`);
+export const listarCertificadosLaborales = () => api('/talento-humano/certificados');
+export const crearCertificadoLaboral = (data) => api('/talento-humano/certificados', { method: 'POST', body: data });
+export async function descargarCertificadoLaboral(id) {
+  const init = { headers: {} };
+  const t = getToken();
+  if (t) init.headers.Authorization = `Bearer ${t}`;
+  const res = await fetch(`${BASE}/talento-humano/certificados/${id}/pdf`, init);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const disposition = res.headers.get('content-disposition') || '';
+  const nombre = /filename="([^"]+)"/.exec(disposition)?.[1] || `certificado-laboral-${id}.pdf`;
+  const url = URL.createObjectURL(await res.blob());
+  const enlace = document.createElement('a');
+  enlace.href = url;
+  enlace.download = nombre;
+  document.body.appendChild(enlace);
+  enlace.click();
+  enlace.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+  return nombre;
+}
 
 /* ── Docente: asistencia, actividades y foro ───────────────────────────── */
 export const listarAsistencias = (cursoId) => api(`/cursos/${cursoId}/asistencias`);

@@ -5,6 +5,11 @@
    ============================================= */
 import { prisma } from '../config.js';
 import { hash, publico } from '../auth.js';
+import { liquidar, totalizar } from '../nomina.js';
+import {
+  pdfDeCertificadoLaboral,
+  nombreArchivo as nombreArchivoLaboral,
+} from '../certificadosLaborales.js';
 
 export default async function rutasAdmin(app) {
   /* ── Panel de Administración ─────────────────────────────────────────── */
@@ -221,36 +226,9 @@ export default async function rutasAdmin(app) {
     return { ...p, ocupacion: p.cupo ? Math.round((p.matriculados / p.cupo) * 100) : 0 };
   });
 
-  /* El bootstrap solo trae los pagos del estudiante de la demo, así que el
-     resumen financiero de Administración lee todos los cobros de una vez. */
-  app.get('/admin/finanzas', soloAdmin, async () => {
-    const pagos = await prisma.pago.findMany({
-      orderBy: [{ estado: 'asc' }, { fechaLimite: 'desc' }],
-      include: { estudiante: { select: { nombre: true } } },
-    });
-    const porEstado = pagos.reduce((acc, p) => {
-      acc[p.estado] = (acc[p.estado] || 0) + p.valor;
-      return acc;
-    }, {});
-    const total = pagos.reduce((a, p) => a + p.valor, 0);
-    const recaudado = porEstado.pagado || 0;
-    return {
-      total,
-      recaudado,
-      cartera: total - recaudado,
-      porEstado,
-      enMora: pagos.filter((p) => p.estado === 'vencido').length,
-      pagos: pagos.map((p) => ({
-        id: p.id,
-        estudiante: p.estudiante?.nombre ?? 'Estudiante eliminado',
-        concepto: p.concepto,
-        fechaLimite: p.fechaLimite,
-        valor: p.valor,
-        referencia: p.referencia,
-        estado: p.estado,
-      })),
-    };
-  });
+  /* NO hay ruta de pagos para Administración. Los cobros son de Contabilidad,
+   Rectoria y Planeación; el resto de módulos no los consulta. Antes existía
+   /admin/finanzas para la pestaña de finanzas que se quitó del panel. */
 
   /* ── Talento Humano ─────────────────────────────────────────────────── */
   app.get('/talento-humano/resumen', {
@@ -272,12 +250,241 @@ export default async function rutasAdmin(app) {
       })),
       masaSalarial: masaSalarial._sum.salario || 0,
       totalPersonas: docentes.length + empleados.length,
+      /* Lo último que se liquidó, para que el módulo abra mostrando números y
+         no un cero: sin esto la pestaña de nómina arrancaría siempre vacía
+         aunque ya haya corridas hechas. */
+      ultimaNomina: await prisma.nomina.findFirst({
+        orderBy: { periodo: 'desc' },
+        select: { periodo: true, fechaPago: true, estado: true, totalNeto: true, totalDevengado: true, totalDeducciones: true },
+      }),
     };
   });
 
+  /* ── Nómina ─────────────────────────────────────────────────────────── */
+  /* Todo esto es de Talento Humano. Contabilidad ve el resultado en su módulo
+     (resumen y pagos), pero no corre ni recalcula la nómina: liquidar es
+     calcular deducciones de personas, no cuadrar cuentas. */
+  const thNominas = {
+    preHandler: [app.autenticar, app.requiereRoles('talento_humano')],
+  };
+
+  app.get('/talento-humano/nominas', thNominas, async () => {
+    const nominas = await prisma.nomina.findMany({
+      orderBy: { periodo: 'desc' },
+      include: { _count: { select: { liquidaciones: true } } },
+    });
+    return nominas;
+  });
+
+  /* Crea (o rehace) la corrida de un periodo.
+     El cálculo no se inventa aquí: se llama a `liquidar` de nomina.js, que es
+     el mismo cálculo que usa el seed y las pruebas. Si el periodo ya existía se
+     borra y se vuelve a hacer, porque dejar dos corridas del mismo mes haría
+     que los totales de nómina dieran el doble. */
+  app.post('/talento-humano/nominas', thNominas, async (req, reply) => {
+    const { periodo, fechaPago, uvt, smlmv, ingresosExtra } = req.body || {};
+    if (!periodo || !/^\d{4}-\d{2}$/.test(periodo)) {
+      return reply.code(400).send({ error: 'El periodo debe tener el formato AAAA-MM' });
+    }
+    const mes = Number(periodo.split('-')[1]);
+    if (mes < 1 || mes > 12) {
+      return reply.code(400).send({ error: 'El mes del periodo no es válido' });
+    }
+
+    /* Los parámetros que fija la Dian cambian por año (UVT, salario mínimo).
+       Si no los mandan se usan los que ya tenía la corrida más reciente, y si
+       no hay ninguna corrida, los del schema. */
+    const previa = await prisma.nomina.findFirst({ orderBy: { periodo: 'desc' } });
+    const uvtFinal = Number(uvt) || previa?.uvt || 42950;
+    const smlmvFinal = Number(smlmv) || previa?.smlmv || 1300000;
+    const fecha = fechaPago ? new Date(fechaPago) : new Date(`${periodo}-28T00:00:00Z`);
+
+    const empleados = await prisma.empleado.findMany({
+      where: { estado: { not: 'retirado' } },
+      orderBy: { nombre: 'asc' },
+    });
+    if (!empleados.length) {
+      return reply.code(409).send({ error: 'No hay empleados activos para liquidar' });
+    }
+
+    const calculos = empleados.map((emp) => liquidar(emp, {
+      uvt: uvtFinal,
+      smlmv: smlmvFinal,
+      fechaPago: fecha,
+      ingresosExtra: (ingresosExtra?.[emp.id] || []),
+    }));
+    const totales = totalizar(calculos);
+
+    /* Rehacer el periodo: se borra la corrida anterior y sus liquidaciones
+       (los conceptos van en cascada), y se vuelve a liquidar. */
+    await prisma.nomina.deleteMany({ where: { periodo } });
+
+    const nomina = await prisma.nomina.create({
+      data: {
+        periodo,
+        fechaPago: fecha,
+        estado: 'pagada',
+        uvt: uvtFinal,
+        smlmv: smlmvFinal,
+        totalDevengado: totales.devengado,
+        totalDeducciones: totales.deducciones,
+        totalNeto: totales.neto,
+        liquidaciones: {
+          create: calculos.map((c) => ({
+            empleadoId: c.empleadoId,
+            salarioBase: c.salarioBase,
+            devengado: c.devengado,
+            deducciones: c.deducciones,
+            neto: c.neto,
+            baseRetencion: c.baseRetencion,
+            rentaExenta: c.rentaExenta,
+            baseGravable: c.baseGravable,
+            retencion: c.retencion,
+            conceptos: { create: c.conceptos },
+          })),
+        },
+      },
+    });
+
+    return reply.code(201).send({ ...nomina, empleados: nomina.liquidaciones?.length ?? calculos.length });
+  });
+
+  /* Detalle de una corrida: una liquidación por empleado con sus conceptos. */
+  app.get('/talento-humano/nominas/:id', thNominas, async (req, reply) => {
+    const nomina = await prisma.nomina.findUnique({
+      where: { id: Number(req.params.id) },
+      include: {
+        liquidaciones: {
+          orderBy: { neto: 'desc' },
+          include: {
+            empleado: { select: { id: true, nombre: true, cargo: true, dependencia: true, tipo: true, documento: true } },
+            conceptos: { orderBy: { orden: 'asc' } },
+          },
+        },
+      },
+    });
+    if (!nomina) return reply.code(404).send({ error: 'Corrida de nómina no encontrada' });
+    return nomina;
+  });
+
+  /* ── Certificados laborales ───────────────────────────────────────────
+     Los expide Talento Humano, no Registro: Registro emite documentos
+     académicos de estudiantes y estos son otra firma, otra plantilla y otro
+     proceso. */
+  const thCertificados = {
+    preHandler: [app.autenticar, app.requiereRoles('talento_humano')],
+  };
+
+  const TIPOS_CERTIFICADO = [
+    { tipo: 'constancia_laboral', pideNomina: false },
+    { tipo: 'certificado_ingresos', pideNomina: false },
+    { tipo: 'ingresos_retenciones', pideNomina: true },
+  ];
+
+  app.get('/talento-humano/certificados', thCertificados, async () => {
+    const certificados = await prisma.certificadoEmpleado.findMany({
+      orderBy: { id: 'desc' },
+      include: {
+        empleado: { select: { nombre: true, cargo: true, documento: true } },
+        emisor: { select: { nombre: true } },
+      },
+    });
+    return certificados;
+  });
+
+  app.post('/talento-humano/certificados', thCertificados, async (req, reply) => {
+    const { tipo, empleadoId, nominaId } = req.body || {};
+    const definicion = TIPOS_CERTIFICADO.find((t) => t.tipo === tipo);
+    if (!definicion) {
+      return reply.code(400).send({ error: 'Tipo de certificado no válido' });
+    }
+    const emp = await prisma.empleado.findUnique({ where: { id: Number(empleadoId) } });
+    if (!emp) return reply.code(404).send({ error: 'Empleado no encontrado' });
+
+    /* La constancia laboral y el certificado de ingresos se pueden hacer en
+       cualquier momento. El de ingresos y retenciones NO: sin una corrida del
+       periodo no hay números que certificar, y no se pueden inventar. */
+    let nomina = null;
+    if (definicion.pideNomina) {
+      nomina = await prisma.nomina.findUnique({ where: { id: Number(nominaId) } });
+      if (!nomina) {
+        return reply.code(409).send({
+          error: 'Ese certificado necesita la corrida de nómina del periodo. Primero liquide el mes.',
+        });
+      }
+      const existe = await prisma.certificadoEmpleado.findFirst({
+        where: { empleadoId: emp.id, tipo, periodo: nomina.periodo },
+      });
+      if (existe) {
+        return reply.code(409).send({
+          error: `Ya existe un certificado de ${tipo.replace(/_/g, ' ')} de ${emp.nombre} para ${nomina.periodo}.`,
+        });
+      }
+    }
+
+    const liquidacion = nomina
+      ? await prisma.liquidacion.findUnique({
+        where: { nominaId_empleadoId: { nominaId: nomina.id, empleadoId: emp.id } },
+      })
+      : null;
+
+    const creado = await prisma.certificadoEmpleado.create({
+      data: {
+        empleadoId: emp.id,
+        nominaId: nomina?.id ?? null,
+        liquidacionId: liquidacion?.id ?? null,
+        tipo,
+        periodo: nomina?.periodo ?? null,
+        estado: 'disponible',
+        fecha: new Date(),
+        emitidoPor: req.usuario.id,
+      },
+    });
+    return reply.code(201).send(creado);
+  });
+
+  /* El PDF lo arma el servidor con lo guardado, igual que los certificados
+     académicos: si se generara en el navegador, cada quien descargaría una
+     versión distinta. La liquidación y sus conceptos vienen en la misma
+     consulta porque son los renglones que se imprimen. */
+  app.get('/talento-humano/certificados/:id/pdf', thCertificados, async (req, reply) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id < 1) {
+      return reply.code(400).send({ error: 'El identificador del certificado no es válido' });
+    }
+    const certificado = await prisma.certificadoEmpleado.findUnique({
+      where: { id },
+      include: {
+        empleado: true,
+        nomina: true,
+        liquidacion: { include: { conceptos: { orderBy: { orden: 'asc' } } } },
+      },
+    });
+    if (!certificado) return reply.code(404).send({ error: 'Certificado no encontrado' });
+    if (certificado.estado !== 'disponible' && certificado.estado !== 'entregado') {
+      return reply.code(409).send({ error: 'El certificado todavía no está disponible para descargar' });
+    }
+
+    const doc = await pdfDeCertificadoLaboral(certificado);
+    const trozos = [];
+    for await (const trozo of doc) trozos.push(trozo);
+    const pdf = Buffer.concat(trozos);
+
+    return reply
+      .header('content-type', 'application/pdf')
+      .header('content-length', String(pdf.length))
+      .header('content-disposition', `attachment; filename="${nombreArchivoLaboral(certificado)}"`)
+      .header('cache-control', 'private, no-store')
+      .send(pdf);
+  });
+
   /* ── Contabilidad ───────────────────────────────────────────────────── */
+  /* Lectura de lo que está pagado y lo que falta. La pueden consultar
+     Contabilidad, Rectoría y Planeación: los pagos son su información. Lo que
+     no se comparte es la escritura: registrar o conciliar un cobro sigue
+     siendo solo de Contabilidad (guard `cta`). */
   app.get('/contabilidad/resumen', {
-    preHandler: [app.autenticar, app.requiereRoles('contabilidad')],
+    preHandler: [app.autenticar, app.requiereRoles('contabilidad', 'rectoria', 'planeacion')],
   }, async () => {
     const movimientos = await prisma.movimiento.findMany({ orderBy: { fecha: 'desc' } });
     const ingresos = movimientos.filter((m) => m.tipo === 'ingreso').reduce((a, m) => a + m.valor, 0);
@@ -512,8 +719,13 @@ export default async function rutasAdmin(app) {
   });
 
   /* Contabilidad necesita ver todos los cobros, no solo los del estudiante
-     que hay en sesión: por eso se listan aquí y no desde /bootstrap. */
-  app.get('/contabilidad/pagos', cta, async () => {
+     que hay en sesión: por eso se listan aquí y no desde /bootstrap. Rectoría
+     y Planeación también los leen (por eso no usa el guard `cta`), pero solo
+     para consultar: el PATCH de conciliación de más abajo sigue siendo
+     exclusivo de Contabilidad. */
+  app.get('/contabilidad/pagos', {
+    preHandler: [app.autenticar, app.requiereRoles('contabilidad', 'rectoria', 'planeacion')],
+  }, async () => {
     const pagos = await prisma.pago.findMany({
       orderBy: [{ estado: 'asc' }, { fechaLimite: 'asc' }],
       include: {

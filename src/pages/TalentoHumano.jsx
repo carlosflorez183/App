@@ -18,6 +18,11 @@ import {
   listarConvocatorias,
   listarPostulados,
   postularConvocatoria,
+  listarNominas,
+  crearNomina,
+  obtenerNomina,
+  listarCertificadosLaborales,
+  crearCertificadoLaboral,
 } from '../api/client';
 import { formatDate } from '../data/mockData';
 
@@ -27,6 +32,8 @@ const TABS = [
   { key: 'capacitaciones', label: 'Capacitaciones', icon: '🎓' },
   { key: 'carga', label: 'Carga académica', icon: '📚' },
   { key: 'areas', label: 'Áreas', icon: '🗂️' },
+  { key: 'nomina', label: 'Nómina', icon: '💸' },
+  { key: 'certificados', label: 'Certificados', icon: '📜' },
 ];
 
 const th = { textAlign: 'left', padding: '10px 12px', fontSize: 12, fontWeight: 700, color: '#64748b', borderBottom: '1px solid #e2e8f0' };
@@ -84,6 +91,12 @@ export default function TalentoHumano() {
   });
   const [formCap, setFormCap] = useState({ nombre: '', fecha: '', horas: 4, cupos: 20 });
   const [formPostulado, setFormPostulado] = useState({ nombre: '', documento: '', correo: '' });
+  const [nominas, setNominas] = useState([]);
+  const [detalleNomina, setDetalleNomina] = useState(null);
+  const [formNomina, setFormNomina] = useState({ periodo: '', fechaPago: '', uvt: '', smlmv: '' });
+  const [certificados, setCertificados] = useState([]);
+  const [formCert, setFormCert] = useState({ tipo: 'constancia_laboral', empleadoId: '', nominaId: '' });
+  const [descargando, setDescargando] = useState(false);
 
   const avisar = (msg, tono = 'ok') => {
     if (tono === 'error') { setError(msg); setExito(''); } else { setExito(msg); setError(''); }
@@ -123,6 +136,28 @@ export default function TalentoHumano() {
   useEffect(() => {
     Promise.all([cargarConvocatorias(), cargarCapacitaciones()]).finally(() => setCargando(false));
   }, [cargarConvocatorias, cargarCapacitaciones]);
+
+  const cargarNominas = useCallback(async () => {
+    try {
+      setNominas(await listarNominas());
+    } catch (err) {
+      setNominas([]);
+      setError(`No se pudieron cargar las nóminas: ${err.message}`);
+    }
+  }, []);
+
+  const cargarCertificados = useCallback(async () => {
+    try {
+      setCertificados(await listarCertificadosLaborales());
+    } catch (err) {
+      setCertificados([]);
+      setError(`No se pudieron cargar los certificados: ${err.message}`);
+    }
+  }, []);
+
+  useEffect(() => {
+    Promise.all([cargarConvocatorias(), cargarCapacitaciones(), cargarNominas(), cargarCertificados()]).finally(() => setCargando(false));
+  }, [cargarConvocatorias, cargarCapacitaciones, cargarNominas, cargarCertificados]);
 
   /* ── Planta docente ──────────────────────────────────────────────────── */
 

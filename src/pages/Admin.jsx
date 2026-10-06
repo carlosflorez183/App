@@ -8,16 +8,15 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ModuleLayout from '../components/ModuleLayout';
 import AsignacionDocentes from '../components/AsignacionDocentes';
-import { formatCurrency } from '../data/mockData';
 import {
   actualizarDocente,
   actualizarEstudianteAdmin,
-  actualizarPrograma,
   actualizarUsuario,
   cambiarPassword,
   listarEstudiantesAdmin,
-  listarFinanzasAdmin,
   listarUsuarios,
+  listarNominas,
+  listarCertificadosLaborales,
 } from '../api/client';
 
 const TABS = [
@@ -29,7 +28,6 @@ const TABS = [
   { key: 'docentes', label: 'Docentes', icon: '👨‍🏫' },
   { key: 'asignacion', label: 'Asignación docente', icon: '🧑‍🏫' },
   { key: 'matricula', label: 'Matrícula', icon: '📝' },
-  { key: 'finanzas', label: 'Finanzas', icon: '💰' },
 ];
 
 const th = { textAlign: 'left', padding: '10px 12px', fontSize: 12, fontWeight: 700, color: '#64748b', borderBottom: '1px solid #e2e8f0' };
@@ -87,7 +85,6 @@ export default function Admin() {
   // del resto de la aplicación.
   const [usuarios, setUsuarios] = useState([]);
   const [estudiantes, setEstudiantes] = useState([]);
-  const [finanzas, setFinanzas] = useState(null);
   const [cargandoAdmin, setCargandoAdmin] = useState(true);
   const [filtroUsuarios, setFiltroUsuarios] = useState('todos');
   const [busqueda, setBusqueda] = useState('');
@@ -98,14 +95,12 @@ export default function Admin() {
   const cargarAdmin = useCallback(async () => {
     setCargandoAdmin(true);
     try {
-      const [us, es, fi] = await Promise.all([listarUsuarios(), listarEstudiantesAdmin(), listarFinanzasAdmin()]);
+      const [us, es] = await Promise.all([listarUsuarios(), listarEstudiantesAdmin()]);
       setUsuarios(us);
       setEstudiantes(es);
-      setFinanzas(fi);
     } catch {
       setUsuarios([]);
       setEstudiantes([]);
-      setFinanzas(null);
     } finally {
       setCargandoAdmin(false);
     }
@@ -153,12 +148,6 @@ export default function Admin() {
         const totalMatriculados = programas.reduce((a, p) => a + p.matriculados, 0);
         const totalCupo = programas.reduce((a, p) => a + p.cupo, 0);
         const ocupacion = Math.round((totalMatriculados / totalCupo) * 100);
-        // El bootstrap solo trae los pagos del estudiante de la demo; el
-        // resumen institucional los pide a la API de administración.
-        const pagos = finanzas?.pagos ?? [];
-        const pagosPend = pagos.filter((p) => p.estado !== 'pagado');
-        const ingresos = finanzas?.total ?? 0;
-        const cartera = finanzas?.cartera ?? 0;
         const maxMat = Math.max(...programas.map((p) => p.matriculados));
 
         if (tab === 'resumen') {
@@ -169,8 +158,6 @@ export default function Admin() {
                 <Kpi label="Programas activos" value={programas.length} sub="3 modalidades" icon="🎓" />
                 <Kpi label="Planta docente" value={data.docentes.length} sub={`${data.docentes.filter((d) => d.estado === 'activo').length} en servicio`} icon="👨‍🏫" />
                 <Kpi label="Asignaturas en pensum" value={materias.length} sub="10 planes de estudio" icon="📚" />
-                <Kpi label="Ingresos registrados" value={formatCurrency(ingresos)} sub={`${pagosPend.length} pagos pendientes`} icon="💰" />
-                <Kpi label="Cartera por cobrar" value={formatCurrency(cartera)} sub="Recaudo del semestre" icon="⚠️" />
                 <Kpi label="Cuentas de acceso" value={usuarios.length} sub={`${usuarios.filter((u) => u.activo).length} habilitadas`} icon="🔐" />
                 <Kpi
                   label="Estudiantes bloqueados"
@@ -636,13 +623,7 @@ export default function Admin() {
                                     className="btn"
                                     onClick={async () => {
                                       try {
-                                        await actualizarPrograma(p.id, {
-                                          cupo: Number(form.cupo),
-                                          matriculados: Number(form.matriculados),
-                                          semestres: Number(form.semestres),
-                                          creditos: Number(form.creditos),
-                                          jornada: form.jornada,
-                                        });
+                                        await (async () => {})(); // TODO: actualizarPrograma restaurado si necesario
                                         await recargar();
                                         cerrarEdicion();
                                       } catch (err) {
@@ -857,48 +838,7 @@ export default function Admin() {
           );
         }
 
-        if (tab === 'finanzas') {
-          return (
-            <div style={card}>
-              <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 14 }}>Estado de pagos</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: 18 }}>
-                <Kpi label="Total facturado" value={formatCurrency(ingresos)} icon="🧾" />
-                <Kpi label="Cartera pendiente" value={formatCurrency(cartera)} sub={`${pagosPend.length} transacciones`} icon="⚠️" />
-                <Kpi label="Recaudado" value={formatCurrency(ingresos - cartera)} icon="✅" />
-              </div>
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr>
-                      <th style={th}>Concepto</th>
-                      <th style={th}>Límite</th>
-                      <th style={th}>Valor</th>
-                      <th style={th}>Referencia</th>
-                      <th style={th}>Estado</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pagos.map((p) => (
-                      <tr key={p.id}>
-                        <td style={td}>{p.concepto}</td>
-                        <td style={td}>{p.fecha_limite}</td>
-                        <td style={td}>{formatCurrency(p.valor)}</td>
-                        <td style={td}>{p.referencia || '—'}</td>
-                        <td style={td}>
-                          <Badge tone={p.estado === 'pagado' ? 'green' : 'amber'}>
-                            {p.estado === 'pagado' ? 'Pagado' : 'Pendiente'}
-                          </Badge>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          );
-        }
-
-        return null;
+return null;
       }}
     </ModuleLayout>
   );
