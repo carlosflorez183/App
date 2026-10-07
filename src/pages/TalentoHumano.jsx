@@ -1,6 +1,6 @@
 /* =============================================
-   MÃÂÃÂÃÂÃÂ³dulo de Talento Humano.
-   Planta docente editable, carga acadÃÂÃÂÃÂÃÂ©mica,
+   Módulo de Talento Humano.
+   Planta docente editable, carga académica,
    convocatorias con sus postulados y el plan
    de capacitaciones.
    ============================================= */
@@ -29,13 +29,13 @@ import {
 import { formatDate } from '../data/mockData';
 
 const TABS = [
-  { key: 'planta', label: 'Planta docente', icon: 'ÃÂÃÂ°ÃÂÃÂÃÂÃÂÃÂÃÂ¨ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ°ÃÂÃÂÃÂÃÂÃÂÃÂ«' },
-  { key: 'convocatorias', label: 'Convocatorias', icon: 'ÃÂÃÂ°ÃÂÃÂÃÂÃÂÃÂÃÂ¢' },
-  { key: 'capacitaciones', label: 'Capacitaciones', icon: 'ÃÂÃÂ°ÃÂÃÂÃÂÃÂÃÂÃÂ' },
-  { key: 'carga', label: 'Carga acadÃÂÃÂÃÂÃÂ©mica', icon: 'ÃÂÃÂ°ÃÂÃÂÃÂÃÂÃÂÃÂ' },
-  { key: 'areas', label: 'ÃÂÃÂÃÂÃÂreas', icon: 'ÃÂÃÂ°ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¯ÃÂÃÂ¸ÃÂÃÂ' },
-  { key: 'nomina', label: 'NÃÂÃÂÃÂÃÂ³mina', icon: 'ÃÂÃÂ°ÃÂÃÂÃÂÃÂÃÂÃÂ¸' },
-  { key: 'certificados', label: 'Certificados', icon: 'ÃÂÃÂ°ÃÂÃÂÃÂÃÂÃÂÃÂ' },
+  { key: 'planta', label: 'Planta docente', icon: '👨‍🏫' },
+  { key: 'convocatorias', label: 'Convocatorias', icon: '📢' },
+  { key: 'capacitaciones', label: 'Capacitaciones', icon: '🎓' },
+  { key: 'carga', label: 'Carga académica', icon: '📚' },
+  { key: 'areas', label: 'Áreas', icon: '🗂️' },
+  { key: 'nomina', label: 'Nómina', icon: '💸' },
+  { key: 'certificados', label: 'Certificados', icon: '📜' },
 ];
 
 const th = { textAlign: 'left', padding: '10px 12px', fontSize: 12, fontWeight: 700, color: '#64748b', borderBottom: '1px solid #e2e8f0' };
@@ -44,7 +44,7 @@ const card = { background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12
 const input = { padding: '8px 10px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13, background: '#fff' };
 const label = { fontSize: 11, fontWeight: 700, color: '#64748b', display: 'block', marginBottom: 4 };
 
-const CATEGORIAS = ['Docente titular', 'CatedrÃÂÃÂÃÂÃÂ¡tico', 'Adjunto', 'Asistente', 'Contratado'];
+const CATEGORIAS = ['Docente titular', 'Catedrático', 'Adjunto', 'Asistente', 'Contratado'];
 const ESTADOS_CONV = ['abierta', 'en_proceso', 'cerrada'];
 const ESTADOS_POSTULADO = ['postulado', 'en_estudio', 'admitido', 'descartado'];
 const ESTADOS_CAPACITACION = ['programada', 'en_curso', 'finalizada'];
@@ -145,7 +145,7 @@ export default function TalentoHumano() {
       setNominas(await listarNominas());
     } catch (err) {
       setNominas([]);
-      setError(`No se pudieron cargar las nÃÂÃÂÃÂÃÂ³minas: ${err.message}`);
+      setError(`No se pudieron cargar las nóminas: ${err.message}`);
     }
   }, []);
 
@@ -221,7 +221,7 @@ export default function TalentoHumano() {
     }
   };
 
-  /* ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ Planta docente ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ */
+  /* ── Planta docente ──────────────────────────────────────────────────── */
 
   const abrirDocente = (d) => {
     setEditando(d.id);
@@ -238,7 +238,7 @@ export default function TalentoHumano() {
     try {
       await actualizarDocenteTH(d.id, form);
       recargarDatos((lista) => lista.map((x) => (x.id === d.id ? { ...x, ...form } : x)));
-      avisar(`${d.nombre} quedÃÂÃÂÃÂÃÂ³ actualizado.`);
+      avisar(`${d.nombre} quedó actualizado.`);
       cerrarEdicion();
     } catch (err) {
       avisar(`No se guardaron los cambios: ${err.message}`, 'error');
@@ -247,7 +247,7 @@ export default function TalentoHumano() {
     }
   };
 
-  /* ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ Convocatorias ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ */
+  /* ── Convocatorias ───────────────────────────────────────────────────── */
 
   const crearConv = async (e) => {
     e.preventDefault();
@@ -258,7 +258,7 @@ export default function TalentoHumano() {
       setFormConv({ cargo: '', area: '', dependencia: '', vinculo: 'catedra', cupos: 1, apertura: '', cierre: '', requisitos: '' });
       avisar('Convocatoria publicada.');
     } catch (err) {
-      avisar(`No se publicÃÂÃÂÃÂÃÂ³ la convocatoria: ${err.message}`, 'error');
+      avisar(`No se publicó la convocatoria: ${err.message}`, 'error');
     } finally {
       setGuardando(false);
     }
@@ -268,9 +268,9 @@ export default function TalentoHumano() {
     try {
       const r = await actualizarConvocatoria(c.id, { estado });
       setConvocatorias((lista) => lista.map((x) => (x.id === c.id ? { ...x, ...r } : x)));
-      avisar(`"${c.cargo}" quedÃÂÃÂÃÂÃÂ³ ${estado.replace(/_/g, ' ')}.`);
+      avisar(`"${c.cargo}" quedó ${estado.replace(/_/g, ' ')}.`);
     } catch (err) {
-      avisar(`No se cambiÃÂÃÂÃÂÃÂ³ el estado: ${err.message}`, 'error');
+      avisar(`No se cambió el estado: ${err.message}`, 'error');
     }
   };
 
@@ -279,9 +279,9 @@ export default function TalentoHumano() {
       await eliminarConvocatoria(c.id);
       setConvocatorias((lista) => lista.filter((x) => x.id !== c.id));
       if (convAbierta === c.id) setConvAbierta(null);
-      avisar(`"${c.cargo}" se eliminÃÂÃÂÃÂÃÂ³ junto con sus postulados.`);
+      avisar(`"${c.cargo}" se eliminó junto con sus postulados.`);
     } catch (err) {
-      avisar(`No se eliminÃÂÃÂÃÂÃÂ³: ${err.message}`, 'error');
+      avisar(`No se eliminó: ${err.message}`, 'error');
     }
   };
 
@@ -298,9 +298,9 @@ export default function TalentoHumano() {
       const p = await postularConvocatoria(id, formPostulado);
       setPostulados((lista) => ({ ...lista, [id]: [...(lista[id] || []), p] }));
       setFormPostulado({ nombre: '', documento: '', correo: '' });
-      avisar('PostulaciÃÂÃÂÃÂÃÂ³n registrada.');
+      avisar('Postulación registrada.');
     } catch (err) {
-      avisar(`No se registrÃÂÃÂÃÂÃÂ³ la postulaciÃÂÃÂÃÂÃÂ³n: ${err.message}`, 'error');
+      avisar(`No se registró la postulación: ${err.message}`, 'error');
     } finally {
       setGuardando(false);
     }
@@ -310,13 +310,13 @@ export default function TalentoHumano() {
     try {
       const r = await evaluarPostulado(id, post.id, { estado });
       setPostulados((lista) => ({ ...lista, [id]: lista[id].map((x) => (x.id === post.id ? { ...x, ...r } : x)) }));
-      avisar(`Postulado de ${post.nombre} quedÃÂÃÂÃÂÃÂ³ ${estado.replace(/_/g, ' ')}.`);
+      avisar(`Postulado de ${post.nombre} quedó ${estado.replace(/_/g, ' ')}.`);
     } catch (err) {
-      avisar(`No se actualizÃÂÃÂÃÂÃÂ³: ${err.message}`, 'error');
+      avisar(`No se actualizó: ${err.message}`, 'error');
     }
   };
 
-  /* ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ Capacitaciones ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ */
+  /* ── Capacitaciones ───────────────────────────────────────────────────── */
 
   const crearCap = async (e) => {
     e.preventDefault();
@@ -327,7 +327,7 @@ export default function TalentoHumano() {
       setFormCap({ nombre: '', fecha: '', horas: 4, cupos: 20 });
       avisar('Capacitación programada.');
     } catch (err) {
-      avisar(`No se creÃÂÃÂÃÂÃÂ³ la capacitaciÃÂÃÂÃÂÃÂ³n: ${err.message}`, 'error');
+      avisar(`No se creó la capacitación: ${err.message}`, 'error');
     }
   };
 
@@ -336,7 +336,7 @@ export default function TalentoHumano() {
       const r = await actualizarCapacitacion(c.id, { inscritos: n, estado: n > 0 && c.estado === 'programada' ? 'en_curso' : c.estado });
       setCapacitaciones((lista) => lista.map((x) => (x.id === c.id ? { ...x, ...r } : x)));
     } catch (err) {
-      avisar(`No se actualizÃÂÃÂÃÂÃÂ³ la inscripciÃÂÃÂÃÂÃÂ³n: ${err.message}`, 'error');
+      avisar(`No se actualizó la inscripción: ${err.message}`, 'error');
     }
   };
 
@@ -344,9 +344,9 @@ export default function TalentoHumano() {
     try {
       const r = await actualizarCapacitacion(c.id, { estado });
       setCapacitaciones((lista) => lista.map((x) => (x.id === c.id ? { ...x, ...r } : x)));
-      avisar(`"${c.nombre}" quedÃÂÃÂÃÂÃÂ³ ${estado.replace(/_/g, ' ')}.`);
+      avisar(`"${c.nombre}" quedó ${estado.replace(/_/g, ' ')}.`);
     } catch (err) {
-      avisar(`No se cambiÃÂÃÂÃÂÃÂ³ el estado: ${err.message}`, 'error');
+      avisar(`No se cambió el estado: ${err.message}`, 'error');
     }
   };
 
@@ -367,16 +367,16 @@ export default function TalentoHumano() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, marginBottom: 18 }}>
                 <div style={card}><div style={{ fontSize: 12, color: '#64748b' }}>Docentes</div><div style={{ fontSize: 26, fontWeight: 800 }}>{docentes.length}</div></div>
                 <div style={card}><div style={{ fontSize: 12, color: '#64748b' }}>En servicio</div><div style={{ fontSize: 26, fontWeight: 800, color: '#15803d' }}>{docentes.filter((d) => d.estado === 'activo').length}</div></div>
-                <div style={card}><div style={{ fontSize: 12, color: '#64748b' }}>CatedrÃÂÃÂÃÂÃÂ¡ticos</div><div style={{ fontSize: 26, fontWeight: 800 }}>{docentes.filter((d) => d.categoria === 'Docente titular').length}</div></div>
-                <div style={card}><div style={{ fontSize: 12, color: '#64748b' }}>ÃÂÃÂÃÂÃÂreas cubiertas</div><div style={{ fontSize: 26, fontWeight: 800 }}>{new Set(docentes.map((d) => d.area)).size}</div></div>
+                <div style={card}><div style={{ fontSize: 12, color: '#64748b' }}>Catedráticos</div><div style={{ fontSize: 26, fontWeight: 800 }}>{docentes.filter((d) => d.categoria === 'Docente titular').length}</div></div>
+                <div style={card}><div style={{ fontSize: 12, color: '#64748b' }}>Áreas cubiertas</div><div style={{ fontSize: 26, fontWeight: 800 }}>{new Set(docentes.map((d) => d.area)).size}</div></div>
               </div>
 
               <div style={{ ...card, overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr>
-                      <th style={th}>Docente</th><th style={th}>ÃÂÃÂÃÂÃÂrea</th><th style={th}>CategorÃÂÃÂÃÂÃÂ­a</th>
-                      <th style={th}>Asignaturas</th><th style={th}>Correo</th><th style={th}>Estado</th><th style={th}>AcciÃÂÃÂÃÂÃÂ³n</th>
+                      <th style={th}>Docente</th><th style={th}>Área</th><th style={th}>Categoría</th>
+                      <th style={th}>Asignaturas</th><th style={th}>Correo</th><th style={th}>Estado</th><th style={th}>Acción</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -458,8 +458,8 @@ export default function TalentoHumano() {
                     <input required value={formConv.cargo} style={{ ...input, width: '100%' }} onChange={(e) => setFormConv((f) => ({ ...f, cargo: e.target.value }))} placeholder="Docente de tiempo completo" />
                   </div>
                   <div style={{ marginBottom: 10 }}>
-                    <span style={label}>ÃÂÃÂÃÂÃÂrea</span>
-                    <input required value={formConv.area} style={{ ...input, width: '100%' }} onChange={(e) => setFormConv((f) => ({ ...f, area: e.target.value }))} placeholder="IngenierÃÂÃÂÃÂÃÂ­a de Software" />
+                    <span style={label}>Área</span>
+                    <input required value={formConv.area} style={{ ...input, width: '100%' }} onChange={(e) => setFormConv((f) => ({ ...f, area: e.target.value }))} placeholder="Ingeniería de Software" />
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
                     <div>
@@ -467,9 +467,9 @@ export default function TalentoHumano() {
                       <input value={formConv.dependencia} style={{ ...input, width: '100%' }} onChange={(e) => setFormConv((f) => ({ ...f, dependencia: e.target.value }))} />
                     </div>
                     <div>
-                      <span style={label}>VÃÂÃÂÃÂÃÂ­nculo</span>
+                      <span style={label}>Vínculo</span>
                       <select value={formConv.vinculo} style={{ ...input, width: '100%' }} onChange={(e) => setFormConv((f) => ({ ...f, vinculo: e.target.value }))}>
-                        <option value="catedra">CÃÂÃÂÃÂÃÂ¡tedra</option>
+                        <option value="catedra">Cátedra</option>
                         <option value="planta">Planta</option>
                         <option value="contrato">Contrato</option>
                         <option value="horas">Por horas</option>
@@ -504,7 +504,7 @@ export default function TalentoHumano() {
                     <div style={card}><div style={{ fontSize: 12, color: '#64748b' }}>Cupos abiertos</div><div style={{ fontSize: 24, fontWeight: 800 }}>{convocatorias.filter((c) => c.estado === 'abierta').reduce((a, c) => a + c.cupos, 0)}</div></div>
                   </div>
 
-                  {cargando && <div data-cargando="1" style={card}>Cargando convocatoriasÃÂÃÂ¢ÃÂÃÂÃÂÃÂ¦</div>}
+                  {cargando && <div data-cargando="1" style={card}>Cargando convocatorias…</div>}
 
                   {!cargando && convocatorias.length === 0 && (
                     <div style={{ ...card, textAlign: 'center', color: '#94a3b8' }}>No hay convocatorias publicadas.</div>
@@ -519,10 +519,10 @@ export default function TalentoHumano() {
                           <div>
                             <div style={{ fontSize: 14, fontWeight: 800 }}>{c.cargo}</div>
                             <div style={{ fontSize: 11, color: '#94a3b8' }}>
-                              {c.area} ÃÂÃÂÃÂÃÂ· {c.vinculo} ÃÂÃÂÃÂÃÂ· {c.cupos} cupo{c.cupos === 1 ? '' : 's'}
+                              {c.area} · {c.vinculo} · {c.cupos} cupo{c.cupos === 1 ? '' : 's'}
                             </div>
                             <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
-                              {formatDate(c.apertura)} ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ {formatDate(c.cierre)}
+                              {formatDate(c.apertura)} → {formatDate(c.cierre)}
                             </div>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -562,9 +562,9 @@ export default function TalentoHumano() {
                               <button className="btn" type="submit" disabled={guardando}>Postular</button>
                             </form>
 
-                            {!lista && !error && <div data-cargando="1" style={{ fontSize: 12, color: '#94a3b8' }}>Cargando postuladosÃÂÃÂ¢ÃÂÃÂÃÂÃÂ¦</div>}
+                            {!lista && !error && <div data-cargando="1" style={{ fontSize: 12, color: '#94a3b8' }}>Cargando postulados…</div>}
                             {lista && lista.length === 0 && (
-                              <div style={{ fontSize: 12, color: '#94a3b8' }}>TodavÃÂÃÂÃÂÃÂ­a nadie se ha postulate para este cargo.</div>
+                              <div style={{ fontSize: 12, color: '#94a3b8' }}>Todavía nadie se ha postulate para este cargo.</div>
                             )}
                             {lista && lista.length > 0 && (
                               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -585,7 +585,7 @@ export default function TalentoHumano() {
                                              try {
                                                const r=await actualizarPuntaje(p.id,v); setPostulados((m)=>({...m,[c.id]:m[c.id].map(x=>x.id===p.id?{...x,...r}:x)}));
                                             } catch (err) {
-                                              avisar(`No se guardÃÂÃÂÃÂÃÂ³ el puntaje: ${err.message}`, 'error');
+                                              avisar(`No se guardó el puntaje: ${err.message}`, 'error');
                                             }
                                           }}
                                         />
@@ -622,7 +622,7 @@ export default function TalentoHumano() {
                   <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 12 }}>Programar capacitación</div>
                   <div style={{ marginBottom: 10 }}>
                     <span style={label}>Nombre</span>
-                    <input required value={formCap.nombre} style={{ ...input, width: '100%' }} onChange={(e) => setFormCap((f) => ({ ...f, nombre: e.target.value }))} placeholder="Ej. CapacitaciÃÂÃÂÃÂÃÂ³n docente" />
+                    <input required value={formCap.nombre} style={{ ...input, width: '100%' }} onChange={(e) => setFormCap((f) => ({ ...f, nombre: e.target.value }))} placeholder="Ej. Capacitación docente" />
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 10, marginBottom: 12 }}>
                     <div>
@@ -652,7 +652,7 @@ export default function TalentoHumano() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
                           <div>
                             <div style={{ fontSize: 14, fontWeight: 800 }}>{c.nombre}</div>
-                            <div style={{ fontSize: 11, color: '#94a3b8' }}>{formatDate(c.fecha)} ÃÂÃÂÃÂÃÂ· {c.horas} horas</div>
+                            <div style={{ fontSize: 11, color: '#94a3b8' }}>{formatDate(c.fecha)} · {c.horas} horas</div>
                           </div>
                           <EstadoBadge estado={c.estado} />
                         </div>
@@ -668,7 +668,7 @@ export default function TalentoHumano() {
                         </div>
 
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                          <button className="btn" style={{ padding: '4px 9px', fontSize: 11 }} onClick={() => inscribir(c, Math.max(0, c.inscritos - 1))}>ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ Quitar</button>
+                          <button className="btn" style={{ padding: '4px 9px', fontSize: 11 }} onClick={() => inscribir(c, Math.max(0, c.inscritos - 1))}>− Quitar</button>
                           <button className="btn" style={{ padding: '4px 9px', fontSize: 11 }} onClick={() => inscribir(c, c.inscritos + 1)} disabled={lleno}>+ Inscribir</button>
                           <select style={input} value={c.estado} onChange={(e) => avanzarCap(c, e.target.value)}>
                             {ESTADOS_CAPACITACION.map((s) => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
@@ -688,9 +688,9 @@ export default function TalentoHumano() {
           const maxCr = Math.max(...conCarga.map((x) => x.cr), 1);
           return (
             <div style={card}>
-              <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 4 }}>DistribuciÃÂÃÂÃÂÃÂ³n de carga acadÃÂÃÂÃÂÃÂ©mica</div>
+              <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 4 }}>Distribución de carga académica</div>
               <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 16 }}>
-                Asignaturas y CrÃÂÃÂÃÂÃÂ©ditos del pensum asignados a cada docente.
+                Asignaturas y Créditos del pensum asignados a cada docente.
               </div>
               {conCarga.map(({ d, n, cr }) => (
                 <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 9 }}>
@@ -715,9 +715,9 @@ export default function TalentoHumano() {
           }
           return (
             <div style={card}>
-              <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 14 }}>ÃÂÃÂÃÂÃÂreas de conocimiento</div>
+              <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 14 }}>Áreas de conocimiento</div>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead><tr><th style={th}>ÃÂÃÂÃÂÃÂrea</th><th style={th}>Docentes</th><th style={th}>CrÃÂÃÂÃÂÃÂ©ditos a su cargo</th></tr></thead>
+                <thead><tr><th style={th}>Área</th><th style={th}>Docentes</th><th style={th}>Créditos a su cargo</th></tr></thead>
                 <tbody>
                   {Object.values(areas).sort((a, b) => b.docentes - a.docentes).map((a) => (
                     <tr key={a.area}>
