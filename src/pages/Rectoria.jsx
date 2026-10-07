@@ -2,17 +2,19 @@
    Módulo de Rectoría.
    Indicadores institucionales de alto nivel.
    ============================================= */
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import ModuleLayout from '../components/ModuleLayout';
 import AsignacionDocentes from '../components/AsignacionDocentes';
 import { formatCurrency } from '../data/mockData';
+import { listarCobros } from '../api/client';
 
 const TABS = [
   { key: 'indicadores', label: 'Indicadores', icon: '📈' },
   { key: 'programas', label: 'Oferta académica', icon: '🎓' },
   { key: 'docentes', label: 'Asignación docente', icon: '🧑‍🏫' },
   { key: 'admisiones', label: 'Admisiones', icon: '🎯' },
-  { key: 'sostenibilidad', label: 'Sostenibilidad', icon: '💰' },
+  { key: 'pagos', label: 'Pagos', icon: '💳' },
+  { key: 'sostenibilidad', label: 'Sostenibilidad', icon: '🌱' },
 ];
 
 const th = { textAlign: 'left', padding: '10px 12px', fontSize: 12, fontWeight: 700, color: '#64748b', borderBottom: '1px solid #e2e8f0' };
@@ -29,6 +31,23 @@ const Badge = ({ children, tone = 'slate' }) => {
 };
 
 export default function Rectoria() {
+  /* Los pagos NO vienen en el bootstrap de este rol (ese bloque es del
+     estudiante de la demo, y Rectoría no es un alumno), así que se piden a la
+     API de contabilidad. Antes el indicador de recaudo salía en $0 y 0%. */
+  const [cobros, setCobros] = useState([]);
+
+  const cargarCobros = useCallback(async () => {
+    try {
+      setCobros(await listarCobros());
+    } catch {
+      setCobros([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    cargarCobros();
+  }, [cargarCobros]);
+
   return (
     <ModuleLayout title="Rectoría" subtitle="Indicadores institucionales y oferta académica" tabs={TABS}>
       {({ tab, data }) => {
@@ -36,9 +55,8 @@ export default function Rectoria() {
         const adm = data.admisiones;
         const totalMat = programas.reduce((a, p) => a + p.matriculados, 0);
         const totalCupo = programas.reduce((a, p) => a + p.cupo, 0);
-        const pagos = data.pagos || [];
-        const recaudado = pagos.filter((p) => p.estado === 'pagado').reduce((a, p) => a + p.valor, 0);
-        const porCobrar = pagos.filter((p) => p.estado !== 'pagado').reduce((a, p) => a + p.valor, 0);
+        const recaudado = cobros.filter((p) => p.estado === 'pagado').reduce((a, p) => a + p.valor, 0);
+        const porCobrar = cobros.filter((p) => p.estado !== 'pagado').reduce((a, p) => a + p.valor, 0);
         const posgrado = programas.filter((p) => p.modalidadId === 2).reduce((a, p) => a + p.matriculados, 0);
         const tecnologia = programas.filter((p) => p.modalidadId === 3).reduce((a, p) => a + p.matriculados, 0);
         const pregrado = totalMat - posgrado - tecnologia;
@@ -184,6 +202,52 @@ export default function Rectoria() {
                     </div>
                   );
                 })}
+              </div>
+            </div>
+          );
+        }
+
+        if (tab === 'pagos') {
+          /* Solo lectura: Rectoría ve el recaudo, quien concilia es
+             Contabilidad (allá está el botón de conciliar). */
+          const mora = cobros.filter((p) => p.estado === 'vencido');
+          return (
+            <div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 18 }}>
+                <div style={card}><div style={{ fontSize: 12, color: '#64748b' }}>Recaudado</div><div style={{ fontSize: 24, fontWeight: 800, color: '#15803d' }}>{formatCurrency(recaudado)}</div></div>
+                <div style={card}><div style={{ fontSize: 12, color: '#64748b' }}>Por cobrar</div><div style={{ fontSize: 24, fontWeight: 800, color: '#b45309' }}>{formatCurrency(porCobrar)}</div></div>
+                <div style={card}><div style={{ fontSize: 12, color: '#64748b' }}>En mora</div><div style={{ fontSize: 24, fontWeight: 800, color: '#b91c1c' }}>{mora.length}</div></div>
+                <div style={card}><div style={{ fontSize: 12, color: '#64748b' }}>Total facturado</div><div style={{ fontSize: 24, fontWeight: 800 }}>{formatCurrency(recaudado + porCobrar)}</div></div>
+              </div>
+              <div style={{ ...card, overflowX: 'auto' }}>
+                <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 12 }}>Estado de los cobros</div>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr>
+                      <th style={th}>Concepto</th>
+                      <th style={th}>Estudiante</th>
+                      <th style={th}>Límite</th>
+                      <th style={th}>Valor</th>
+                      <th style={th}>Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cobros.map((p) => (
+                      <tr key={p.id}>
+                        <td style={td}>{p.concepto}</td>
+                        <td style={td}>{typeof p.estudiante === 'string' ? p.estudiante : p.estudiante?.nombre}</td>
+                        <td style={td}>{p.fecha_limite || p.fechaLimite}</td>
+                        <td style={td}>{formatCurrency(p.valor)}</td>
+                        <td style={td}>
+                          <Badge tone={p.estado === 'pagado' ? 'green' : p.estado === 'vencido' ? 'red' : 'amber'}>
+                            {p.estado === 'pagado' ? 'Pagado' : p.estado === 'vencido' ? 'Vencido' : 'Pendiente'}
+                          </Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {cobros.length === 0 && <div style={{ fontSize: 12, color: '#94a3b8', padding: '10px 0' }}>Sin cobros registrados.</div>}
               </div>
             </div>
           );

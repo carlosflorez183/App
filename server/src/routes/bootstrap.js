@@ -121,21 +121,31 @@ export default async function rutasBootstrap(app) {
         periodo: n.periodo,
       })),
 
-      /* Certificados emitidos por Registro (sin solicitud del alumno). */
-      certificadosEmitidos: certificados
-        .filter((c) => !c.solicitado)
-        .map((c) => ({
-          id: `CE-${String(c.id).padStart(4, '0')}`,
-          estudianteId: c.estudianteId,
-          tipo: c.tipo,
-          fecha: soloFecha(c.fecha),
-          estado: c.estado,
-          matricula: c.matricula,
-        })),
+      /* Todos los certificados, que es lo que necesita Registro: los que él
+         emitió y los que el alumno tiene solicitados y están sin entregar.
+         Antes salía solo los primeros, así que una solicitud del alumno
+         aparecía en su panel y desaparecía de la bandeja de Registro, que es
+         justo donde tiene que estar para entregarla.
 
-      /* Solicitudes del propio alumno. */
+         `id` va numérico porque es el que usa la API al descargar el PDF, y
+         `codigo` es el folio que se muestra en la tabla. */
+      certificadosEmitidos: certificados.map((c) => ({
+        id: c.id,
+        codigo: `CE-${String(c.id).padStart(4, '0')}`,
+        estudianteId: c.estudianteId,
+        tipo: c.tipo,
+        fecha: soloFecha(c.fecha),
+        solicitado: soloFecha(c.solicitado),
+        estado: c.estado,
+        matricula: c.matricula,
+      })),
+
+      /* Los certificados del propio alumno: los que pidió y los que le emitieron
+         sin que los pidiera (un Paz y Salvo, por ejemplo). Se muestran todos,
+         porque lo que se puede descargar es lo que tiene, no solo lo que
+         solicitó. */
       certificados: certificados
-        .filter((c) => c.solicitado && c.estudianteId === estudianteId)
+        .filter((c) => c.estudianteId === estudianteId)
         .map((c) => ({
           id: c.id,
           tipo: c.tipo,

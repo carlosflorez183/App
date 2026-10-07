@@ -15,8 +15,6 @@ import {
   cambiarPassword,
   listarEstudiantesAdmin,
   listarUsuarios,
-  listarNominas,
-  listarCertificadosLaborales,
 } from '../api/client';
 
 const TABS = [

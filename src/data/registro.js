@@ -81,7 +81,14 @@ export const puedeEmitir = (estudiante, tipoId) => {
 
 export const estadoCertificado = (c) =>
   c.estado === 'disponible'
-    ? { label: 'Entregado', tone: 'green' }
-    : c.estado === 'en_proceso'
-      ? { label: 'En trámite', tone: 'amber' }
-      : { label: 'Anulado', tone: 'red' };
+    ? { label: 'Disponible', tone: 'green' }
+    : c.estado === 'entregado'
+      ? { label: 'Entregado', tone: 'green' }
+      : c.estado === 'anulado'
+        ? { label: 'Anulado', tone: 'red' }
+        : { label: 'En trámite', tone: 'amber' };
+
+/* Un certificado se puede bajar cuando ya está listo: lo que sigue en trámite no
+   se descarga todavía, ni el propio alumno ni Admisiones. El servidor aplica la
+   misma regla en /certificados/:id/pdf. */
+export const certificadoDescargable = (c) => c.estado === 'disponible' || c.estado === 'entregado';

@@ -239,7 +239,11 @@ export default async function rutasAdmisiones(app) {
 
   /* Validación de negocio: no se emite certificado con saldo vencido. */
   app.post('/admisiones/certificados', guard, async (req, reply) => {
-    const { estudianteId, tipo } = req.body || {};
+    const { tipo } = req.body || {};
+    /* El id del estudiante es un código ("20231001"), pero el formulario puede
+       mandarlo como número. Se normaliza aquí: si no, Prisma lanza y el
+       estudiante ve un 500 en vez de un mensaje. */
+    const estudianteId = req.body?.estudianteId != null ? String(req.body.estudianteId) : '';
     if (!estudianteId || !tipo) {
       return reply.code(400).send({ error: 'Faltan estudianteId y tipo' });
     }

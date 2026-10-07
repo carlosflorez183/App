@@ -121,7 +121,7 @@ function PanelAdmisiones({ data, go }) {
                 { t: 'Documentos por revisar', d: adm.aspirantes.filter((a) => a.documentos !== 'completo').length, tone: 'red', tab: 'documentos' },
                 { t: 'Aspirantes sin decisión', d: adm.aspirantes.filter((a) => a.estado === 'en_proceso').length, tone: 'amber', tab: 'aspirantes' },
                 { t: 'Admitidos por matricular', d: inscritos.length, tone: 'blue', tab: 'registro' },
-                { t: 'Certificados en trámite', d: data.certificadosEmitidos.filter((c) => c.estado === 'solicitado').length, tone: 'purple', tab: 'certificados' },
+                { t: 'Certificados en trámite', d: data.certificadosEmitidos.filter((c) => c.estado === 'solicitado' || c.estado === 'en_proceso').length, tone: 'purple', tab: 'certificados' },
               ].map((x) => (
                 <div
                   key={x.t}

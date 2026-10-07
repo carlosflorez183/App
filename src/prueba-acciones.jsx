@@ -636,6 +636,151 @@ async function loQueNoSeEntregaValeCero() {
   }
 }
 
+/* La descarga del certificado la arma el servidor. Lo que se comprueba aqui es
+   lo que el alumno ve en el portal: que el boton baja un PDF de verdad (no un
+   alert), que solo puede bajar lo suyo, y que un certificado que sigue en
+   tramite todavia no se entrega. */
+async function certificadoSeDescargaDelServidor() {
+  const entrar = async (usuario, password) => (await fetch('/api/auth/login', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ usuario, password }),
+  })).json().catch(() => ({}));
+
+  const alumno = await entrar('EST001', '123456');
+  const registro = await entrar('ADMI', '123456');
+  if (!alumno.token || !registro.token) {
+    falla('Certificado:pdf-del-servidor', `no se pudo iniciar sesion (alumno=${!!alumno.token}, registro=${!!registro.token})`);
+    return;
+  }
+  const hdAlumno = { authorization: `Bearer ${alumno.token}` };
+  const hdRegistro = { authorization: `Bearer ${registro.token}` };
+
+  const suyos = await (await fetch('/api/certificados', { headers: hdAlumno })).json().catch(() => []);
+  const listo = suyos.find((c) => c.estado === 'disponible' || c.estado === 'entregado');
+  const enTramite = suyos.find((c) => c.estado !== 'disponible' && c.estado !== 'entregado');
+  if (!listo) {
+    falla('Certificado:pdf-del-servidor', 'el alumno no tiene ningun certificado emitido: el seed cambio y esta prueba necesita uno');
+    return;
+  }
+
+  const r = await fetch(`/api/certificados/${listo.id}/pdf`, { headers: hdAlumno });
+  const bytes = new Uint8Array(await r.arrayBuffer());
+  const cabecera = new TextDecoder().decode(bytes.subarray(0, 5));
+  const archivo = r.headers.get('content-disposition') || '';
+  const nombre = /filename="([^"]+)"/.exec(archivo)?.[1] || '';
+  const esPdf = r.headers.get('content-type') === 'application/pdf';
+  const cuerpo = new TextDecoder('latin1').decode(bytes).trimEnd().endsWith('%%EOF');
+  const coincide = r.headers.get('content-length') === String(bytes.length);
+  const nombreLimpio = /^certificado-\d{4,}-[a-z0-9-]+\.pdf$/.test(nombre);
+  if (r.status === 200 && esPdf && cabecera === '%PDF-' && cuerpo && coincide && nombreLimpio && bytes.length > 1000) {
+    ok('Certificado:pdf-del-servidor', `${listo.tipo} bajo como ${nombre} (${bytes.length} bytes, PDF de una pagina generado por la API)`);
+  } else {
+    falla('Certificado:pdf-del-servidor', `status=${r.status} type=${r.headers.get('content-type')} bytes=${bytes.length} nombre=${nombre}`);
+  }
+
+  /* El boton solo aparece en lo que ya esta listo: lo que sigue en tramite no
+     se descarga todavia. */
+  if (!enTramite) {
+    ok('Certificado:en-tramite-no-se-descarga', 'el alumno no tiene certificados en tramite: solo se pudo probar el caso negativo con uno ajeno');
+  } else {
+    const rTramite = await fetch(`/api/certificados/${enTramite.id}/pdf`, { headers: hdAlumno });
+    if (rTramite.status === 409) {
+      ok('Certificado:en-tramite-no-se-descarga', `"${enTramite.tipo}" esta en ${enTramite.estado} y la API lo niega con 409`);
+    } else {
+      falla('Certificado:en-tramite-no-se-descarga', `un certificado en ${enTramite.estado} respondio ${rTramite.status}, deberia ser 409`);
+    }
+  }
+
+  /* Y el alumno no baja el certificado de otro: eso es de Registro. */
+  const todos = await (await fetch('/api/admisiones/certificados', { headers: hdRegistro })).json().catch(() => []);
+  const ajeno = todos.find((c) => String(c.estudianteId) !== '20231001' && (c.estado === 'disponible' || c.estado === 'entregado'));
+  const rAjeno = ajeno
+    ? await fetch(`/api/certificados/${ajeno.id}/pdf`, { headers: hdAlumno })
+    : { status: 'sin datos' };
+  if (ajeno && rAjeno.status === 403) {
+    ok('Certificado:solo-lo-suyo', `el alumno no baja el certificado ${ajeno.id} de otro estudiante (403)`);
+  } else {
+    falla('Certificado:solo-lo-suyo', `certificado ajeno=${ajeno?.id} status=${rAjeno.status}`);
+  }
+
+  /* Registro si puede: es quien los emite y puede necesitar reimprimir. */
+  const rRegistro = await fetch(`/api/certificados/${listo.id}/pdf`, { headers: hdRegistro });
+  if (rRegistro.status === 200) {
+    ok('Certificado:registro-puede-bajar', `Registro bajo el certificado ${listo.id} del alumno (200)`);
+  } else {
+    falla('Certificado:registro-puede-bajar', `Registro recibio ${rRegistro.status} al bajar el certificado ${listo.id}`);
+  }
+}
+
+/* El flujo completo que reporto el usuario: Registro emite un certificado y el
+   alumno tiene que verlo y poder bajarlo aunque no lo haya pedido. Antes solo
+   se veian los certificados que el alumno habia solicitado, asi que un Paz y
+   Salvo emitido por Registro no le aparecia nunca en su panel. */
+async function loQueEmiteRegistroLeApareceAlAlumno() {
+  const entrar = async (usuario, password) => (await fetch('/api/auth/login', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ usuario, password }),
+  })).json().catch(() => ({}));
+
+  const alumno = await entrar('EST001', '123456');
+  const registro = await entrar('ADMI', '123456');
+  if (!alumno.token || !registro.token) {
+    falla('Certificado:emitido-llega-al-alumno', 'no se pudo iniciar sesion con EST001 ni con ADMI');
+    return;
+  }
+  const hdAlumno = { authorization: `Bearer ${alumno.token}` };
+  const hdRegistro = { authorization: `Bearer ${registro.token}` };
+
+  const tipo = 'Cédula de Ciudadanía';
+  const antes = await (await fetch('/api/bootstrap', { headers: hdAlumno })).json();
+  const yaEstaba = (antes.certificados || []).some((c) => c.tipo === tipo);
+
+  const r = await fetch('/api/admisiones/certificados', {
+    method: 'POST',
+    headers: { ...hdRegistro, 'content-type': 'application/json' },
+    body: JSON.stringify({ estudianteId: '20231001', tipo }),
+  });
+  if (!r.ok) {
+    falla('Certificado:emitido-llega-al-alumno', `Registro no pudo emitir: ${r.status} ${JSON.stringify(await r.json().catch(() => ({})))}`);
+    return;
+  }
+  const creado = await r.json();
+
+  const despues = await (await fetch('/api/bootstrap', { headers: hdAlumno })).json();
+  const enElPanel = (despues.certificados || []).find((c) => c.id === creado.id);
+  const enBandeja = (despues.certificadosEmitidos || []).find((c) => c.id === creado.id);
+
+  if (enElPanel && enBandeja && enBandeja.codigo) {
+    const pdf = await fetch(`/api/certificados/${creado.id}/pdf`, { headers: hdAlumno });
+    if (pdf.status === 200 && pdf.headers.get('content-type') === 'application/pdf') {
+      ok('Certificado:emitido-llega-al-alumno', `Registro emitió "${tipo}" (${enBandeja.codigo}) y el alumno lo ve en su panel y lo baja, sin haberlo pedido${yaEstaba ? ' (ya habia uno igual)' : ''}`);
+    } else {
+      falla('Certificado:emitido-llega-al-alumno', `el alumno ve el certificado ${creado.id} pero la descarga devolvio ${pdf.status}`);
+    }
+  } else {
+    falla('Certificado:emitido-llega-al-alumno', `alumno lo ve=${!!enElPanel} Registro lo ve=${!!enBandeja} con folio=${enBandeja?.codigo}`);
+  }
+
+  /* Y al revés: lo que el alumno pide tiene que llegar a la bandeja de Registro,
+     que es donde se entrega. */
+  const rSolicitud = await fetch('/api/certificados', {
+    method: 'POST',
+    headers: { ...hdAlumno, 'content-type': 'application/json' },
+    body: JSON.stringify({ tipo }),
+  });
+  const solicitud = await rSolicitud.json();
+  const bandeja = await (await fetch('/api/bootstrap', { headers: hdRegistro })).json();
+  const pendiente = (bandeja.certificadosEmitidos || []).find((c) => c.id === solicitud.id);
+  const enTramite = pendiente?.estado === 'en_proceso' || pendiente?.estado === 'solicitado';
+  if (pendiente && enTramite && pendiente.solicitado) {
+    ok('Certificado:la-solicitud-llega-a-registro', `lo que pide el alumno aparece en la bandeja de Registro como ${pendiente.codigo} (${pendiente.estado}, solicitado el ${pendiente.solicitado})`);
+  } else {
+    falla('Certificado:la-solicitud-llega-a-registro', `la solicitud ${solicitud.id} no llego a la bandeja: ${JSON.stringify(pendiente)}`);
+  }
+}
+
 /* ============================================================
    Página del CURSO (/curso/1): lo mismo que el módulo Docente,
    pero entrando por la URL que usa el usuario.
@@ -1791,6 +1936,11 @@ async function correr() {
     body: JSON.stringify(cuenta),
   }).then((r) => r.json());
   localStorage.setItem('uni_token', t.token);
+
+  /* La descarga del certificado no depende del modulo: se comprueba con todos
+     los roles porque es la accion que reporto el usuario. */
+  await certificadoSeDescargaDelServidor();
+  await loQueEmiteRegistroLeApareceAlAlumno();
 
   /* ACCIONES_SOLO=docente|th|con|admin monta un solo modulo. Sirve para
      acotar un fallo cuando el navegador se cae con la pagina completa.

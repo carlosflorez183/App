@@ -311,18 +311,23 @@ export const INITIAL_DATA = {
     { id:5, codigo:'IS-402', nombre:'Programación Orientada a Objetos', creditos:4, profesor:'Dra. Mendez',   nota1:4.6, nota2:4.7, nota3:4.9, definitiva:4.7, estado:'aprobado', periodo:'2025-2' },
     { id:6, codigo:'HUM-601', nombre:'Ética',                         creditos:2, profesor:'Lic. Vargas',      nota1:4.0, nota2:4.2, nota3:4.1, definitiva:4.1, estado:'aprobado', periodo:'2025-2' },
   ],
-  /* Certificados que emite Registro/Admisiones a nombre de un estudiante.
-     Es distinto de `certificados`, que son las solicitudes del propio alumno. */
+  /* Certificados de los estudiantes: los que emiten Registro/Admisiones y los que
+     el alumno tiene solicitados y aún no se le entregan. El `id` va numérico
+     porque es el que usa la API al bajar el PDF, y `codigo` es el folio que se
+     muestra en las tablas. */
   certificadosEmitidos: [
-    { id:'CE-0001', estudianteId:'20231006', tipo:'Certificado de Calificaciones', fecha:'2026-08-05', estado:'entregado', matricula:'20231006' },
-    { id:'CE-0002', estudianteId:'20231001', tipo:'Paz y Salvo Financiero',       fecha:'2026-08-12', estado:'entregado', matricula:'20231001' },
-    { id:'CE-0003', estudianteId:'20231004', tipo:'Constancia de Notas',          fecha:null,         estado:'solicitado', matricula:'20231004' },
+    { id:1, codigo:'CE-0001', estudianteId:'20231006', tipo:'Certificado de Calificaciones', fecha:'2026-08-05', solicitado:null,          estado:'entregado',  matricula:'20231006' },
+    { id:2, codigo:'CE-0002', estudianteId:'20231001', tipo:'Paz y Salvo Financiero',       fecha:'2026-08-12', solicitado:null,          estado:'entregado',  matricula:'20231001' },
+    { id:3, codigo:'CE-0003', estudianteId:'20231004', tipo:'Constancia de Notas',          fecha:null,         solicitado:'2026-08-20', estado:'en_proceso', matricula:'20231004' },
   ],
   certificados: [
+    /* Los certificados del propio alumno: los que pidió y los que le emitieron sin
+       que los pidiera (el Paz y Salvo, que sale en `certificadosEmitidos`). */
     { id:1, tipo:'Certificado de Estudios', fecha:'2026-07-15', estado:'disponible', solicitado:'2026-07-10' },
     { id:2, tipo:'Constancia de Notas', fecha:'2026-06-20', estado:'disponible', solicitado:'2026-06-18' },
     { id:3, tipo:'Paz y Salvo Financiero', fecha:null, estado:'en_proceso', solicitado:'2026-08-01' },
     { id:4, tipo:'Certificado de Matrícula', fecha:'2026-02-01', estado:'disponible', solicitado:'2026-01-28' },
+    { id:5, tipo:'Paz y Salvo Financiero', fecha:'2026-08-12', estado:'entregado', solicitado:null },
   ],
   pagos: [
     { id:1, concepto:'Matrícula Semestre 2026-1', valor:3850000, fecha_limite:'2026-01-25', fecha_pago:'2026-01-20', estado:'pagado', referencia:'PAG-20260120-001' },

@@ -12,6 +12,7 @@ import {
   actualizarAspirante,
   actualizarEstudiante,
   alternarRequisito,
+  descargarCertificado,
   emitirCertificado as emitirCertificadoApi,
   registrarPago as registrarPagoApi,
 } from '../api/client';
@@ -20,6 +21,7 @@ import {
   ESTADO_ESTUDIANTE,
   TIPOS_CERTIFICADO,
   cartera,
+  certificadoDescargable,
   estadoCuenta,
   estadoCertificado,
   pagosVencidos,
@@ -128,6 +130,12 @@ export default function Admisiones() {
         const programas = data.matricula.programas;
         const nombreProg = (id) => programas.find((p) => p.id === id)?.nombre || '—';
         const estudiantePorId = (id) => estudiantes.find((e) => e.id === id);
+        /* Lo que el alumno pidió y todavía no se le entregó. Una solicitud
+           entra como "en_proceso" y el seed viejo usaba "solicitado": cuentan
+           las dos, si no el contador miente y Registro no ve trabajo pendiente. */
+        const pendientesCertificado = data.certificadosEmitidos.filter(
+          (c) => c.estado === 'solicitado' || c.estado === 'en_proceso',
+        ).length;
 
         const totales = cartera(estudiantes);
         const inscritos = estudiantes.filter((e) => e.estado === 'en_inscripcion');
@@ -221,24 +229,27 @@ export default function Admisiones() {
             setAviso({ ok: false, text: chequeo.motivo });
             return;
           }
-          setData((d) => ({
-            ...d,
-            certificadosEmitidos: [
-              {
-                id: `CE-${String(d.certificadosEmitidos.length + 1).padStart(4, '0')}`,
-                estudianteId: est.id,
-                tipo: tipo.nombre,
-                fecha: '2026-09-26',
-                estado: 'entregado',
-                matricula: est.id,
-              },
-              ...d.certificadosEmitidos,
-            ],
-          }));
+          /* La tabla se recarga con lo que devuelve la API en vez de inventar una fila
+           aquí: el folio y el id los pone el servidor, y un id inventado haría
+           fallar la descarga del PDF (la ruta busca por id). */
           emitirCertificadoApi(est.id, tipo.nombre)
-            .catch(() => {})
-            .finally(recargar);
+            .then(() => recargar())
+            .catch((err) =>
+              setAviso({ ok: false, text: `No se pudo emitir: ${err.message}` }),
+            );
           setAviso({ ok: true, text: `${tipo.nombre} emitido a ${est.nombre} (${est.id}).` });
+        };
+
+        /* Descarga desde el registro de Admisiones. El PDF lo arma el servidor
+           con los datos del estudiante, así que lo que se entrega al alumno
+           después es exactamente este documento. */
+        const descargarDesdeRegistro = async (certificado) => {
+          try {
+            const nombre = await descargarCertificado(certificado.id);
+            setAviso({ ok: true, text: `Se descargó ${nombre}.` });
+          } catch (err) {
+            setAviso({ ok: false, text: `No se pudo descargar el certificado: ${err.message}` });
+          }
         };
 
         const filtrados = adm.aspirantes.filter((a) => {
@@ -281,7 +292,7 @@ export default function Admisiones() {
                     { t: 'Resolver resultados en proceso', d: `${adm.aspirantes.filter((a) => a.estado === 'en_proceso').length} aspirantes sin decisión`, icon: '⚖️', tab: 'aspirantes' },
                     { t: 'Completar inscripción de admitidos', d: `${inscritos.length} estudiantes por matricular`, icon: '🎓', tab: 'registro' },
                     { t: 'Cobrar saldos vencidos', d: `${porMora.length} estudiantes en mora`, icon: '💳', tab: 'cuenta' },
-                    { t: 'Entregar certificados solicitados', d: `${data.certificadosEmitidos.filter((c) => c.estado === 'solicitado').length} en trámite`, icon: '📜', tab: 'certificados' },
+                    { t: 'Entregar certificados solicitados', d: `${pendientesCertificado} en trámite`, icon: '📜', tab: 'certificados' },
                   ].map((x) => (
                     <button
                       key={x.t}
@@ -908,22 +919,50 @@ export default function Admisiones() {
                         <th style={th}>Tipo</th>
                         <th style={th}>Emisión</th>
                         <th style={th}>Estado</th>
+                        <th style={th}>PDF</th>
                       </tr>
                     </thead>
                     <tbody>
                       {data.certificadosEmitidos.map((c) => {
                         const e = estudiantePorId(c.estudianteId);
                         const s = estadoCertificado(c);
+                        /* El PDF solo existe si el certificado ya se emitió: un
+                           trámite en curso no tiene documento que entregar. */
+                        const emitido = certificadoDescargable(c);
                         return (
                           <tr key={c.id}>
-                            <td style={td}><code style={{ fontSize: 11.5, color: '#475569' }}>{c.id}</code></td>
+                            <td style={td}><code style={{ fontSize: 11.5, color: '#475569' }}>{c.codigo || c.id}</code></td>
                             <td style={td}>
                               <strong>{e?.nombre || c.estudianteId}</strong><br />
                               <span style={{ fontSize: 11, color: '#94a3b8' }}>{c.estudianteId}</span>
                             </td>
-                            <td style={td}>{c.tipo}</td>
+                            <td style={td}>
+                              {c.tipo}
+                              {c.solicitado && (
+                                <>
+                                  <br />
+                                  <span style={{ fontSize: 11, color: '#94a3b8' }}>
+                                    Solicitado el {formatDate(c.solicitado)}
+                                  </span>
+                                </>
+                              )}
+                            </td>
                             <td style={td}>{formatDate(c.fecha)}</td>
                             <td style={td}><Badge tone={s.tone}>{s.label}</Badge></td>
+                            <td style={td}>
+                              {emitido ? (
+                                <button
+                                  type="button"
+                                  className="btn b-secondary b-sm"
+                                  data-testid={`descargar-cert-${c.id}`}
+                                  onClick={() => descargarDesdeRegistro(c)}
+                                >
+                                  ⬇️ Descargar
+                                </button>
+                              ) : (
+                                <span style={{ fontSize: 11, color: '#94a3b8' }}>Sin emitir</span>
+                              )}
+                            </td>
                           </tr>
                         );
                       })}

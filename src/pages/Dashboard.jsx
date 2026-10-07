@@ -2,9 +2,11 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { formatCurrency, formatDate, notificacionesDeRol } from '../data/mockData';
+import { certificadoDescargable } from '../data/registro';
 import { usePersistentData } from '../hooks/usePersistentData';
 import {
   actualizarActividad,
+  descargarCertificado,
   listarPorCalificar,
   marcarNotificacionLeida,
   solicitarCertificado,
@@ -58,6 +60,10 @@ export default function Dashboard() {
   const [modalCert, setModalCert] = useState(null);
   const [modalVolante, setModalVolante] = useState(null);
   const [modalEntrega, setModalEntrega] = useState(null);
+
+  // Descarga de certificados: cuál está bajando y qué pasó al terminar
+  const [descargando, setDescargando] = useState(null);
+  const [avisoDescargas, setAvisoDescargas] = useState(null);
 
   // Filtros de las tarjetas KPI ('todos' = sin filtro)
   const [tareasFiltro, setTareasFiltro] = useState('todas');
@@ -214,6 +220,27 @@ export default function Dashboard() {
     solicitarCertificado(tipo).catch(() => {}).finally(recargar);
     setModalCert(null);
     alert(`Solicitud de ${tipo} enviada correctamente. Disponible en 2 a 5 días hábiles.`);
+  };
+
+  /* Descarga del certificado. El PDF lo genera el servidor con los datos
+     guardados; aquí solo se pide el archivo y se le pasa al navegador. Antes
+     esto era un `alert` que decía "Descargando..." sin bajar nada. */
+  const handleDescargarCertificado = async (certificado) => {
+    setDescargando(certificado.id);
+    try {
+      const nombre = await descargarCertificado(certificado.id);
+      setAvisoDescargas({
+        ok: true,
+        texto: `Se descargó ${nombre}. Ábrelo para ver el certificado con sello de la universidad.`,
+      });
+    } catch (err) {
+      setAvisoDescargas({
+        ok: false,
+        texto: `No se pudo descargar el certificado: ${err.message}`,
+      });
+    } finally {
+      setDescargando(null);
+    }
   };
 
   // Cálculos de Tareas
@@ -623,17 +650,21 @@ export default function Dashboard() {
                               <td>{formatDate(c.solicitado)}</td>
                               <td>{formatDate(c.fecha)}</td>
                               <td>
-                                <span className={`bs ${c.estado === 'disponible' ? 'bg-g' : 'bg-y'}`}>
-                                  {c.estado === 'disponible' ? '✅ Disponible' : '⏳ En proceso'}
+                                <span className={`bs ${certificadoDescargable(c) ? 'bg-g' : 'bg-y'}`}>
+                                  {certificadoDescargable(c)
+                                    ? (c.estado === 'entregado' ? '✅ Entregado' : '✅ Disponible')
+                                    : '⏳ En proceso'}
                                 </span>
                               </td>
                               <td>
-                                {c.estado === 'disponible' ? (
+                                {certificadoDescargable(c) ? (
                                   <button
-                                    onClick={() => alert(`Descargando ${c.tipo} en PDF...`)}
+                                    onClick={() => handleDescargarCertificado(c)}
+                                    disabled={descargando === c.id}
+                                    data-testid={`descargar-certificado-${c.id}`}
                                     className="btn b-primary b-sm"
                                   >
-                                    ⬇️ Descargar
+                                    {descargando === c.id ? '⏳ Generando...' : '⬇️ Descargar'}
                                   </button>
                                 ) : (
                                   <span style={{ fontSize: 12, color: '#94a3b8' }}>En proceso...</span>
@@ -644,6 +675,22 @@ export default function Dashboard() {
                         </tbody>
                       </table>
                     </div>
+                    {/* Lo que pasó al pedir el archivo. Sin esto el botón
+                        "funcionaba" y nadie sabía por qué a veces no bajaba
+                        nada: un 409 o un token vencido se veían igual. */}
+                    {avisoDescargas && (
+                      <div
+                        role="status"
+                        data-testid="aviso-descarga-certificado"
+                        style={{
+                          margin: '0 18px 16px', padding: '10px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600,
+                          background: avisoDescargas.ok ? '#dcfce7' : '#fee2e2',
+                          color: avisoDescargas.ok ? '#15803d' : '#b91c1c',
+                        }}
+                      >
+                        {avisoDescargas.texto}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

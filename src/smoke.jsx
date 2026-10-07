@@ -79,19 +79,20 @@ const addTabs = (nombre, Componente, tabs) => {
           <Componente />
         </MemoryRouter>
       ),
+    });
   });
 
   // Un caso que solo muestra su aviso de "cargando" tampoco sirve: significa que
-  // el módulo no能否衔接上要看具体是哪一处——是要我继续某项修改，还是接着前面某个话题？说明一下就行。
-  });
+  // el módulo no llegó a montar contenido. Eso lo revisa scripts/smoke.mjs al
+  // comparar el texto del DOM, no aquí.
 };
 
-addTabs('Admin', Admin, ['resumen', 'usuarios', 'estudiantes', 'programas', 'pensum', 'docentes', 'matricula', 'finanzas']);
+addTabs('Admin', Admin, ['resumen', 'usuarios', 'estudiantes', 'programas', 'pensum', 'docentes', 'matricula']);
 addTabs('Admisiones', Admisiones, ['resumen', 'aspirantes', 'procesos', 'documentos', 'registro', 'expedientes', 'cuenta', 'certificados', 'reportes']);
 addTabs('Docente', Docente, ['cursos', 'notas', 'actividades', 'asistencia', 'foro']);
 addTabs('Rectoria', Rectoria, ['indicadores', 'programas', 'admisiones', 'sostenibilidad']);
-addTabs('TalentoHumano', TalentoHumano, ['planta', 'convocatorias', 'capacitaciones', 'carga', 'areas']);
-addTabs('Contabilidad', Contabilidad, ['recaudo', 'cartera', 'conciliacion', 'egresos']);
+addTabs('TalentoHumano', TalentoHumano, ['planta', 'convocatorias', 'capacitaciones', 'carga', 'areas', 'nomina', 'certificados']);
+addTabs('Contabilidad', Contabilidad, ['recaudo', 'cartera', 'conciliacion', 'egresos', 'nomina']);
 
 CASOS.push({
   caso: 'Matricula:editable',

@@ -3,7 +3,7 @@
    y anuncios.
    ============================================= */
 import { prisma } from '../config.js';
-import { corteDesdeEntregas, cortesDe, definitivaDe, estadoDe, listaCortes, resumenCorte } from '../calificaciones.js';
+import { corteDesdeEntregas, cortesDe, definitivaDe, estadoDe, resumenCorte } from '../calificaciones.js';
 
 export default async function rutasCampus(app) {
   const guard = { preHandler: [app.autenticar, app.requiereRoles('estudiante', 'profesor', 'admin')] };

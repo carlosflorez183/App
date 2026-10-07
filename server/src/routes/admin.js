@@ -262,13 +262,17 @@ export default async function rutasAdmin(app) {
 
   /* ── Nómina ─────────────────────────────────────────────────────────── */
   /* Todo esto es de Talento Humano. Contabilidad ve el resultado en su módulo
-     (resumen y pagos), pero no corre ni recalcula la nómina: liquidar es
-     calcular deducciones de personas, no cuadrar cuentas. */
-  const thNominas = {
+     (resumen y pestaña de nómina en solo lectura), pero no corre ni recalcula
+     la nómina: liquidar es calcular deducciones de personas, no cuadrar
+     cuentas. Por eso el POST sigue exclusivo de Talento Humano. */
+  const thSolo = {
     preHandler: [app.autenticar, app.requiereRoles('talento_humano')],
   };
+  const thLectura = {
+    preHandler: [app.autenticar, app.requiereRoles('talento_humano', 'contabilidad')],
+  };
 
-  app.get('/talento-humano/nominas', thNominas, async () => {
+  app.get('/talento-humano/nominas', thLectura, async () => {
     const nominas = await prisma.nomina.findMany({
       orderBy: { periodo: 'desc' },
       include: { _count: { select: { liquidaciones: true } } },
@@ -281,7 +285,7 @@ export default async function rutasAdmin(app) {
      el mismo cálculo que usa el seed y las pruebas. Si el periodo ya existía se
      borra y se vuelve a hacer, porque dejar dos corridas del mismo mes haría
      que los totales de nómina dieran el doble. */
-  app.post('/talento-humano/nominas', thNominas, async (req, reply) => {
+  app.post('/talento-humano/nominas', thSolo, async (req, reply) => {
     const { periodo, fechaPago, uvt, smlmv, ingresosExtra } = req.body || {};
     if (!periodo || !/^\d{4}-\d{2}$/.test(periodo)) {
       return reply.code(400).send({ error: 'El periodo debe tener el formato AAAA-MM' });
@@ -350,7 +354,7 @@ export default async function rutasAdmin(app) {
   });
 
   /* Detalle de una corrida: una liquidación por empleado con sus conceptos. */
-  app.get('/talento-humano/nominas/:id', thNominas, async (req, reply) => {
+  app.get('/talento-humano/nominas/:id', thLectura, async (req, reply) => {
     const nomina = await prisma.nomina.findUnique({
       where: { id: Number(req.params.id) },
       include: {

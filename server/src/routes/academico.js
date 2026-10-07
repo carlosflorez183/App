@@ -3,6 +3,8 @@
    notas, pagos y certificados propios.
    ============================================= */
 import { prisma } from '../config.js';
+import { definitivaDe, estadoDe } from '../calificaciones.js';
+import { nombreArchivo, pdfDeCertificado } from '../certificados.js';
 
 export default async function rutasAcademico(app) {
   const guard = { preHandler: [app.autenticar, app.requiereRoles('estudiante', 'profesor', 'admin')] };
@@ -79,6 +81,64 @@ export default async function rutasAcademico(app) {
     return reply.code(201).send(creado);
   });
 
+  /* ── Descarga del certificado en PDF ──
+     El archivo lo arma el servidor con los datos guardados. El botón del portal
+     hace un GET normal a esta ruta y el navegador lo baja como attachment.
+
+     Se arma en el servidor y no en el navegador por una razón: si cada cliente
+     se inventara su propio PDF, el certificado que baja el alumno no sería el
+     mismo documento que tiene la universidad en el expediente, y no se podría
+     auditar. */
+  /* Esta ruta NO incluye al profesor: los certificados son del estudiante (la
+     tabla solo tiene `estudianteId` y un docente no tiene ficha de estudiante).
+     Bajan el alumno el suyo y Registro o la administración cualquiera, porque
+     es su trabajo emitirlos y reimprimirlos. */
+  app.get(
+    '/certificados/:id/pdf',
+    { preHandler: [app.autenticar, app.requiereRoles('estudiante', 'admin', 'admisiones')] },
+    async (req, reply) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id < 1) {
+      return reply.code(400).send({ error: 'El identificador del certificado no es válido' });
+    }
+    /* Estudiante y programa en la misma consulta: es lo que va impreso. */
+    const certificado = await prisma.certificadoEmitido.findUnique({
+      where: { id },
+      include: { estudiante: { include: { programa: true } } },
+    });
+    if (!certificado) return reply.code(404).send({ error: 'Certificado no encontrado' });
+
+    /* Un certificado que todavía no se ha emitido no se descarga: se entrega
+       cuando Registro lo emite, no antes. El estado es la misma regla que ve
+       el alumno en la lista. */
+    if (certificado.estado !== 'disponible' && certificado.estado !== 'entregado') {
+      return reply.code(409).send({ error: 'El certificado todavía no está disponible para descargar' });
+    }
+
+    /* El estudiante solo baja lo suyo. Registro y administración sí pueden bajar
+       cualquiera, porque es su trabajo emitirlos. */
+    if (req.usuario.role === 'estudiante') {
+      const e = await estudianteDe(req, reply);
+      if (!e) return;
+      if (certificado.estudianteId !== e.id) {
+        return reply.code(403).send({ error: 'Ese certificado no es suyo' });
+      }
+    }
+
+    const doc = await pdfDeCertificado(certificado);
+    const trozos = [];
+    for await (const trozo of doc) trozos.push(trozo);
+    const pdf = Buffer.concat(trozos);
+
+    reply
+      .header('content-type', 'application/pdf')
+      .header('content-length', String(pdf.length))
+      .header('content-disposition', `attachment; filename="${nombreArchivo(certificado)}"`)
+      .header('cache-control', 'private, no-store');
+    return reply.send(pdf);
+    },
+  );
+
   /* El docente califica una materia. Recalcula la definitiva con los tres
      cortes cuando ya están todos. */
   app.patch('/notas/:id', { preHandler: [app.autenticar, app.requiereRoles('profesor', 'admin')] }, async (req, reply) => {
@@ -95,10 +155,11 @@ export default async function rutasAcademico(app) {
     const n1 = data.nota1 ?? existe.nota1;
     const n2 = data.nota2 ?? existe.nota2;
     const n3 = data.nota3 ?? existe.nota3;
-    if (n1 !== null && n2 !== null && n3 !== null) {
-      data.definitiva = Number(((n1 + n2 + n3) / 3).toFixed(2));
-      data.estado = data.definitiva >= 3 ? 'aprobado' : 'reprobado';
-    }
+    /* La definitiva se pesa 30/30/40, no es el promedio plano. Se usa la misma
+       función que el registro de notas del campus: dos reglas distintas para
+       la misma cuenta darían dos notas finales distintas. */
+    data.definitiva = definitivaDe(n1, n2, n3);
+    data.estado = estadoDe(data.definitiva);
     return prisma.nota.update({ where: { id }, data });
   });
 }

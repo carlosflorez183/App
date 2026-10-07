@@ -344,11 +344,13 @@ export const postularConvocatoria = (id, datos) =>
 
 export const listarPostulados = (id) => api(`/talento-humano/convocatorias/${id}/postulados`);
 
-export const evaluarPostulado = (convocatoriaId, postuladoId, cambios) =>
+export const actualizarPuntaje = (convocatoriaId, postuladoId, cambios) =>
   api(`/talento-humano/convocatorias/${convocatoriaId}/postulados/${postuladoId}`, {
     method: 'PATCH',
     body: cambios,
   });
+
+export const evaluarPostulado = actualizarPuntaje;
 
 export const listarCapacitaciones = () => api('/talento-humano/capacitaciones');
 
