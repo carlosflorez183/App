@@ -1,13 +1,13 @@
-/* =============================================
+﻿/* =============================================
 
 
-   Módulo de Contabilidad.
+   M?dulo de Contabilidad.
 
 
-   Recaudo y cartera de toda la institución,
+   Recaudo y cartera de toda la instituci?n,
 
 
-   egresos con su aprobación y conciliación
+   egresos con su aprobaci?n y conciliaci?n
 
 
    bancaria de cada cobro.
@@ -39,8 +39,10 @@ import {
 
   listarGastos,
   listarNominas,
-
-
+  crearNomina,
+  obtenerNomina,
+  listarNovedadesContabilidad,
+  ajustarNovedad,
 } from '../api/client';
 
 
@@ -57,11 +59,11 @@ import { formatCurrency, formatDate } from '../data/mockData';
 
 
 const TABS = [
-  { key: 'recaudo', label: 'Recaudo', icon: '📥' },
-  { key: 'cobros', label: 'Cobros', icon: '💰' },
-  { key: 'conciliacion', label: 'Conciliación', icon: '🔗' },
-  { key: 'egresos', label: 'Egresos', icon: '🧾' },
-  { key: 'nomina', label: 'Nómina', icon: '💳' },
+  { key: 'recaudo', label: 'Recaudo', icon: '??' },
+  { key: 'cartera', label: 'Cartera', icon: '??' },
+  { key: 'conciliacion', label: 'Conciliaci?n', icon: '??' },
+  { key: 'egresos', label: 'Egresos', icon: '??' },
+  { key: 'nomina', label: 'Nómina', icon: '??' },
 ];
 
 const th = { textAlign: 'left', padding: '10px 12px', fontSize: 12, fontWeight: 700, color: '#64748b', borderBottom: '1px solid #e2e8f0' };
@@ -82,7 +84,7 @@ const label = { fontSize: 11, fontWeight: 700, color: '#64748b', display: 'block
 
 
 
-const CATEGORIAS = ['Docencia', 'Administración', 'Infraestructura', 'Investigación', 'Bienestar', 'Vinculación'];
+const CATEGORIAS = ['Docencia', 'Administraci?n', 'Infraestructura', 'Investigaci?n', 'Bienestar', 'Vinculaci?n'];
 
 
 const ESTADOS_GASTO = ['registrado', 'aprobado', 'pagado', 'anulado'];
@@ -157,7 +159,7 @@ const Aviso = ({ children, tone = 'red' }) => {
 export default function Contabilidad() {
 
 
-  // El bootstrap solo trae los pagos del estudiante de la demo, así que
+  // El bootstrap solo trae los pagos del estudiante de la demo, as? que
 
 
   // Contabilidad pide los cobros y los egresos completos a la API.
@@ -171,7 +173,13 @@ export default function Contabilidad() {
 
   const [cargando, setCargando] = useState(true);
 
-  const [nominas, setNominas] = useState([]);
+  const [nominas, setNóminas] = useState([]);
+
+  const [formNómina, setFormNómina] = useState({ periodo: '', fechaPago: '', uvt: '', smlmv: '' });
+
+  const [detalleNómina, setDetalleNómina] = useState(null);
+
+  const [conceptosNómina, setConceptosNómina] = useState(null);
 
 
   const [filtroEstado, setFiltroEstado] = useState('todos');
@@ -221,9 +229,9 @@ export default function Contabilidad() {
 
   const cargar = useCallback(async () => {
     try {
-      /* Cobros y egresos son los datos financieros propios del módulo: si uno
-         falla no hay pantalla. La nómina se pide aparte para que un rechazo
-         (rol sin permiso, API reiniciando) no vacíe la cartera. */
+      /* Cobros y egresos son los datos financieros propios del m?dulo: si uno
+         falla no hay pantalla. La n?mina se pide aparte para que un rechazo
+         (rol sin permiso, API reiniciando) no vac?e la cartera. */
       const [c, g] = await Promise.all([listarCobros(), listarGastos()]);
       setCobros(c);
       setEgresos(g);
@@ -236,11 +244,52 @@ export default function Contabilidad() {
       setCargando(false);
     }
     try {
-      setNominas(await listarNominas());
+      setNóminas(await listarNominas());
     } catch {
-      setNominas([]);
+      setNóminas([]);
     }
   }, []);
+
+
+  const recargarNóminas = useCallback(async () => {
+    try {
+      setNóminas(await listarNominas());
+    } catch {
+      setNóminas([]);
+    }
+  }, []);
+
+
+  const crearCorrida = async (e) => {
+    e.preventDefault();
+    setGuardando(true);
+    try {
+      const cuerpo = { periodo: formNómina.periodo };
+      if (formNómina.fechaPago) cuerpo.fechaPago = formNómina.fechaPago;
+      if (formNómina.uvt) cuerpo.uvt = Number(formNómina.uvt);
+      if (formNómina.smlmv) cuerpo.smlmv = Number(formNómina.smlmv);
+      const creada = await crearNomina(cuerpo);
+      avisar(`Corrida ${creada.periodo} generada sobre ${creada.personas ?? 0} personas.`);
+      setFormNómina({ periodo: '', fechaPago: '', uvt: '', smlmv: '' });
+      await recargarNóminas();
+      setDetalleNómina(await obtenerNomina(creada.id));
+    } catch (err) {
+      avisar(`No se pudo generar la corrida: ${err.message}`, 'error');
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+
+  const verDetalleNómina = async (id) => {
+    try {
+      setDetalleNómina(await obtenerNomina(id));
+      setConceptosNómina(null);
+      setError('');
+    } catch (err) {
+      avisar(`No se pudo cargar la corrida: ${err.message}`, 'error');
+    }
+  };
 
 
 
@@ -303,7 +352,7 @@ export default function Contabilidad() {
 
 
 
-  /* ── Conciliación ──────────────────────────────────────────────────── */
+  /* -- Conciliaci?n ---------------------------------------------------- */
 
 
 
@@ -351,7 +400,7 @@ export default function Contabilidad() {
     } catch (err) {
 
 
-      avisar(`No se concilió: ${err.message}`, 'error');
+      avisar(`No se concili?: ${err.message}`, 'error');
 
 
     } finally {
@@ -381,13 +430,13 @@ export default function Contabilidad() {
       setCobros((lista) => lista.map((x) => (x.id === r.id ? { ...x, ...r } : x)));
 
 
-      avisar(`Pago de ${p.estudiante} volvió a pendiente.`);
+      avisar(`Pago de ${p.estudiante} volvi? a pendiente.`);
 
 
     } catch (err) {
 
 
-      avisar(`No se revirtió: ${err.message}`, 'error');
+      avisar(`No se revirti?: ${err.message}`, 'error');
 
 
     }
@@ -399,7 +448,7 @@ export default function Contabilidad() {
 
 
 
-  /* ── Egresos ───────────────────────────────────────────────────────── */
+  /* -- Egresos --------------------------------------------------------- */
 
 
 
@@ -474,7 +523,7 @@ export default function Contabilidad() {
     } catch (err) {
 
 
-      avisar(`No se registró el egreso: ${err.message}`, 'error');
+      avisar(`No se registr? el egreso: ${err.message}`, 'error');
 
 
     } finally {
@@ -504,13 +553,13 @@ export default function Contabilidad() {
       setEgresos((x) => ({ ...x, gastos: x.gastos.map((y) => (y.id === g.id ? { ...y, ...r } : y)) }));
 
 
-      avisar(`"${g.concepto}" quedó ${estado}.`);
+      avisar(`"${g.concepto}" qued? ${estado}.`);
 
 
     } catch (err) {
 
 
-      avisar(`No se cambió el estado: ${err.message}`, 'error');
+      avisar(`No se cambi? el estado: ${err.message}`, 'error');
 
 
     }
@@ -525,13 +574,13 @@ export default function Contabilidad() {
   return (
 
 
-    <ModuleLayout title="Contabilidad" subtitle="Recaudo, cartera, egresos y conciliación bancaria" tabs={TABS}>
+    <ModuleLayout title="Contabilidad" subtitle="Recaudo, cartera, egresos y conciliaci?n bancaria" tabs={TABS}>
 
 
       {({ tab }) => {
 
 
-        if (cargando) return <div data-cargando="1" style={{ ...card, textAlign: 'center', color: '#94a3b8' }}>Cargando información financiera…</div>;
+        if (cargando) return <div data-cargando="1" style={{ ...card, textAlign: 'center', color: '#94a3b8' }}>Cargando informaci?n financiera?</div>;
 
 
 
@@ -585,7 +634,7 @@ export default function Contabilidad() {
                 <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 14 }}>
 
 
-                  Todos los estudiantes de la institución, no solo la cuenta de la demo.
+                  Todos los estudiantes de la instituci?n, no solo la cuenta de la demo.
 
 
                 </div>
@@ -597,7 +646,7 @@ export default function Contabilidad() {
                   <thead>
 
 
-                    <tr><th style={th}>Estudiante</th><th style={th}>Programa</th><th style={th}>Concepto</th><th style={th}>Límite</th><th style={th}>Valor</th><th style={th}>Referencia</th><th style={th}>Estado</th></tr>
+                    <tr><th style={th}>Estudiante</th><th style={th}>Programa</th><th style={th}>Concepto</th><th style={th}>L?mite</th><th style={th}>Valor</th><th style={th}>Referencia</th><th style={th}>Estado</th></tr>
 
 
                   </thead>
@@ -651,7 +700,7 @@ export default function Contabilidad() {
                   <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 10 }}>
 
 
-                    Mostrando 40 de {cobros.length} cobros. Use la pestaña Cartera para filtrar y conciliar.
+                    Mostrando 40 de {cobros.length} cobros. Use la pesta?a Cartera para filtrar y conciliar.
 
 
                   </div>
@@ -774,7 +823,7 @@ export default function Contabilidad() {
                   <thead>
 
 
-                    <tr><th style={th}>Estudiante</th><th style={th}>Programa</th><th style={th}>Concepto</th><th style={th}>Límite</th><th style={th}>Valor</th><th style={th}>Estado</th><th style={th}>Acción</th></tr>
+                    <tr><th style={th}>Estudiante</th><th style={th}>Programa</th><th style={th}>Concepto</th><th style={th}>L?mite</th><th style={th}>Valor</th><th style={th}>Estado</th><th style={th}>Acci?n</th></tr>
 
 
                   </thead>
@@ -843,7 +892,7 @@ export default function Contabilidad() {
                 {visibles.length === 0 && (
 
 
-                  <div style={{ textAlign: 'center', color: '#94a3b8', padding: 20 }}>Ningún cobro coincide con el filtro.</div>
+                  <div style={{ textAlign: 'center', color: '#94a3b8', padding: 20 }}>Ning?n cobro coincide con el filtro.</div>
 
 
                 )}
@@ -888,13 +937,13 @@ export default function Contabilidad() {
                 <div style={card}>
 
 
-                  <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 4 }}>Cola de conciliación</div>
+                  <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 4 }}>Cola de conciliaci?n</div>
 
 
                   <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 14 }}>
 
 
-                    Cobros sin confirmar contra el banco. Al conciliar se registra la referencia de la transacción.
+                    Cobros sin confirmar contra el banco. Al conciliar se registra la referencia de la transacci?n.
 
 
                   </div>
@@ -948,7 +997,7 @@ export default function Contabilidad() {
                         <div style={{ fontSize: 13, fontWeight: 700 }}>{p.estudiante}</div>
 
 
-                        <div style={{ fontSize: 11, color: '#94a3b8' }}>{p.concepto} · vence {formatDate(p.fechaLimite)}</div>
+                        <div style={{ fontSize: 11, color: '#94a3b8' }}>{p.concepto} ? vence {formatDate(p.fechaLimite)}</div>
 
 
                       </div>
@@ -1101,7 +1150,7 @@ export default function Contabilidad() {
                 <div style={card}><div style={{ fontSize: 12, color: '#64748b' }}>Por aprobar</div><div style={{ fontSize: 24, fontWeight: 800, color: '#b45309' }}>{egresos.gastos.filter((g) => g.estado === 'registrado' || g.estado === 'aprobado').length}</div></div>
 
 
-                <div style={card}><div style={{ fontSize: 12, color: '#64748b' }}>Categorías</div><div style={{ fontSize: 24, fontWeight: 800 }}>{egresos.porCategoria.length}</div></div>
+                <div style={card}><div style={{ fontSize: 12, color: '#64748b' }}>Categor?as</div><div style={{ fontSize: 24, fontWeight: 800 }}>{egresos.porCategoria.length}</div></div>
 
 
               </div>
@@ -1137,7 +1186,7 @@ export default function Contabilidad() {
                     <div>
 
 
-                      <span style={label}>Categoría</span>
+                      <span style={label}>Categor?a</span>
 
 
                       <select value={formGasto.categoria} style={{ ...input, width: '100%' }} onChange={(e) => setFormGasto((f) => ({ ...f, categoria: e.target.value }))}>
@@ -1173,7 +1222,7 @@ export default function Contabilidad() {
                     <span style={label}>Dependencia</span>
 
 
-                    <input value={formGasto.dependencia} style={{ ...input, width: '100%' }} onChange={(e) => setFormGasto((f) => ({ ...f, dependencia: e.target.value }))} placeholder="Fac. Ingeniería" />
+                    <input value={formGasto.dependencia} style={{ ...input, width: '100%' }} onChange={(e) => setFormGasto((f) => ({ ...f, dependencia: e.target.value }))} placeholder="Fac. Ingenier?a" />
 
 
                   </div>
@@ -1224,13 +1273,13 @@ export default function Contabilidad() {
                   <div style={{ ...card, marginBottom: 14 }}>
 
 
-                    <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 10 }}>Distribución por categoría</div>
+                    <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 10 }}>Distribuci?n por categor?a</div>
 
 
                     {egresos.porCategoria.length === 0 && (
 
 
-                      <div style={{ fontSize: 12, color: '#94a3b8' }}>Todavía no hay egresos.</div>
+                      <div style={{ fontSize: 12, color: '#94a3b8' }}>Todav?a no hay egresos.</div>
 
 
                     )}
@@ -1284,7 +1333,7 @@ export default function Contabilidad() {
                       <thead>
 
 
-                        <tr><th style={th}>Concepto</th><th style={th}>Categoría</th><th style={th}>Fecha</th><th style={th}>Valor</th><th style={th}>Comprobante</th><th style={th}>Estado</th></tr>
+                        <tr><th style={th}>Concepto</th><th style={th}>Categor?a</th><th style={th}>Fecha</th><th style={th}>Valor</th><th style={th}>Comprobante</th><th style={th}>Estado</th></tr>
 
 
                       </thead>
@@ -1374,48 +1423,131 @@ export default function Contabilidad() {
         if (tab === 'nomina') {
           const ultima = Array.isArray(nominas) && nominas.length ? nominas[0] : null;
           return (
-            <div style={{ display: 'grid', gap: 16 }}>
-              <div style={card}>
-                <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 8 }}>Nómina (solo lectura)</div>
-                {!ultima ? (
-                  <div style={{ fontSize: 12, color: '#64748b' }}>Aún no hay corridas de nómina.</div>
-                ) : (
-                  <div style={{ fontSize: 13 }}>
-                    <div><strong>Periodo:</strong> {ultima.periodo}</div>
-                    <div><strong>Estado:</strong> {ultima.estado}</div>
-                    <div><strong>Total devengado:</strong> ${Number(ultima.totalDevengado || 0).toLocaleString('es-CO')}</div>
-                    <div><strong>Total deducciones:</strong> ${Number(ultima.totalDeducciones || 0).toLocaleString('es-CO')}</div>
-                    <div><strong>Total neto:</strong> ${Number(ultima.totalNeto || 0).toLocaleString('es-CO')}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 360px) 1fr', gap: 16, alignItems: 'start' }}>
+              <form style={card} onSubmit={crearCorrida}>
+                <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 8 }}>Generar corrida de n?mina</div>
+                <div style={{ fontSize: 12, color: '#64748b', marginBottom: 12 }}>
+                  Liquida a todo el personal activo: administrativos y docentes (con salario seg?n su categor?a). Si el periodo ya existe se vuelve a liquidar desde cero.
+                </div>
+                <div style={{ marginBottom: 10 }}>
+                  <span style={label}>Periodo (AAAA-MM)</span>
+                  <input required pattern="\d{4}-\d{2}" title="Formato AAAA-MM" value={formNómina.periodo} style={{ ...input, width: '100%' }} onChange={(e) => setFormNómina((f) => ({ ...f, periodo: e.target.value }))} placeholder="2026-09" />
+                </div>
+                <div style={{ marginBottom: 10 }}>
+                  <span style={label}>Fecha de pago</span>
+                  <input type="date" value={formNómina.fechaPago} style={{ ...input, width: '100%' }} onChange={(e) => setFormNómina((f) => ({ ...f, fechaPago: e.target.value }))} />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+                  <div>
+                    <span style={label}>UVT</span>
+                    <input type="number" min="1" value={formNómina.uvt} style={{ ...input, width: '100%' }} onChange={(e) => setFormNómina((f) => ({ ...f, uvt: e.target.value }))} placeholder="42950" />
                   </div>
-                )}
-              </div>
-              <div style={card}>
-                <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 8 }}>Corridas</div>
-                {Array.isArray(nominas) && nominas.length ? (
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                    <thead>
-                      <tr>
-                        <th style={th}>Periodo</th>
-                        <th style={th}>Estado</th>
-                        <th style={th}>Devengado</th>
-                        <th style={th}>Deducciones</th>
-                        <th style={th}>Neto</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {nominas.map((n) => (
-                        <tr key={n.id}>
-                          <td style={td}>{n.periodo}</td>
-                          <td style={td}>{n.estado}</td>
-                          <td style={td}>${Number(n.totalDevengado || 0).toLocaleString('es-CO')}</td>
-                          <td style={td}>${Number(n.totalDeducciones || 0).toLocaleString('es-CO')}</td>
-                          <td style={td}>${Number(n.totalNeto || 0).toLocaleString('es-CO')}</td>
+                  <div>
+                    <span style={label}>SMLMV</span>
+                    <input type="number" min="1" value={formNómina.smlmv} style={{ ...input, width: '100%' }} onChange={(e) => setFormNómina((f) => ({ ...f, smlmv: e.target.value }))} placeholder="1300000" />
+                  </div>
+                </div>
+                <button className="btn" type="submit" disabled={guardando}>{guardando ? 'Liquidando?' : 'Generar corrida'}</button>
+              </form>
+
+              <div style={{ display: 'grid', gap: 16 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
+                  <div style={card}><div style={{ fontSize: 12, color: '#64748b' }}>Corridas</div><div style={{ fontSize: 24, fontWeight: 800 }}>{nominas.length}</div></div>
+                  <div style={card}><div style={{ fontSize: 12, color: '#64748b' }}>?ltimo periodo</div><div style={{ fontSize: 24, fontWeight: 800 }}>{ultima?.periodo || '?'}</div></div>
+                  <div style={card}><div style={{ fontSize: 12, color: '#64748b' }}>Neto ?ltimo periodo</div><div style={{ fontSize: 24, fontWeight: 800 }}>{ultima ? `$${Number(ultima.totalNeto || 0).toLocaleString('es-CO')}` : '?'}</div></div>
+                </div>
+
+                <div style={card}>
+                  <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 8 }}>Corridas</div>
+                  {Array.isArray(nominas) && nominas.length ? (
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                      <thead>
+                        <tr>
+                          <th style={th}>Periodo</th>
+                          <th style={th}>Estado</th>
+                          <th style={th}>Devengado</th>
+                          <th style={th}>Deducciones</th>
+                          <th style={th}>Neto</th>
+                          <th style={th}></th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <div style={{ fontSize: 12, color: '#64748b' }}>Sin datos.</div>
+                      </thead>
+                      <tbody>
+                        {nominas.map((n) => (
+                          <tr key={n.id}>
+                            <td style={td}>{n.periodo}</td>
+                            <td style={td}>{n.estado}</td>
+                            <td style={td}>${Number(n.totalDevengado || 0).toLocaleString('es-CO')}</td>
+                            <td style={td}>${Number(n.totalDeducciones || 0).toLocaleString('es-CO')}</td>
+                            <td style={td}>${Number(n.totalNeto || 0).toLocaleString('es-CO')}</td>
+                            <td style={td}>
+                              <button className="btn" style={{ padding: '4px 9px', fontSize: 11 }} onClick={() => verDetalleNómina(n.id)}>Ver detalle</button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <div style={{ fontSize: 12, color: '#64748b' }}>Sin datos.</div>
+                  )}
+                </div>
+
+                {detalleNómina && (
+                  <div style={card}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                      <div style={{ fontSize: 15, fontWeight: 800 }}>Detalle de {detalleNómina.periodo}</div>
+                      <button className="btn" style={{ padding: '4px 9px', fontSize: 11 }} onClick={() => setDetalleNómina(null)}>Cerrar</button>
+                    </div>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                      <thead>
+                        <tr>
+                          <th style={th}>Persona</th>
+                          <th style={th}>V?nculo</th>
+                          <th style={th}>Cargo</th>
+                          <th style={th}>Base</th>
+                          <th style={th}>Devengado</th>
+                          <th style={th}>Deducciones</th>
+                          <th style={th}>Neto</th>
+                          <th style={th}></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(detalleNómina.liquidaciones || []).map((l) => (
+                          <React.Fragment key={l.id}>
+                            <tr>
+                              <td style={{ ...td, fontWeight: 600 }}>{l.nombre}</td>
+                              <td style={td}>{l.tipoPersona === 'docente' ? 'Docente' : 'Empleado'}</td>
+                              <td style={td}>{l.cargo}</td>
+                              <td style={td}>${Number(l.salarioBase).toLocaleString('es-CO')}</td>
+                              <td style={td}>${Number(l.devengado).toLocaleString('es-CO')}</td>
+                              <td style={td}>-${Number(l.deducciones).toLocaleString('es-CO')}</td>
+                              <td style={{ ...td, fontWeight: 700 }}>${Number(l.neto).toLocaleString('es-CO')}</td>
+                              <td style={td}>
+                                <button className="btn" style={{ padding: '3px 8px', fontSize: 10 }} onClick={() => setConceptosNómina(conceptosNómina === l.id ? null : l.id)}>
+                                  {conceptosNómina === l.id ? 'Ocultar' : 'Conceptos'}
+                                </button>
+                              </td>
+                            </tr>
+                            {conceptosNómina === l.id && (
+                              <tr>
+                                <td colSpan={8} style={{ ...td, background: '#f8fafc' }}>
+                                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 8 }}>
+                                    {(l.conceptos || []).map((c) => (
+                                      <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, padding: '6px 10px', fontSize: 12 }}>
+                                        <span>{c.nombre}</span>
+                                        <span style={{ fontWeight: 700, color: c.tipo === 'deduccion' ? '#b91c1c' : '#15803d' }}>
+                                          {c.tipo === 'deduccion' ? '-' : ''}${Number(c.valor).toLocaleString('es-CO')}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </div>
             </div>

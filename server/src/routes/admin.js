@@ -5,7 +5,25 @@
    ============================================= */
 import { prisma } from '../config.js';
 import { hash, publico } from '../auth.js';
-import { liquidar, totalizar } from '../nomina.js';
+import {
+  liquidar,
+  totalizar,
+  salarioDocentePorCategoria,
+  calcularNovedad,
+  TIPOS_NOVEDAD,
+} from '../nomina.js';
+
+/* Nombres de las novedades tal como salen en los conceptos de la liquidación. */
+const ETIQUETA_NOVEDAD = {
+  incapacidad: 'Incapacidad',
+  licencia: 'Licencia o permiso',
+  vacaciones: 'Vacaciones',
+  retiro: 'Retiro o renuncia',
+  bonificacion: 'Bonificación',
+  horas_extra: 'Horas extra',
+  descuento: 'Descuento',
+};
+const TIPOS_NOVEDAD_VALIDOS = Object.values(TIPOS_NOVEDAD);
 import {
   pdfDeCertificadoLaboral,
   nombreArchivo as nombreArchivoLaboral,
@@ -261,18 +279,19 @@ export default async function rutasAdmin(app) {
   });
 
   /* ── Nómina ─────────────────────────────────────────────────────────── */
-  /* Todo esto es de Talento Humano. Contabilidad ve el resultado en su módulo
-     (resumen y pestaña de nómina en solo lectura), pero no corre ni recalcula
-     la nómina: liquidar es calcular deducciones de personas, no cuadrar
-     cuentas. Por eso el POST sigue exclusivo de Talento Humano. */
-  const thSolo = {
-    preHandler: [app.autenticar, app.requiereRoles('talento_humano')],
-  };
-  const thLectura = {
+  /* Liquidar es calcular deducciones de personas, así que la corre
+     Contabilidad, que es quien cierra las cuentas del periodo. Talento Humano
+     la consulta (para certificados y consulta interna) pero no la genera ni la
+     recalcula. La corrida liquida a TODO el personal activo: administrativos
+     (`Empleado`) y docentes (`Docente`, con salario asignado por categoría). */
+  const nominaLectura = {
     preHandler: [app.autenticar, app.requiereRoles('talento_humano', 'contabilidad')],
   };
+  const nominaGenera = {
+    preHandler: [app.autenticar, app.requiereRoles('contabilidad')],
+  };
 
-  app.get('/talento-humano/nominas', thLectura, async () => {
+  app.get('/talento-humano/nominas', nominaLectura, async () => {
     const nominas = await prisma.nomina.findMany({
       orderBy: { periodo: 'desc' },
       include: { _count: { select: { liquidaciones: true } } },
@@ -285,7 +304,7 @@ export default async function rutasAdmin(app) {
      el mismo cálculo que usa el seed y las pruebas. Si el periodo ya existía se
      borra y se vuelve a hacer, porque dejar dos corridas del mismo mes haría
      que los totales de nómina dieran el doble. */
-  app.post('/talento-humano/nominas', thSolo, async (req, reply) => {
+  app.post('/contabilidad/nominas', nominaGenera, async (req, reply) => {
     const { periodo, fechaPago, uvt, smlmv, ingresosExtra } = req.body || {};
     if (!periodo || !/^\d{4}-\d{2}$/.test(periodo)) {
       return reply.code(400).send({ error: 'El periodo debe tener el formato AAAA-MM' });
@@ -303,21 +322,108 @@ export default async function rutasAdmin(app) {
     const smlmvFinal = Number(smlmv) || previa?.smlmv || 1300000;
     const fecha = fechaPago ? new Date(fechaPago) : new Date(`${periodo}-28T00:00:00Z`);
 
-    const empleados = await prisma.empleado.findMany({
-      where: { estado: { not: 'retirado' } },
-      orderBy: { nombre: 'asc' },
-    });
-    if (!empleados.length) {
-      return reply.code(409).send({ error: 'No hay empleados activos para liquidar' });
+    /* La corrida liquida a todo el personal: administrativos y docentes. Los
+       docentes no traen salario en su tabla, así que se les asigna uno según la
+       categoría (escala institucional). */
+    const [empleados, docentes] = await Promise.all([
+      prisma.empleado.findMany({ where: { estado: { not: 'retirado' } }, orderBy: { nombre: 'asc' } }),
+      prisma.docente.findMany({ where: { estado: { not: 'retirado' } }, orderBy: { nombre: 'asc' } }),
+    ]);
+    if (!empleados.length && !docentes.length) {
+      return reply.code(409).send({ error: 'No hay personal activo para liquidar' });
     }
 
-    const calculos = empleados.map((emp) => liquidar(emp, {
-      uvt: uvtFinal,
-      smlmv: smlmvFinal,
-      fechaPago: fecha,
-      ingresosExtra: (ingresosExtra?.[emp.id] || []),
-    }));
-    const totales = totalizar(calculos);
+    /* Las novedades reportadas de este periodo entran en la liquidación: las
+       incapacidades, licencias y préstamos descuentan; las bonificaciones y
+       horas extra suman. Si ya había una corrida de este mes, sus novedades
+       aplicadas vuelven a "reportada" para que se apliquen al rehacerla. */
+    await prisma.novedad.updateMany({
+      where: { periodo, estado: 'aplicada' },
+      data: { estado: 'reportada', nominaId: null },
+    });
+    const novedades = await prisma.novedad.findMany({
+      where: { periodo, estado: 'reportada' },
+      orderBy: { creadoEn: 'asc' },
+    });
+    const ajustesDe = (ref) => novedades
+      .filter((n) => n.tipoAjuste !== 'ninguno' && Number(n.valor) > 0
+        && ((ref.empleadoId && n.empleadoId === ref.empleadoId)
+          || (ref.docenteId && n.docenteId === ref.docenteId)))
+      .map((n) => ({
+        codigo: `NOV_${n.tipo.toUpperCase()}`,
+        nombre: `${ETIQUETA_NOVEDAD[n.tipo] || n.tipo}${n.descripcion ? `: ${n.descripcion}` : ''}`,
+        tipo: n.tipoAjuste === 'ingreso' ? 'devengado' : 'deduccion',
+        valor: Number(n.valor),
+      }));
+    /* Un retiro saca a la persona de la corrida y la marca retirada. */
+    const retirados = new Set();
+    for (const n of novedades) {
+      if (n.tipo !== TIPOS_NOVEDAD.RETIRO) continue;
+      if (n.empleadoId) retirados.add(`e:${n.empleadoId}`);
+      if (n.docenteId) retirados.add(`d:${n.docenteId}`);
+    }
+
+    const deEmpleados = empleados
+      .filter((emp) => !retirados.has(`e:${emp.id}`))
+      .map((emp) => {
+        const c = liquidar(emp, {
+          uvt: uvtFinal,
+          smlmv: smlmvFinal,
+          fechaPago: fecha,
+          ingresosExtra: (ingresosExtra?.[emp.id] || []),
+          ajustes: ajustesDe({ empleadoId: emp.id }),
+        });
+        return {
+          empleadoId: emp.id,
+          tipoPersona: 'empleado',
+          nombre: emp.nombre,
+          cargo: emp.cargo,
+          dependencia: emp.dependencia,
+          salarioBase: c.salarioBase,
+          devengado: c.devengado,
+          deducciones: c.deducciones,
+          neto: c.neto,
+          baseRetencion: c.baseRetencion,
+          rentaExenta: c.rentaExenta,
+          baseGravable: c.baseGravable,
+          retencion: c.retencion,
+          conceptos: { create: c.conceptos },
+        };
+      });
+
+    const deDocentes = docentes
+      .filter((doc) => !retirados.has(`d:${doc.id}`))
+      .map((doc) => {
+        const salario = salarioDocentePorCategoria(doc.categoria);
+        const c = liquidar({ id: doc.id, baseSalarial: salario }, {
+          uvt: uvtFinal,
+          smlmv: smlmvFinal,
+          fechaPago: fecha,
+          ajustes: ajustesDe({ docenteId: doc.id }),
+        });
+        return {
+          docenteId: doc.id,
+          tipoPersona: 'docente',
+          nombre: doc.nombre,
+          cargo: doc.categoria || 'Docente',
+          dependencia: doc.area || 'Docencia',
+          salarioBase: c.salarioBase,
+          devengado: c.devengado,
+          deducciones: c.deducciones,
+          neto: c.neto,
+          baseRetencion: c.baseRetencion,
+          rentaExenta: c.rentaExenta,
+          baseGravable: c.baseGravable,
+          retencion: c.retencion,
+          conceptos: { create: c.conceptos },
+        };
+      });
+
+    const liquidaciones = [...deEmpleados, ...deDocentes];
+    if (!liquidaciones.length) {
+      return reply.code(409).send({ error: 'Todas las personas del periodo están retiradas' });
+    }
+    const totales = totalizar(liquidaciones);
 
     /* Rehacer el periodo: se borra la corrida anterior y sus liquidaciones
        (los conceptos van en cascada), y se vuelve a liquidar. */
@@ -333,28 +439,26 @@ export default async function rutasAdmin(app) {
         totalDevengado: totales.devengado,
         totalDeducciones: totales.deducciones,
         totalNeto: totales.neto,
-        liquidaciones: {
-          create: calculos.map((c) => ({
-            empleadoId: c.empleadoId,
-            salarioBase: c.salarioBase,
-            devengado: c.devengado,
-            deducciones: c.deducciones,
-            neto: c.neto,
-            baseRetencion: c.baseRetencion,
-            rentaExenta: c.rentaExenta,
-            baseGravable: c.baseGravable,
-            retencion: c.retencion,
-            conceptos: { create: c.conceptos },
-          })),
-        },
+        liquidaciones: { create: liquidaciones },
       },
     });
 
-    return reply.code(201).send({ ...nomina, empleados: nomina.liquidaciones?.length ?? calculos.length });
+    /* Las novedades que entraron quedan aplicadas y ligadas a la corrida. */
+    await prisma.novedad.updateMany({
+      where: { periodo, estado: 'reportada' },
+      data: { estado: 'aplicada', nominaId: nomina.id },
+    });
+    for (const n of novedades) {
+      if (n.tipo !== TIPOS_NOVEDAD.RETIRO) continue;
+      if (n.empleadoId) await prisma.empleado.update({ where: { id: n.empleadoId }, data: { estado: 'retirado' } });
+      if (n.docenteId) await prisma.docente.update({ where: { id: n.docenteId }, data: { estado: 'retirado' } });
+    }
+
+    return reply.code(201).send({ ...nomina, personas: liquidaciones.length });
   });
 
-  /* Detalle de una corrida: una liquidación por empleado con sus conceptos. */
-  app.get('/talento-humano/nominas/:id', thLectura, async (req, reply) => {
+  /* Detalle de una corrida: una liquidación por persona con sus conceptos. */
+  app.get('/talento-humano/nominas/:id', nominaLectura, async (req, reply) => {
     const nomina = await prisma.nomina.findUnique({
       where: { id: Number(req.params.id) },
       include: {
@@ -362,13 +466,187 @@ export default async function rutasAdmin(app) {
           orderBy: { neto: 'desc' },
           include: {
             empleado: { select: { id: true, nombre: true, cargo: true, dependencia: true, tipo: true, documento: true } },
+            docente: { select: { id: true, nombre: true, area: true, categoria: true, email: true } },
             conceptos: { orderBy: { orden: 'asc' } },
           },
         },
+        novedades: true,
       },
     });
     if (!nomina) return reply.code(404).send({ error: 'Corrida de nómina no encontrada' });
     return nomina;
+  });
+
+  /* ── Novedades de nómina ──────────────────────────────────────────────
+     Talento Humano reporta el hecho (incapacidad, licencia, retiro, bono…), el
+     sistema calcula un valor sugerido y Contabilidad lo revisa y corrige antes
+     de generar la corrida. La novedad se aplica al liquidar ese periodo y queda
+     ligada a la corrida para no descontarla dos veces. */
+  const novedadTh = {
+    preHandler: [app.autenticar, app.requiereRoles('talento_humano')],
+  };
+  const novedadCta = {
+    preHandler: [app.autenticar, app.requiereRoles('contabilidad')],
+  };
+  const TIPOS_NOVEDAD_VALIDOS = new Set(Object.values(TIPOS_NOVEDAD));
+
+  /* Salario base con el que se valora la novedad, según el vínculo. */
+  const salarioDeEmpleado = (emp) => Number(emp.baseSalarial ?? emp.salario ?? 0);
+  const salarioDeDocente = (doc) => salarioDocentePorCategoria(doc.categoria);
+
+  /* Resuelve la persona de una novedad a partir del id que llega del cliente. */
+  async function buscarPersona({ empleadoId, docenteId }) {
+    if (docenteId) {
+      const doc = await prisma.docente.findUnique({ where: { id: String(docenteId) } });
+      if (doc) {
+        return {
+          docenteId: doc.id, nombre: doc.nombre, tipoPersona: 'docente',
+          salarioBase: salarioDeDocente(doc),
+        };
+      }
+    }
+    if (empleadoId) {
+      const emp = await prisma.empleado.findUnique({ where: { id: Number(empleadoId) } });
+      if (emp) {
+        return {
+          empleadoId: emp.id, nombre: emp.nombre, tipoPersona: 'empleado',
+          salarioBase: salarioDeEmpleado(emp),
+        };
+      }
+    }
+    return null;
+  }
+
+  /* Salario base de la persona de una novedad ya guardada. */
+  async function salarioDePersona(n) {
+    if (n.docenteId) {
+      const doc = await prisma.docente.findUnique({ where: { id: n.docenteId } });
+      return doc ? salarioDeDocente(doc) : 0;
+    }
+    if (n.empleadoId) {
+      const emp = await prisma.empleado.findUnique({ where: { id: n.empleadoId } });
+      return emp ? salarioDeEmpleado(emp) : 0;
+    }
+    return 0;
+  }
+
+  app.get('/talento-humano/novedades', novedadTh, async (req) => {
+    const { periodo, estado } = req.query || {};
+    return prisma.novedad.findMany({
+      where: { ...(periodo ? { periodo } : {}), ...(estado ? { estado } : {}) },
+      orderBy: [{ periodo: 'desc' }, { creadoEn: 'desc' }],
+    });
+  });
+
+  app.post('/talento-humano/novedades', novedadTh, async (req, reply) => {
+    const {
+      empleadoId, docenteId, tipo, periodo, descripcion, modalidad,
+      fechaInicio, fechaFin, dias, horas, valor,
+    } = req.body || {};
+    if (!TIPOS_NOVEDAD_VALIDOS.has(tipo)) {
+      return reply.code(400).send({ error: 'Tipo de novedad no reconocido' });
+    }
+    if (!periodo || !/^\d{4}-\d{2}$/.test(periodo)) {
+      return reply.code(400).send({ error: 'El periodo debe tener el formato AAAA-MM' });
+    }
+    const persona = await buscarPersona({ empleadoId, docenteId });
+    if (!persona) return reply.code(404).send({ error: 'No se encontró la persona de la novedad' });
+
+    const calculo = calcularNovedad(
+      { tipo, dias, horas, valor, modalidad },
+      persona.salarioBase,
+    );
+    const creada = await prisma.novedad.create({
+      data: {
+        empleadoId: persona.empleadoId ?? null,
+        docenteId: persona.docenteId ?? null,
+        nombre: persona.nombre,
+        tipoPersona: persona.tipoPersona,
+        tipo,
+        descripcion: descripcion || null,
+        modalidad: modalidad || null,
+        periodo,
+        fechaInicio: fechaInicio ? new Date(fechaInicio) : null,
+        fechaFin: fechaFin ? new Date(fechaFin) : null,
+        dias: dias !== undefined && dias !== null && dias !== '' ? Number(dias) : null,
+        horas: horas !== undefined && horas !== null && horas !== '' ? Number(horas) : null,
+        valorSugerido: calculo.valor,
+        valor: calculo.valor,
+        tipoAjuste: calculo.tipoAjuste,
+        estado: 'reportada',
+        reportadoPor: req.usuario.id,
+      },
+    });
+    return reply.code(201).send(creada);
+  });
+
+  /* Talento Humano corrige o anula una novedad mientras siga reportada. Una vez
+     aplicada a una corrida ya no se toca desde aquí: habría que rehacer la
+     corrida para que el cambio valga. */
+  app.patch('/talento-humano/novedades/:id', novedadTh, async (req, reply) => {
+    const actual = await prisma.novedad.findUnique({ where: { id: Number(req.params.id) } });
+    if (!actual) return reply.code(404).send({ error: 'Novedad no encontrada' });
+    if (actual.estado !== 'reportada') {
+      return reply.code(409).send({ error: 'La novedad ya no está en estado reportada' });
+    }
+    const { descripcion, dias, horas, valor, modalidad, estado } = req.body || {};
+    const cambios = {};
+    if (descripcion !== undefined) cambios.descripcion = descripcion || null;
+    if (modalidad !== undefined) cambios.modalidad = modalidad || null;
+    if (dias !== undefined) cambios.dias = dias === null || dias === '' ? null : Number(dias);
+    if (horas !== undefined) cambios.horas = horas === null || horas === '' ? null : Number(horas);
+    if (estado !== undefined) {
+      if (!['reportada', 'anulada'].includes(estado)) {
+        return reply.code(400).send({ error: 'Estado no válido' });
+      }
+      cambios.estado = estado;
+    }
+    /* Si cambió días/horas/modalidad o el valor, se recalcula el sugerido y se
+       respeta el valor que haya escrito Talento Humano si vino explícito. */
+    const base = { ...actual, ...cambios };
+    const recalculo = calcularNovedad(base, await salarioDePersona(actual));
+    cambios.valor = valor !== undefined ? Number(valor) || 0 : recalculo.valor;
+    cambios.valorSugerido = recalculo.valor;
+    cambios.tipoAjuste = recalculo.tipoAjuste;
+
+    const actualizada = await prisma.novedad.update({ where: { id: actual.id }, data: cambios });
+    return actualizada;
+  });
+
+  app.get('/contabilidad/novedades', novedadCta, async (req) => {
+    const { periodo, estado } = req.query || {};
+    return prisma.novedad.findMany({
+      where: { ...(periodo ? { periodo } : {}), ...(estado ? { estado } : {}) },
+      orderBy: [{ periodo: 'desc' }, { creadoEn: 'desc' }],
+    });
+  });
+
+  /* Contabilidad revisa la novedad y, si hace falta, ajusta el valor antes de
+     generar la corrida. Solo aplica mientras siga reportada. */
+  app.patch('/contabilidad/novedades/:id', novedadCta, async (req, reply) => {
+    const actual = await prisma.novedad.findUnique({ where: { id: Number(req.params.id) } });
+    if (!actual) return reply.code(404).send({ error: 'Novedad no encontrada' });
+    if (actual.estado === 'aplicada') {
+      return reply.code(409).send({ error: 'La novedad ya fue aplicada a una corrida' });
+    }
+    const { valor, tipoAjuste, estado, descripcion } = req.body || {};
+    const cambios = { ajustadoPor: req.usuario.id };
+    if (valor !== undefined) cambios.valor = Number(valor) || 0;
+    if (tipoAjuste !== undefined) {
+      if (!['ingreso', 'descuento', 'ninguno'].includes(tipoAjuste)) {
+        return reply.code(400).send({ error: 'Tipo de ajuste no válido' });
+      }
+      cambios.tipoAjuste = tipoAjuste;
+    }
+    if (estado !== undefined) {
+      if (!['reportada', 'anulada'].includes(estado)) {
+        return reply.code(400).send({ error: 'Estado no válido' });
+      }
+      cambios.estado = estado;
+    }
+    if (descripcion !== undefined) cambios.descripcion = descripcion || null;
+    const actualizada = await prisma.novedad.update({ where: { id: actual.id }, data: cambios });
+    return actualizada;
   });
 
   /* ── Certificados laborales ───────────────────────────────────────────

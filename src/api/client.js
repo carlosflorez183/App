@@ -175,8 +175,15 @@ export const actualizarDocente = (id, cambios) =>
   api(`/admin/docentes/${encodeURIComponent(id)}`, { method: 'PATCH', body: cambios });
 
 export const listarNominas = () => api('/talento-humano/nominas');
-export const crearNomina = (data) => api('/talento-humano/nominas', { method: 'POST', body: data });
+/* La nómina la genera Contabilidad; Talento Humano solo la consulta. */
+export const crearNomina = (data) => api('/contabilidad/nominas', { method: 'POST', body: data });
 export const obtenerNomina = (id) => api(`/talento-humano/nominas/${id}`);
+/* Novedades: Talento Humano las reporta; Contabilidad las revisa y ajusta. */
+export const listarNovedadesTH = () => api('/talento-humano/novedades');
+export const crearNovedad = (data) => api('/talento-humano/novedades', { method: 'POST', body: data });
+export const actualizarNovedadTH = (id, data) => api(`/talento-humano/novedades/${id}`, { method: 'PATCH', body: data });
+export const listarNovedadesContabilidad = () => api('/contabilidad/novedades');
+export const ajustarNovedad = (id, data) => api(`/contabilidad/novedades/${id}`, { method: 'PATCH', body: data });
 export const listarCertificadosLaborales = () => api('/talento-humano/certificados');
 export const crearCertificadoLaboral = (data) => api('/talento-humano/certificados', { method: 'POST', body: data });
 export async function descargarCertificadoLaboral(id) {

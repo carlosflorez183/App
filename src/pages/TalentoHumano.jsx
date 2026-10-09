@@ -1,6 +1,6 @@
-/* =============================================
-   Módulo de Talento Humano.
-   Planta docente editable, carga académica,
+﻿/* =============================================
+   M?dulo de Talento Humano.
+   Planta docente editable, carga acad?mica,
    convocatorias con sus postulados y el plan
    de capacitaciones.
    ============================================= */
@@ -19,24 +19,41 @@ import {
   listarPostulados,
   postularConvocatoria,
   listarNominas,
-  crearNomina,
   listarCertificadosLaborales,
   crearCertificadoLaboral,
   descargarCertificadoLaboral,
   obtenerNomina,
   actualizarPuntaje,
+  crearNovedad,
+  listarNovedadesTH,
+  actualizarNovedadTH,
 } from '../api/client';
 import { formatDate } from '../data/mockData';
 
 const TABS = [
-  { key: 'planta', label: 'Planta docente', icon: '👨‍🏫' },
-  { key: 'convocatorias', label: 'Convocatorias', icon: '📢' },
-  { key: 'capacitaciones', label: 'Capacitaciones', icon: '🎓' },
-  { key: 'carga', label: 'Carga académica', icon: '📚' },
-  { key: 'areas', label: 'Áreas', icon: '🗂️' },
-  { key: 'nomina', label: 'Nómina', icon: '💸' },
-  { key: 'certificados', label: 'Certificados', icon: '📜' },
+  { key: 'planta', label: 'Planta docente', icon: '?????' },
+  { key: 'convocatorias', label: 'Convocatorias', icon: '??' },
+  { key: 'capacitaciones', label: 'Capacitaciones', icon: '??' },
+  { key: 'carga', label: 'Carga acad?mica', icon: '??' },
+  { key: 'areas', label: '?reas', icon: '???' },
+  { key: 'Nómina', icon: '??' },
+  { key: 'novedades', label: 'Novedades', icon: '??' },
+  { key: 'certificados', label: 'Certificados', icon: '??' },
 ];
+
+/* Novedades que Talento Humano reporta a Contabilidad. `campos` decide qu?
+   pide el formulario para calcular el valor sugerido. */
+const TIPOS_NOVEDAD = [
+  { value: 'incapacidad', label: 'Incapacidad', campos: ['dias'] },
+  { value: 'licencia', label: 'Licencia o permiso', campos: ['dias', 'modalidad'] },
+  { value: 'vacaciones', label: 'Vacaciones', campos: ['dias'] },
+  { value: 'retiro', label: 'Retiro o renuncia', campos: ['fechas'] },
+  { value: 'bonificacion', label: 'Bonificaci?n', campos: ['valor'] },
+  { value: 'horas_extra', label: 'Horas extra', campos: ['horas'] },
+  { value: 'descuento', label: 'Descuento (pr?stamo, libranza)', campos: ['valor'] },
+];
+
+const ETIQUETA_NOVEDAD = Object.fromEntries(TIPOS_NOVEDAD.map((t) => [t.value, t.label]));
 
 const th = { textAlign: 'left', padding: '10px 12px', fontSize: 12, fontWeight: 700, color: '#64748b', borderBottom: '1px solid #e2e8f0' };
 const td = { padding: '10px 12px', fontSize: 13, borderBottom: '1px solid #f1f5f9' };
@@ -44,7 +61,7 @@ const card = { background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12
 const input = { padding: '8px 10px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13, background: '#fff' };
 const label = { fontSize: 11, fontWeight: 700, color: '#64748b', display: 'block', marginBottom: 4 };
 
-const CATEGORIAS = ['Docente titular', 'Catedrático', 'Adjunto', 'Asistente', 'Contratado'];
+const CATEGORIAS = ['Docente titular', 'Catedr?tico', 'Adjunto', 'Asistente', 'Contratado'];
 const ESTADOS_CONV = ['abierta', 'en_proceso', 'cerrada'];
 const ESTADOS_POSTULADO = ['postulado', 'en_estudio', 'admitido', 'descartado'];
 const ESTADOS_CAPACITACION = ['programada', 'en_curso', 'finalizada'];
@@ -93,13 +110,16 @@ export default function TalentoHumano() {
   });
   const [formCap, setFormCap] = useState({ nombre: '', fecha: '', horas: 4, cupos: 20 });
   const [formPostulado, setFormPostulado] = useState({ nombre: '', documento: '', correo: '' });
-  const [nominas, setNominas] = useState([]);
-  const [detalleNomina, setDetalleNomina] = useState(null);
-  const [formNomina, setFormNomina] = useState({ periodo: '', fechaPago: '', uvt: '', smlmv: '' });
+  const [nominas] = useState([]);
+  const [detalleNomina] = useState(null);
   const [certificados, setCertificados] = useState([]);
-  const [formCert, setFormCert] = useState({ tipo: 'constancia_laboral', empleadoId: '', nominaId: '' });
+
   const [descargando, setDescargando] = useState(false);
-  const [conceptosNomina, setConceptosNomina] = useState(null);
+  const [novedades, setNovedades] = useState([]);
+  const [formNovedad, setFormNovedad] = useState({
+    persona: '', tipo: 'incapacidad', periodo: '', fechaInicio: '', fechaFin: '',
+    dias: '', horas: '', valor: '', modalidad: 'no_remunerada', descripcion: '',
+  });
 
   const avisar = (msg, tono = 'ok') => {
     if (tono === 'error') { setError(msg); setExito(''); } else { setExito(msg); setError(''); }
@@ -137,15 +157,15 @@ export default function TalentoHumano() {
   }, []);
 
   useEffect(() => {
-    Promise.all([cargarConvocatorias(), cargarCapacitaciones()]).finally(() => setCargando(false));
+    Promise.all([cargarConvocatorias(), cargarCapacitaciones(), cargarNominas()]).finally(() => setCargando(false));
   }, [cargarConvocatorias, cargarCapacitaciones]);
 
   const cargarNominas = useCallback(async () => {
     try {
-      setNominas(await listarNominas());
+      const data = await listarNominas(); setNominas(data);
     } catch (err) {
       setNominas([]);
-      setError(`No se pudieron cargar las nóminas: ${err.message}`);
+      setError(`Nóminas: ${err.message}`);
     }
   }, []);
 
@@ -158,34 +178,28 @@ export default function TalentoHumano() {
     }
   }, []);
 
-  useEffect(() => {
-    Promise.all([cargarConvocatorias(), cargarCapacitaciones(), cargarNominas(), cargarCertificados()]).finally(() => setCargando(false));
-  }, [cargarConvocatorias, cargarCapacitaciones, cargarNominas, cargarCertificados]);
-
-  const crearCorrida = async (e) => {
-    e.preventDefault();
-    setGuardando(true);
+  const cargarNovedades = useCallback(async () => {
     try {
-      const cuerpo = { periodo: formNomina.periodo };
-      if (formNomina.fechaPago) cuerpo.fechaPago = formNomina.fechaPago;
-      if (formNomina.uvt) cuerpo.uvt = Number(formNomina.uvt);
-      if (formNomina.smlmv) cuerpo.smlmv = Number(formNomina.smlmv);
-      const creada = await crearNomina(cuerpo);
-      avisar(`Corrida ${creada.periodo} generada sobre ${creada.empleados ?? 0} empleados.`);
-      setFormNomina({ periodo: '', fechaPago: '', uvt: '', smlmv: '' });
-      await cargarNominas();
-      setDetalleNomina(await obtenerNomina(creada.id));
+      setNovedades(await listarNovedadesTH());
     } catch (err) {
-      avisar(`No se pudo generar la corrida: ${err.message}`, 'error');
-    } finally {
-      setGuardando(false);
+      setNovedades([]);
+      setError(`No se pudieron cargar las novedades: ${err.message}`);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    Promise.all([
+      cargarConvocatorias(),
+      cargarCapacitaciones(),
+      cargarNóminas(),
+      cargarCertificados(),
+      cargarNovedades(),
+    ]).finally(() => setCargando(false));
+  }, [cargarNominas, cargarCertificados, cargarNovedades]);
 
   const verDetalle = async (id) => {
     try {
       setDetalleNomina(await obtenerNomina(id));
-      setConceptosNomina(null);
       setError('');
     } catch (err) {
       avisar(`No se pudo cargar la corrida: ${err.message}`, 'error');
@@ -197,7 +211,7 @@ export default function TalentoHumano() {
     setGuardando(true);
     try {
       const cuerpo = { tipo: formCert.tipo, empleadoId: Number(formCert.empleadoId) };
-      if (formCert.tipo === 'ingresos_retenciones') cuerpo.nominaId = Number(formCert.nominaId);
+      if (formCert.tipo === 'ingresos_retenciones') { cuerpo.nominaId = Number(formCert.nominaId); }
       await crearCertificadoLaboral(cuerpo);
       avisar('Certificado emitido. Ya puede descargarse en PDF.');
       setFormCert({ tipo: 'constancia_laboral', empleadoId: '', nominaId: '' });
@@ -221,7 +235,52 @@ export default function TalentoHumano() {
     }
   };
 
-  /* ── Planta docente ──────────────────────────────────────────────────── */
+  const necesita = (t) => (TIPOS_NOVEDAD.find((x) => x.value === t) || { campos: [] }).campos;
+  const formNovedadCompleto = () => {
+    const campos = new Set(necesita(formNovedad.tipo));
+    if (!formNovedad.persona) return false;
+    if (!formNovedad.periodo || !/^\d{4}-\d{2}$/.test(formNovedad.periodo)) return false;
+    if (campos.has('dias') && (!formNovedad.dias || Number(formNovedad.dias) <= 0)) return false;
+    if (campos.has('horas') && (!formNovedad.horas || Number(formNovedad.horas) <= 0)) return false;
+    if (campos.has('valor') && (!formNovedad.valor || Number(formNovedad.valor) <= 0)) return false;
+    if (campos.has('fechas') && !formNovedad.fechaInicio) return false;
+    return true;
+  };
+
+  const reportarNovedad = async (e) => {
+    e.preventDefault();
+    setGuardando(true);
+    try {
+      const [v, id] = formNovedad.persona.split(':');
+      const cuerpo = {
+        tipo: formNovedad.tipo,
+        periodo: formNovedad.periodo,
+        descripcion: formNovedad.descripcion || '',
+        modalidad: formNovedad.modalidad,
+        fechaInicio: formNovedad.fechaInicio || undefined,
+        fechaFin: formNovedad.fechaFin || undefined,
+      };
+      if (v === 'e') cuerpo.empleadoId = Number(id);
+      if (v === 'd') cuerpo.docenteId = id;
+      if (necesita(formNovedad.tipo).includes('dias') && formNovedad.dias) cuerpo.dias = Number(formNovedad.dias);
+      if (necesita(formNovedad.tipo).includes('horas') && formNovedad.horas) cuerpo.horas = Number(formNovedad.horas);
+      if (necesita(formNovedad.tipo).includes('valor') && formNovedad.valor) cuerpo.valor = Number(formNovedad.valor);
+      await crearNovedad(cuerpo);
+      avisar('Novedad reportada a Contabilidad para su revisi?n');
+      setFormNovedad({
+        persona: '', tipo: 'incapacidad', periodo: '',
+        fechaInicio: '', fechaFin: '', dias: '', horas: '', valor: '',
+        modalidad: 'no_remunerada', descripcion: '',
+      });
+      await cargarNovedades();
+    } catch (err) {
+      avisar(`No se pudo reportar la novedad: ${err.message}`, 'error');
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  /* -- Planta docente ---------------------------------------------------- */
 
   const abrirDocente = (d) => {
     setEditando(d.id);
@@ -238,7 +297,7 @@ export default function TalentoHumano() {
     try {
       await actualizarDocenteTH(d.id, form);
       recargarDatos((lista) => lista.map((x) => (x.id === d.id ? { ...x, ...form } : x)));
-      avisar(`${d.nombre} quedó actualizado.`);
+      avisar(`${d.nombre} qued? actualizado.`);
       cerrarEdicion();
     } catch (err) {
       avisar(`No se guardaron los cambios: ${err.message}`, 'error');
@@ -247,7 +306,7 @@ export default function TalentoHumano() {
     }
   };
 
-  /* ── Convocatorias ───────────────────────────────────────────────────── */
+  /* -- Convocatorias ----------------------------------------------------- */
 
   const crearConv = async (e) => {
     e.preventDefault();
@@ -258,7 +317,7 @@ export default function TalentoHumano() {
       setFormConv({ cargo: '', area: '', dependencia: '', vinculo: 'catedra', cupos: 1, apertura: '', cierre: '', requisitos: '' });
       avisar('Convocatoria publicada.');
     } catch (err) {
-      avisar(`No se publicó la convocatoria: ${err.message}`, 'error');
+      avisar(`No se public? la convocatoria: ${err.message}`, 'error');
     } finally {
       setGuardando(false);
     }
@@ -268,9 +327,9 @@ export default function TalentoHumano() {
     try {
       const r = await actualizarConvocatoria(c.id, { estado });
       setConvocatorias((lista) => lista.map((x) => (x.id === c.id ? { ...x, ...r } : x)));
-      avisar(`"${c.cargo}" quedó ${estado.replace(/_/g, ' ')}.`);
+      avisar(`"${c.cargo}" qued? ${estado.replace(/_/g, ' ')}.`);
     } catch (err) {
-      avisar(`No se cambió el estado: ${err.message}`, 'error');
+      avisar(`No se cambi? el estado: ${err.message}`, 'error');
     }
   };
 
@@ -279,9 +338,9 @@ export default function TalentoHumano() {
       await eliminarConvocatoria(c.id);
       setConvocatorias((lista) => lista.filter((x) => x.id !== c.id));
       if (convAbierta === c.id) setConvAbierta(null);
-      avisar(`"${c.cargo}" se eliminó junto con sus postulados.`);
+      avisar(`"${c.cargo}" se elimin? junto con sus postulados.`);
     } catch (err) {
-      avisar(`No se eliminó: ${err.message}`, 'error');
+      avisar(`No se elimin?: ${err.message}`, 'error');
     }
   };
 
@@ -298,9 +357,9 @@ export default function TalentoHumano() {
       const p = await postularConvocatoria(id, formPostulado);
       setPostulados((lista) => ({ ...lista, [id]: [...(lista[id] || []), p] }));
       setFormPostulado({ nombre: '', documento: '', correo: '' });
-      avisar('Postulación registrada.');
+      avisar('Postulaci?n registrada.');
     } catch (err) {
-      avisar(`No se registró la postulación: ${err.message}`, 'error');
+      avisar(`No se registr? la postulaci?n: ${err.message}`, 'error');
     } finally {
       setGuardando(false);
     }
@@ -310,13 +369,13 @@ export default function TalentoHumano() {
     try {
       const r = await evaluarPostulado(id, post.id, { estado });
       setPostulados((lista) => ({ ...lista, [id]: lista[id].map((x) => (x.id === post.id ? { ...x, ...r } : x)) }));
-      avisar(`Postulado de ${post.nombre} quedó ${estado.replace(/_/g, ' ')}.`);
+      avisar(`Postulado de ${post.nombre} qued? ${estado.replace(/_/g, ' ')}.`);
     } catch (err) {
-      avisar(`No se actualizó: ${err.message}`, 'error');
+      avisar(`No se actualiz?: ${err.message}`, 'error');
     }
   };
 
-  /* ── Capacitaciones ───────────────────────────────────────────────────── */
+  /* -- Capacitaciones ----------------------------------------------------- */
 
   const crearCap = async (e) => {
     e.preventDefault();
@@ -325,9 +384,9 @@ export default function TalentoHumano() {
       const c = await crearCapacitacion({ ...formCap, horas: Number(formCap.horas), cupos: Number(formCap.cupos) });
       setCapacitaciones((lista) => [c, ...lista]);
       setFormCap({ nombre: '', fecha: '', horas: 4, cupos: 20 });
-      avisar('Capacitación programada.');
+      avisar('Capacitaci?n programada.');
     } catch (err) {
-      avisar(`No se creó la capacitación: ${err.message}`, 'error');
+      avisar(`No se cre? la capacitaci?n: ${err.message}`, 'error');
     }
   };
 
@@ -336,7 +395,7 @@ export default function TalentoHumano() {
       const r = await actualizarCapacitacion(c.id, { inscritos: n, estado: n > 0 && c.estado === 'programada' ? 'en_curso' : c.estado });
       setCapacitaciones((lista) => lista.map((x) => (x.id === c.id ? { ...x, ...r } : x)));
     } catch (err) {
-      avisar(`No se actualizó la inscripción: ${err.message}`, 'error');
+      avisar(`No se actualiz? la inscripci?n: ${err.message}`, 'error');
     }
   };
 
@@ -344,9 +403,9 @@ export default function TalentoHumano() {
     try {
       const r = await actualizarCapacitacion(c.id, { estado });
       setCapacitaciones((lista) => lista.map((x) => (x.id === c.id ? { ...x, ...r } : x)));
-      avisar(`"${c.nombre}" quedó ${estado.replace(/_/g, ' ')}.`);
+      avisar(`"${c.nombre}" qued? ${estado.replace(/_/g, ' ')}.`);
     } catch (err) {
-      avisar(`No se cambió el estado: ${err.message}`, 'error');
+      avisar(`No se cambi? el estado: ${err.message}`, 'error');
     }
   };
 
@@ -367,16 +426,16 @@ export default function TalentoHumano() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, marginBottom: 18 }}>
                 <div style={card}><div style={{ fontSize: 12, color: '#64748b' }}>Docentes</div><div style={{ fontSize: 26, fontWeight: 800 }}>{docentes.length}</div></div>
                 <div style={card}><div style={{ fontSize: 12, color: '#64748b' }}>En servicio</div><div style={{ fontSize: 26, fontWeight: 800, color: '#15803d' }}>{docentes.filter((d) => d.estado === 'activo').length}</div></div>
-                <div style={card}><div style={{ fontSize: 12, color: '#64748b' }}>Catedráticos</div><div style={{ fontSize: 26, fontWeight: 800 }}>{docentes.filter((d) => d.categoria === 'Docente titular').length}</div></div>
-                <div style={card}><div style={{ fontSize: 12, color: '#64748b' }}>Áreas cubiertas</div><div style={{ fontSize: 26, fontWeight: 800 }}>{new Set(docentes.map((d) => d.area)).size}</div></div>
+                <div style={card}><div style={{ fontSize: 12, color: '#64748b' }}>Catedr?ticos</div><div style={{ fontSize: 26, fontWeight: 800 }}>{docentes.filter((d) => d.categoria === 'Docente titular').length}</div></div>
+                <div style={card}><div style={{ fontSize: 12, color: '#64748b' }}>?reas cubiertas</div><div style={{ fontSize: 26, fontWeight: 800 }}>{new Set(docentes.map((d) => d.area)).size}</div></div>
               </div>
 
               <div style={{ ...card, overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr>
-                      <th style={th}>Docente</th><th style={th}>Área</th><th style={th}>Categoría</th>
-                      <th style={th}>Asignaturas</th><th style={th}>Correo</th><th style={th}>Estado</th><th style={th}>Acción</th>
+                      <th style={th}>Docente</th><th style={th}>?rea</th><th style={th}>Categor?a</th>
+                      <th style={th}>Asignaturas</th><th style={th}>Correo</th><th style={th}>Estado</th><th style={th}>Acci?n</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -458,8 +517,8 @@ export default function TalentoHumano() {
                     <input required value={formConv.cargo} style={{ ...input, width: '100%' }} onChange={(e) => setFormConv((f) => ({ ...f, cargo: e.target.value }))} placeholder="Docente de tiempo completo" />
                   </div>
                   <div style={{ marginBottom: 10 }}>
-                    <span style={label}>Área</span>
-                    <input required value={formConv.area} style={{ ...input, width: '100%' }} onChange={(e) => setFormConv((f) => ({ ...f, area: e.target.value }))} placeholder="Ingeniería de Software" />
+                    <span style={label}>?rea</span>
+                    <input required value={formConv.area} style={{ ...input, width: '100%' }} onChange={(e) => setFormConv((f) => ({ ...f, area: e.target.value }))} placeholder="Ingenier?a de Software" />
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
                     <div>
@@ -467,9 +526,9 @@ export default function TalentoHumano() {
                       <input value={formConv.dependencia} style={{ ...input, width: '100%' }} onChange={(e) => setFormConv((f) => ({ ...f, dependencia: e.target.value }))} />
                     </div>
                     <div>
-                      <span style={label}>Vínculo</span>
+                      <span style={label}>V?nculo</span>
                       <select value={formConv.vinculo} style={{ ...input, width: '100%' }} onChange={(e) => setFormConv((f) => ({ ...f, vinculo: e.target.value }))}>
-                        <option value="catedra">Cátedra</option>
+                        <option value="catedra">C?tedra</option>
                         <option value="planta">Planta</option>
                         <option value="contrato">Contrato</option>
                         <option value="horas">Por horas</option>
@@ -504,7 +563,7 @@ export default function TalentoHumano() {
                     <div style={card}><div style={{ fontSize: 12, color: '#64748b' }}>Cupos abiertos</div><div style={{ fontSize: 24, fontWeight: 800 }}>{convocatorias.filter((c) => c.estado === 'abierta').reduce((a, c) => a + c.cupos, 0)}</div></div>
                   </div>
 
-                  {cargando && <div data-cargando="1" style={card}>Cargando convocatorias…</div>}
+                  {cargando && <div data-cargando="1" style={card}>Cargando convocatorias?</div>}
 
                   {!cargando && convocatorias.length === 0 && (
                     <div style={{ ...card, textAlign: 'center', color: '#94a3b8' }}>No hay convocatorias publicadas.</div>
@@ -519,10 +578,10 @@ export default function TalentoHumano() {
                           <div>
                             <div style={{ fontSize: 14, fontWeight: 800 }}>{c.cargo}</div>
                             <div style={{ fontSize: 11, color: '#94a3b8' }}>
-                              {c.area} · {c.vinculo} · {c.cupos} cupo{c.cupos === 1 ? '' : 's'}
+                              {c.area} ? {c.vinculo} ? {c.cupos} cupo{c.cupos === 1 ? '' : 's'}
                             </div>
                             <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
-                              {formatDate(c.apertura)} → {formatDate(c.cierre)}
+                              {formatDate(c.apertura)} ? {formatDate(c.cierre)}
                             </div>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -562,9 +621,9 @@ export default function TalentoHumano() {
                               <button className="btn" type="submit" disabled={guardando}>Postular</button>
                             </form>
 
-                            {!lista && !error && <div data-cargando="1" style={{ fontSize: 12, color: '#94a3b8' }}>Cargando postulados…</div>}
+                            {!lista && !error && <div data-cargando="1" style={{ fontSize: 12, color: '#94a3b8' }}>Cargando postulados?</div>}
                             {lista && lista.length === 0 && (
-                              <div style={{ fontSize: 12, color: '#94a3b8' }}>Todavía nadie se ha postulate para este cargo.</div>
+                              <div style={{ fontSize: 12, color: '#94a3b8' }}>Todav?a nadie se ha postulate para este cargo.</div>
                             )}
                             {lista && lista.length > 0 && (
                               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -585,7 +644,7 @@ export default function TalentoHumano() {
                                              try {
                                                const r=await actualizarPuntaje(p.id,v); setPostulados((m)=>({...m,[c.id]:m[c.id].map(x=>x.id===p.id?{...x,...r}:x)}));
                                             } catch (err) {
-                                              avisar(`No se guardó el puntaje: ${err.message}`, 'error');
+                                              avisar(`No se guard? el puntaje: ${err.message}`, 'error');
                                             }
                                           }}
                                         />
@@ -619,10 +678,10 @@ export default function TalentoHumano() {
 
               <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 340px) 1fr', gap: 14, alignItems: 'start' }}>
                 <form style={card} onSubmit={crearCap}>
-                  <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 12 }}>Programar capacitación</div>
+                  <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 12 }}>Programar capacitaci?n</div>
                   <div style={{ marginBottom: 10 }}>
                     <span style={label}>Nombre</span>
-                    <input required value={formCap.nombre} style={{ ...input, width: '100%' }} onChange={(e) => setFormCap((f) => ({ ...f, nombre: e.target.value }))} placeholder="Ej. Capacitación docente" />
+                    <input required value={formCap.nombre} style={{ ...input, width: '100%' }} onChange={(e) => setFormCap((f) => ({ ...f, nombre: e.target.value }))} placeholder="Ej. Capacitaci?n docente" />
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 10, marginBottom: 12 }}>
                     <div>
@@ -652,7 +711,7 @@ export default function TalentoHumano() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
                           <div>
                             <div style={{ fontSize: 14, fontWeight: 800 }}>{c.nombre}</div>
-                            <div style={{ fontSize: 11, color: '#94a3b8' }}>{formatDate(c.fecha)} · {c.horas} horas</div>
+                            <div style={{ fontSize: 11, color: '#94a3b8' }}>{formatDate(c.fecha)} ? {c.horas} horas</div>
                           </div>
                           <EstadoBadge estado={c.estado} />
                         </div>
@@ -668,7 +727,7 @@ export default function TalentoHumano() {
                         </div>
 
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                          <button className="btn" style={{ padding: '4px 9px', fontSize: 11 }} onClick={() => inscribir(c, Math.max(0, c.inscritos - 1))}>− Quitar</button>
+                          <button className="btn" style={{ padding: '4px 9px', fontSize: 11 }} onClick={() => inscribir(c, Math.max(0, c.inscritos - 1))}>- Quitar</button>
                           <button className="btn" style={{ padding: '4px 9px', fontSize: 11 }} onClick={() => inscribir(c, c.inscritos + 1)} disabled={lleno}>+ Inscribir</button>
                           <select style={input} value={c.estado} onChange={(e) => avanzarCap(c, e.target.value)}>
                             {ESTADOS_CAPACITACION.map((s) => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
@@ -688,9 +747,9 @@ export default function TalentoHumano() {
           const maxCr = Math.max(...conCarga.map((x) => x.cr), 1);
           return (
             <div style={card}>
-              <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 4 }}>Distribución de carga académica</div>
+              <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 4 }}>Distribuci?n de carga acad?mica</div>
               <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 16 }}>
-                Asignaturas y Créditos del pensum asignados a cada docente.
+                Asignaturas y Cr?ditos del pensum asignados a cada docente.
               </div>
               {conCarga.map(({ d, n, cr }) => (
                 <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 9 }}>
@@ -715,9 +774,9 @@ export default function TalentoHumano() {
           }
           return (
             <div style={card}>
-              <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 14 }}>Áreas de conocimiento</div>
+              <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 14 }}>?reas de conocimiento</div>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead><tr><th style={th}>Área</th><th style={th}>Docentes</th><th style={th}>Créditos a su cargo</th></tr></thead>
+                <thead><tr><th style={th}>?rea</th><th style={th}>Docentes</th><th style={th}>Cr?ditos a su cargo</th></tr></thead>
                 <tbody>
                   {Object.values(areas).sort((a, b) => b.docentes - a.docentes).map((a) => (
                     <tr key={a.area}>
@@ -733,55 +792,34 @@ export default function TalentoHumano() {
         }
 
         if (tab === 'nomina') {
-          const ultima = nominas[0] || null;
+          const nominaSel = nominas[0] || null;
           return (
             <div>
               <Aviso>{error}</Aviso>
               <Aviso tone="ok">{exito}</Aviso>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 360px) 1fr', gap: 14, alignItems: 'start' }}>
-                <form style={card} onSubmit={crearCorrida}>
-                  <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 12 }}>Generar corrida de nómina</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
-                    <div>
-                      <span style={label}>Periodo (AAAA-MM)</span>
-                      <input required pattern="\d{4}-\d{2}" title="Formato AAAA-MM" value={formNomina.periodo} style={{ ...input, width: '100%' }} onChange={(e) => setFormNomina((f) => ({ ...f, periodo: e.target.value }))} placeholder="2026-09" />
-                    </div>
-                    <div>
-                      <span style={label}>Fecha de pago</span>
-                      <input type="date" value={formNomina.fechaPago} style={{ ...input, width: '100%' }} onChange={(e) => setFormNomina((f) => ({ ...f, fechaPago: e.target.value }))} />
-                    </div>
+              <div style={{ display: 'grid', gap: 14 }}>
+                <div style={card}>
+                  <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 8 }}>Corridas de Nómina</div>
+                  <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
+                    La corrida de nómina la genera Contabilidad. Desde Talento Humano se consultan las corridas y sus liquidaciones para poder expedir los certificados.
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
-                    <div>
-                      <span style={label}>UVT</span>
-                      <input type="number" min="1" value={formNomina.uvt} style={{ ...input, width: '100%' }} onChange={(e) => setFormNomina((f) => ({ ...f, uvt: e.target.value }))} placeholder="42950" />
-                    </div>
-                    <div>
-                      <span style={label}>SMLMV</span>
-                      <input type="number" min="1" value={formNomina.smlmv} style={{ ...input, width: '100%' }} onChange={(e) => setFormNomina((f) => ({ ...f, smlmv: e.target.value }))} placeholder="1300000" />
-                    </div>
-                  </div>
-                  <div style={{ fontSize: 11, color: '#64748b', marginBottom: 12 }}>
-                    Si el periodo ya existe se vuelve a liquidar desde cero: no se permiten dos corridas del mismo mes.
-                  </div>
-                  <button className="btn" type="submit" disabled={guardando}>{guardando ? 'Liquidando…' : 'Generar corrida'}</button>
-                </form>
+                </div>
 
                 <div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12, marginBottom: 14 }}>
-                    <div style={card}><div style={{ fontSize: 12, color: '#64748b' }}>Corridas</div><div style={{ fontSize: 24, fontWeight: 800 }}>{nominas.length}</div></div>
-                    <div style={card}><div style={{ fontSize: 12, color: '#64748b' }}>Último periodo</div><div style={{ fontSize: 24, fontWeight: 800 }}>{ultima?.periodo || '—'}</div></div>
-                    <div style={card}><div style={{ fontSize: 12, color: '#64748b' }}>Neto último periodo</div><div style={{ fontSize: 24, fontWeight: 800 }}>{ultima ? `$${Number(ultima.totalNeto).toLocaleString('es-CO')}` : '—'}</div></div>
+                    <div style={card}><div style={{ fontSize: 12, color: '#64748b' }}>Corridas</div><div style={{ fontSize: 24, fontWeight: 800 }}>{nominas.length}</div></div></div>
+                    <div style={card}><div style={{ fontSize: 12, color: '#64748b' }}>ÚÚUltimo periodo</div><div style={{ fontSize: 24, fontWeight: 800 }}>{ultima?.periodo || '?'}</div></div>
+                    <div style={card}><div style={{ fontSize: 12, color: '#64748b' }}>Neto ÚÚUltimo periodo</div><div style={{ fontSize: 24, fontWeight: 800 }}>{ultima ? `$${Number(ultima.totalNeto).toLocaleString('es-CO')}` : '?'}</div></div>
                   </div>
 
-                  {cargando && <div data-cargando="1" style={card}>Cargando nóminas…</div>}
+                  {null}
 
-                  {!cargando && nominas.length === 0 && (
-                    <div style={{ ...card, textAlign: 'center', color: '#94a3b8' }}>Aún no se ha generado ninguna corrida de nómina.</div>
+                  {!nominas.length === 0 && (
+                    <div style={{ ...card, textAlign: 'center', color: '#64748b' }}>No hay corridas de nómina.</div>
                   )}
 
-                  {nominas.length > 0 && (
+                  {Nóminas.length > 0 && (
                     <div style={card}>
                       <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 10 }}>Corridas generadas</div>
                       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -798,7 +836,7 @@ export default function TalentoHumano() {
                           </tr>
                         </thead>
                         <tbody>
-                          {nominas.map((n) => (
+                          {Nóminas.map((n) => (
                             <tr key={n.id}>
                               <td style={{ ...td, fontWeight: 700 }}>{n.periodo}</td>
                               <td style={td}>{formatDate(n.fechaPago)}</td>
@@ -817,63 +855,65 @@ export default function TalentoHumano() {
                     </div>
                   )}
 
-                  {detalleNomina && (
+                  {detalleNómina && (
                     <div style={{ ...card, marginTop: 14 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                        <div style={{ fontSize: 14, fontWeight: 800 }}>Detalle de {detalleNomina.periodo}</div>
-                        <button className="btn" style={{ padding: '4px 9px', fontSize: 11 }} onClick={() => setDetalleNomina(null)}>Cerrar</button>
+                        <div style={{ fontSize: 15, fontWeight: 800 }}>Corrida {detalleNomina.periodo}</div>
+                        <button onClick={() => setDetalleNomina(null)}>Cerrar</button>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10, marginBottom: 14 }}>
                         <div style={{ background: '#f8fafc', borderRadius: 8, padding: 10 }}>
                           <div style={{ fontSize: 11, color: '#64748b' }}>Devengado</div>
-                          <div style={{ fontSize: 16, fontWeight: 800 }}>${Number(detalleNomina.totalDevengado).toLocaleString('es-CO')}</div>
+                          <div style={{ fontSize: 14, fontWeight: 700 }}>{Number(detalleNomina.totalDevengado).toLocaleString('es-CO')}</div>
                         </div>
                         <div style={{ background: '#f8fafc', borderRadius: 8, padding: 10 }}>
                           <div style={{ fontSize: 11, color: '#64748b' }}>Deducciones</div>
-                          <div style={{ fontSize: 16, fontWeight: 800 }}>${Number(detalleNomina.totalDeducciones).toLocaleString('es-CO')}</div>
+                          <div style={{ fontSize: 14, fontWeight: 700 }}>{Number(detalleNomina.totalDeducciones).toLocaleString('es-CO')}</div>
                         </div>
                         <div style={{ background: '#f8fafc', borderRadius: 8, padding: 10 }}>
                           <div style={{ fontSize: 11, color: '#64748b' }}>Neto a pagar</div>
-                          <div style={{ fontSize: 16, fontWeight: 800, color: '#15803d' }}>${Number(detalleNomina.totalNeto).toLocaleString('es-CO')}</div>
+                          <div style={{ fontSize: 14, fontWeight: 700 }}>{Number(detalleNomina.totalNeto).toLocaleString('es-CO')}</div>
                         </div>
                         <div style={{ background: '#f8fafc', borderRadius: 8, padding: 10 }}>
                           <div style={{ fontSize: 11, color: '#64748b' }}>UVT / SMLMV</div>
-                          <div style={{ fontSize: 16, fontWeight: 800 }}>{detalleNomina.uvt} / {detalleNomina.smlmv}</div>
+                          <div style={{ fontSize: 12 }}>{detalleNomina.smlmv ? $ : '—'} / {detalleNomina.uvt ?? '—'}}</div>
                         </div>
                       </div>
                       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead>
                           <tr>
-                            <th style={th}>Empleado</th>
+                            <th style={th}>Persona</th>
+                            <th style={th}>V?nculo</th>
                             <th style={th}>Cargo</th>
                             <th style={th}>Base</th>
                             <th style={th}>Devengado</th>
                             <th style={th}>Deducciones</th>
                             <th style={th}>Neto</th>
-                            <th style={th}>Retención</th>
+                            <th style={th}>Retenci?n</th>
                             <th style={th}></th>
                           </tr>
                         </thead>
                         <tbody>
-                          {(detalleNomina.liquidaciones || []).map((l) => (
+                          {(detalleNómina.liquidaciones || []).map((l) => (
                             <React.Fragment key={l.id}>
                               <tr>
-                                <td style={{ ...td, fontWeight: 600 }}>{l.empleado?.nombre}</td>
-                                <td style={td}>{l.empleado?.cargo}</td>
+                                <td style={{ ...td, fontWeight: 600 }}>{l.nombre}</td>
+                                <td style={td}>{l.tipoPersona === 'docente' ? 'Docente' : 'Empleado'}</td>
+                                <td style={td}>{l.cargo}</td>
                                 <td style={td}>${Number(l.salarioBase).toLocaleString('es-CO')}</td>
                                 <td style={td}>${Number(l.devengado).toLocaleString('es-CO')}</td>
                                 <td style={td}>-${Number(l.deducciones).toLocaleString('es-CO')}</td>
                                 <td style={{ ...td, fontWeight: 700 }}>${Number(l.neto).toLocaleString('es-CO')}</td>
                                 <td style={td}>${Number(l.retencion).toLocaleString('es-CO')}</td>
                                 <td style={td}>
-                                  <button className="btn" style={{ padding: '3px 8px', fontSize: 10 }} onClick={() => setConceptosNomina(conceptosNomina === l.id ? null : l.id)}>
-                                    {conceptosNomina === l.id ? 'Ocultar' : 'Conceptos'}
+                                  <buttoNómina === l.id ? null : l.id)}>
+                                    {const [detalleNomina === l.id ? 'Ocultar' : 'Conceptos'}
                                   </button>
                                 </td>
                               </tr>
-                              {conceptosNomina === l.id && (
+                              {const [detalleNomina === l.id && (
                                 <tr>
-                                  <td colSpan={8} style={{ ...td, background: '#f8fafc' }}>
+                                  <td colSpan={9} style={{ ...td, background: '#f8fafc' }}>
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 8 }}>
                                       {(l.conceptos || []).map((c) => (
                                         <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, padding: '6px 10px', fontSize: 12 }}>
@@ -901,7 +941,7 @@ export default function TalentoHumano() {
 
         if (tab === 'certificados') {
           const empleadosData = data.empleados || [];
-          const pideNomina = formCert.tipo === 'ingresos_retenciones';
+          const [detalleNomina = formCert.tipo === 'ingresos_retenciones';
           return (
             <div>
               <Aviso>{error}</Aviso>
@@ -913,9 +953,9 @@ export default function TalentoHumano() {
                   <div style={{ marginBottom: 10 }}>
                     <span style={label}>Empleado</span>
                     <select required value={formCert.empleadoId} style={{ ...input, width: '100%' }} onChange={(e) => setFormCert((f) => ({ ...f, empleadoId: e.target.value }))}>
-                      <option value="">Seleccione…</option>
+                      <option value="">Seleccione?</option>
                       {empleadosData.map((emp) => (
-                        <option key={emp.id} value={emp.id}>{emp.nombre} — {emp.cargo}</option>
+                        <option key={emp.id} value={emp.id}>{emp.nombre} ? {emp.cargo}</option>
                       ))}
                     </select>
                   </div>
@@ -927,24 +967,24 @@ export default function TalentoHumano() {
                       <option value="ingresos_retenciones">Ingresos y retenciones</option>
                     </select>
                   </div>
-                  {pideNomina && (
+                  {pideNómina && (
                     <div style={{ marginBottom: 10 }}>
-                      <span style={label}>Corrida de nómina del periodo</span>
-                      <select required value={formCert.nominaId} style={{ ...input, width: '100%' }} onChange={(e) => setFormCert((f) => ({ ...f, nominaId: e.target.value }))}>
-                        <option value="">Seleccione…</option>
-                        {nominas.map((n) => (
+                      <spaNómina del periodo</span>
+                      <select required value={formCert.NóminaId: e.target.value }))}>
+                        <option value="">Seleccione?</option>
+                        {Nóminas.map((n) => (
                           <option key={n.id} value={n.id}>{n.periodo}</option>
                         ))}
                       </select>
-                      {nominas.length === 0 && (
-                        <div style={{ fontSize: 11, color: '#b91c1c', marginTop: 4 }}>No hay corridas: primero liquide el mes en Nómina.</div>
+                      {Nóminas.length === 0 && (
+                        <div style={{ foNómina.</div>
                       )}
                     </div>
                   )}
                   <div style={{ fontSize: 11, color: '#64748b', marginBottom: 12 }}>
-                    Cada certificado se firma en el servidor con folio y código de verificación. No se duplica uno del mismo tipo y periodo.
+                    Cada certificado se firma en el servidor con folio y c?digo de verificaci?n. No se duplica uno del mismo tipo y periodo.
                   </div>
-                  <button className="btn" type="submit" disabled={guardando || !empleadosData.length}>{guardando ? 'Emitiendo…' : 'Emitir'}</button>
+                  <button className="btn" type="submit" disabled={guardando || !empleadosData.length}>{guardando ? 'Emitiendo?' : 'Emitir'}</button>
                 </form>
 
                 <div>
@@ -954,10 +994,10 @@ export default function TalentoHumano() {
                     <div style={card}><div style={{ fontSize: 12, color: '#64748b' }}>Ingresos y retenciones</div><div style={{ fontSize: 24, fontWeight: 800 }}>{certificados.filter((c) => c.tipo === 'ingresos_retenciones').length}</div></div>
                   </div>
 
-                  {cargando && <div data-cargando="1" style={card}>Cargando certificados…</div>}
+                  {cargando && <div data-cargando="1" style={card}>Cargando certificados?</div>}
 
                   {!cargando && certificados.length === 0 && (
-                    <div style={{ ...card, textAlign: 'center', color: '#94a3b8' }}>Aún no se han emitido certificados laborales.</div>
+                    <div style={{ ...card, textAlign: 'center', color: '#94a3b8' }}>A?n no se han emitido certificados laborales.</div>
                   )}
 
                   {certificados.length > 0 && (
@@ -983,12 +1023,12 @@ export default function TalentoHumano() {
                               <td style={{ ...td, fontWeight: 600 }}>{c.empleado?.nombre}</td>
                               <td style={td}>{c.empleado?.cargo}</td>
                               <td style={td}><EstadoBadge estado={c.tipo} /></td>
-                              <td style={td}>{c.periodo || '—'}</td>
+                              <td style={td}>{c.periodo || '?'}</td>
                               <td style={td}>{formatDate(c.fecha)}</td>
-                              <td style={td}>{c.emisor?.nombre || '—'}</td>
+                              <td style={td}>{c.emisor?.nombre || '?'}</td>
                               <td style={td}>
                                 <button className="btn" style={{ padding: '4px 9px', fontSize: 11 }} disabled={descargando} onClick={() => descargarCert(c.id)}>
-                                  {descargando ? 'Descargando…' : 'Descargar PDF'}
+                                  {descargando ? 'Descargando?' : 'Descargar PDF'}
                                 </button>
                               </td>
                             </tr>
@@ -1003,7 +1043,121 @@ export default function TalentoHumano() {
           );
         }
 
-        return null;
+        if (tab === 'novedades') {
+          const empleadosData = data.empleados || [];
+          const docentesData = data.docentes || [];
+          const personas = [
+            ...empleadosData.map((e) => ({ id: `e:${e.id}`, nombre: `${e.nombre} ? Empleado (${e.cargo})` })),
+            ...docentesData.map((d) => ({ id: `d:${d.id}`, nombre: `${d.nombre} ? Docente (${d.categoria || d.area})` })),
+          ];
+          const campos = necesita(formNovedad.tipo);
+          return (
+            <div>
+              <Aviso>{error}</Aviso>
+              <Aviso tone="ok">{exito}</Aviso>
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 380px) 1fr', gap: 14, alignItems: 'start' }}>
+                <form style={card} onSubmit={reportarNovedad}>
+                  <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 10 }}>Reportar novedad</div>
+                  <div style={{ marginBottom: 10 }}>
+                    <span style={label}>Persona</span>
+                    <select required value={formNovedad.persona} style={{ ...input, width: '100%' }} onChange={(e) => setFormNovedad((f) => ({ ...f, persona: e.target.value }))}>
+                      <option value="">Seleccione?</option>
+                      {personas.map((p) => (
+                        <option key={p.id} value={p.id}>{p.nombre}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div style={{ marginBottom: 10 }}>
+                    <span style={label}>Tipo</span>
+                    <select value={formNovedad.tipo} style={{ ...input, width: '100%' }} onChange={(e) => setFormNovedad((f) => ({ ...f, tipo: e.target.value }))}>
+                      {TIPOS_NOVEDAD.map((t) => (
+                        <option key={t.value} value={t.value}>{t.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div style={{ marginBottom: 10 }}>
+                    <span style={label}>Periodo (AAAA-MM)</span>
+                    <input required pattern="\d{4}-\d{2}" value={formNovedad.periodo} style={{ ...input, width: '100%' }} onChange={(e) => setFormNovedad((f) => ({ ...f, periodo: e.target.value }))} />
+                  </div>
+                  {campos.includes('modalidad') && (
+                    <div style={{ marginBottom: 10 }}>
+                      <span style={label}>Modalidad</span>
+                      <select value={formNovedad.modalidad} style={{ ...input, width: '100%' }} onChange={(e) => setFormNovedad((f) => ({ ...f, modalidad: e.target.value }))}>
+                        <option value="no_remunerada">No remunerada</option>
+                        <option value="remunerada">Remunerada</option>
+                      </select>
+                    </div>
+                  )}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+                    <div>
+                      <span style={label}>Fecha inicio</span>
+                      <input type="date" value={formNovedad.fechaInicio} style={{ ...input, width: '100%' }} onChange={(e) => setFormNovedad((f) => ({ ...f, fechaInicio: e.target.value }))} />
+                    </div>
+                    <div>
+                      <span style={label}>Fecha fin</span>
+                      <input type="date" value={formNovedad.fechaFin} style={{ ...input, width: '100%' }} onChange={(e) => setFormNovedad((f) => ({ ...f, fechaFin: e.target.value }))} />
+                    </div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
+                    {campos.includes('dias') && (
+                      <div>
+                        <span style={label}>D?as</span>
+                        <input type="number" min="1" value={formNovedad.dias} style={{ ...input, width: '100%' }} onChange={(e) => setFormNovedad((f) => ({ ...f, dias: e.target.value }))} />
+                      </div>
+                    )}
+                    {campos.includes('horas') && (
+                      <div>
+                        <span style={label}>Horas</span>
+                        <input type="number" min="1" step="0.5" value={formNovedad.horas} style={{ ...input, width: '100%' }} onChange={(e) => setFormNovedad((f) => ({ ...f, horas: e.target.value }))} />
+                      </div>
+                    )}
+                    {campos.includes('valor') && (
+                      <div>
+                        <span style={label}>Valor ($)</span>
+                        <input type="number" min="0" value={formNovedad.valor} style={{ ...input, width: '100%' }} onChange={(e) => setFormNovedad((f) => ({ ...f, valor: e.target.value }))} />
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ marginBottom: 10 }}>
+                    <span style={label}>Descripci?n</span>
+                    <input value={formNovedad.descripcion} style={{ ...input, width: '100%' }} onChange={(e) => setFormNovedad((f) => ({ ...f, descripcion: e.target.value }))} />
+                  </div>
+                  <button className="btn" type="submit" disabled={guardando || !formNovedadCompleto()}>{guardando ? 'Reportando?' : 'Reportar a Contabilidad'}</button>
+                </form>
+                <div style={card}>
+                  <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 10 }}>Novedades reportadas</div>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr>
+                        <th style={th}>Periodo</th>
+                        <th style={th}>Persona</th>
+                        <th style={th}>Tipo</th>
+                        <th style={th}>Estado</th>
+                        <th style={th}>Valor</th>
+                        <th style={th}>Descripci?n</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(novedades || []).map((n) => (
+                        <tr key={n.id}>
+                          <td style={td}>{n.periodo}</td>
+                          <td style={{ ...td, fontWeight: 600 }}>{n.nombre}</td>
+                          <td style={td}>{ETIQUETA_NOVEDAD[n.tipo] || n.tipo}</td>
+                          <td style={td}><EstadoBadge estado={n.estado} /></td>
+                          <td style={td}>${Number(n.valor || 0).toLocaleString('es-CO')}</td>
+                          <td style={td}>{n.descripcion || '?'}</td>
+                        </tr>
+                      ))}
+                      {(!novedades || novedades.length === 0) && (
+                        <tr><td colSpan={6} style={{ ...td, textAlign: 'center', color: '#94a3b8' }}>Sin novedades reportadas</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          );
+        }
       }}
     </ModuleLayout>
   );

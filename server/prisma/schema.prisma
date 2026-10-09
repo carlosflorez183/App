@@ -479,6 +479,8 @@ model Docente {
 
   usuario Usuario? @relation(fields: [usuarioId], references: [id])
   cursos   Curso[]
+  liquidaciones Liquidacion[]
+  novedades Novedad[]
 
   @@index([estado])
   @@map("docentes")
@@ -510,6 +512,7 @@ model Empleado {
   usuario       Usuario?              @relation(fields: [usuarioId], references: [id])
   liquidaciones Liquidacion[]
   certificados  CertificadoEmpleado[]
+  novedades     Novedad[]
 
   @@index([dependencia])
   @@index([estado])
@@ -541,11 +544,12 @@ model Nomina {
 
   liquidaciones Liquidacion[]
   certificados  CertificadoEmpleado[]
+  novedades     Novedad[]
 
   @@map("nominas")
 }
 
-/// Lo que se le liquidó a un empleado en una corrida.
+/// Lo que se le liquidó a una persona (administrativa o docente) en una corrida.
 ///
 /// Se guarda el resultado del cálculo completo, no solo el neto: un certificado
 /// de ingresos y retenciones tiene que poder mostrar la base gravable, la renta
@@ -554,7 +558,19 @@ model Nomina {
 model Liquidacion {
   id          Int     @id @default(autoincrement())
   nominaId    Int
-  empleadoId  Int
+  /// Persona liquidada. La nómina cubre tanto personal administrativo
+  /// (`Empleado`) como docente (`Docente`), y los dos catálogos son tablas
+  /// distintas: por eso la liquidación apunta a una u otra, nunca a ambas.
+  empleadoId  Int?
+  docenteId   String?
+  /// Datos copiados al momento de liquidar. Aunque el empleado o el docente
+  /// cambie de nombre o de cargo, el certificado y el detalle deben mostrar lo
+  /// que decía la corrida cuando se corrió, no lo que dice hoy.
+  nombre      String  @default("")
+  cargo       String?
+  dependencia String?
+  /// empleado o docente.
+  tipoPersona String  @default("empleado")
   salarioBase Float
   devengado   Float
   deducciones Float
@@ -565,13 +581,15 @@ model Liquidacion {
   baseGravable  Float @default(0)
   retencion     Float @default(0)
 
-  nomina     Nomina     @relation(fields: [nominaId], references: [id], onDelete: Cascade)
-  empleado   Empleado   @relation(fields: [empleadoId], references: [id], onDelete: Cascade)
+  nomina     Nomina      @relation(fields: [nominaId], references: [id], onDelete: Cascade)
+  empleado   Empleado?   @relation(fields: [empleadoId], references: [id], onDelete: Cascade)
+  docente    Docente?    @relation(fields: [docenteId], references: [id], onDelete: Cascade)
   conceptos  Concepto[]
   certificados CertificadoEmpleado[]
 
   @@unique([nominaId, empleadoId])
   @@index([empleadoId])
+  @@index([docenteId])
   @@map("liquidaciones")
 }
 
@@ -599,6 +617,58 @@ model Concepto {
 
   @@index([liquidacionId])
   @@map("conceptos")
+}
+
+/// Novedad de nómina: un evento que Talento Humano reporta y que Contabilidad
+/// convierte en un ajuste al salario de una persona en una corrida.
+///
+/// El flujo es en dos manos: Talento Humano describe el hecho (una incapacidad,
+/// unas vacaciones, un retiro) y el sistema calcula un valor sugerido; después
+/// Contabilidad lo revisa y, si hace falta, cambia el valor antes de generar la
+/// corrida. Cuando la corrida se genera, la novedad queda "aplicada" y ligada a
+/// esa nómina, para no volver a descontarla el mes siguiente.
+model Novedad {
+  id           Int      @id @default(autoincrement())
+  /// Persona afectada. Igual que la liquidación, apunta a un `Empleado` o a un
+  /// `Docente`, nunca a ambos.
+  empleadoId   Int?
+  docenteId    String?
+  nombre       String   @default("")
+  tipoPersona  String   @default("empleado")
+  /// incapacidad, licencia, vacaciones, retiro, bonificacion, horas_extra, descuento.
+  tipo         String
+  descripcion  String?
+  /// Para licencia: "remunerada" o "no_remunerada". Cambia el valor sugerido.
+  modalidad    String?
+  /// Mes al que aplica, "2026-09". Solo se aplica en la corrida de ese periodo.
+  periodo      String
+  fechaInicio  DateTime?
+  fechaFin     DateTime?
+  dias         Int?
+  horas        Float?
+  /// Valor que calcula el sistema al reportar.
+  valorSugerido Float   @default(0)
+  /// Valor que finalmente se aplica. Contabilidad puede cambiarlo.
+  valor        Float    @default(0)
+  /// ingreso, descuento o ninguno. `ninguno` es una novedad informativa
+  /// (por ejemplo vacaciones) que no mueve el salario.
+  tipoAjuste   String   @default("descuento")
+  /// reportada, aplicada, anulada.
+  estado       String   @default("reportada")
+  nominaId     Int?
+  reportadoPor Int?
+  ajustadoPor  Int?
+  creadoEn     DateTime @default(now())
+
+  empleado Empleado? @relation(fields: [empleadoId], references: [id], onDelete: Cascade)
+  docente  Docente?  @relation(fields: [docenteId], references: [id], onDelete: Cascade)
+  nomina   Nomina?   @relation(fields: [nominaId], references: [id], onDelete: SetNull)
+
+  @@index([periodo])
+  @@index([estado])
+  @@index([empleadoId])
+  @@index([docenteId])
+  @@map("novedades")
 }
 
 /// Documento que expide Talento Humano a un empleado.

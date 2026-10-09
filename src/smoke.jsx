@@ -33,6 +33,8 @@ const ROLES_DEMO = {
   admisiones: { name: 'Ana Camila Restrepo', code: 'ADM-004', role: 'admisiones', avatar: 'AR' },
   profesor: { name: 'Dra. Laura Sánchez', code: 'DOC-0045', role: 'profesor', avatar: 'LS' },
   rectoria: { name: 'Rector Juan Pablo Gómez', code: 'REC-001', role: 'rectoria', avatar: 'JG' },
+  talento_humano: { name: 'Jefa de Talento Humano', code: 'TH-001', role: 'talento_humano', avatar: 'TH' },
+  contabilidad: { name: 'Contador General', code: 'CON-001', role: 'contabilidad', avatar: 'CG' },
 };
 
 const rolPedido = new URLSearchParams(window.location.search).get('rol');
@@ -87,7 +89,7 @@ const addTabs = (nombre, Componente, tabs) => {
   // comparar el texto del DOM, no aquí.
 };
 
-addTabs('Admin', Admin, ['resumen', 'usuarios', 'estudiantes', 'programas', 'pensum', 'docentes', 'matricula']);
+addTabs('Admin', Admin, ['resumen', 'usuarios', 'estudiantes', 'programas', 'pensum', 'docentes', 'asignacion', 'matricula']);
 addTabs('Admisiones', Admisiones, ['resumen', 'aspirantes', 'procesos', 'documentos', 'registro', 'expedientes', 'cuenta', 'certificados', 'reportes']);
 addTabs('Docente', Docente, ['cursos', 'notas', 'actividades', 'asistencia', 'foro']);
 addTabs('Rectoria', Rectoria, ['indicadores', 'programas', 'admisiones', 'sostenibilidad']);
