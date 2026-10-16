@@ -14,10 +14,12 @@
    Uso:  npm run acciones
 
    Variables opcionales:
-     ACCIONES_BROWSER  ruta a Chrome/Edge
-     ACCIONES_HEADFUL  1 para abrir una ventana visible
+     ACCIONES_BROWSER     ruta a Chrome/Edge (si no, se busca solo)
+     ACCIONES_HEADFUL     1 para abrir una ventana visible y no cerrarla
+     ACCIONES_PERFIL_DIR  carpeta base del perfil del navegador
+                          (por defecto el directorio temporal del sistema)
    ============================================= */
-import { spawn, execFile } from 'node:child_process';
+import { spawn, execFile, execFileSync } from 'node:child_process';
 import { existsSync, rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import os from 'node:os';
@@ -43,6 +45,21 @@ if (!navegador) {
   console.error('No se encontro Chrome ni Edge. Define ACCIONES_BROWSER con la ruta al ejecutable.');
   process.exit(1);
 }
+
+/* El navegador de Windows no entiende las rutas de Linux. Si es un `.exe`
+   (caso WSL), a la carpeta del perfil se le da su equivalente de Windows con
+   `wslpath`; así no hace falta exportar TMPDIR con una ruta tipo `C:/...`, que
+   Node (un binario de Linux) interpretaría como relativa y ensuciaría el repo. */
+const esWindows = /\.exe$/i.test(navegador);
+const aRutaNavegador = (ruta) => {
+  if (!esWindows) return ruta;
+  try {
+    return execFileSync('wslpath', ['-w', ruta], { encoding: 'utf8' }).trim();
+  } catch {
+    return ruta;
+  }
+};
+const BASE_PERFIL = process.env.ACCIONES_PERFIL_DIR || os.tmpdir();
 
 const puertoLibre = (puerto) =>
   new Promise((res) => {
@@ -87,14 +104,14 @@ const volcarDom = (url) =>
   new Promise((res, rej) => {
     /* Cada corrida usa un perfil limpio y desligado del Chrome del usuario:
        asi la prueba no compite con su navegador ni deja el suyo tocado. */
-    const perfil = path.join(os.tmpdir(), `acciones-perfil-${process.pid}-${Date.now()}`);
+    const perfil = path.join(BASE_PERFIL, `acciones-perfil-${process.pid}-${Date.now()}`);
     const args = [
       '--headless=new',
       '--disable-gpu',
       '--no-sandbox',
       '--no-first-run',
       '--no-default-browser-check',
-      `--user-data-dir=${perfil}`,
+      `--user-data-dir=${aRutaNavegador(perfil)}`,
       /* La prueba escribe de verdad y espera varias respuestas de la API:
          el presupuesto tiene que holgadamente por encima de los 90s que
          usa el smoke, o el navegador corta antes de publicar el reporte. */

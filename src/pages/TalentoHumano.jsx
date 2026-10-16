@@ -29,6 +29,7 @@ import {
   actualizarNovedadTH,
 } from '../api/client';
 import { formatDate } from '../data/mockData';
+import { EstadoVacio } from '../components/Estado';
 
 const TABS = [
   { key: 'planta', label: 'Planta docente', icon: 'users' },
@@ -564,7 +565,7 @@ export default function TalentoHumano() {
                   {cargando && <div data-cargando="1" style={card}>Cargando convocatorias…</div>}
 
                   {!cargando && convocatorias.length === 0 && (
-                    <div style={{ ...card, textAlign: 'center', color: '#9c988e' }}>No hay convocatorias publicadas.</div>
+                    <EstadoVacio mensaje="No hay convocatorias publicadas." />
                   )}
 
                   {convocatorias.map((c) => {
@@ -700,7 +701,7 @@ export default function TalentoHumano() {
 
                 <div>
                   {capacitaciones.length === 0 && (
-                    <div style={{ ...card, textAlign: 'center', color: '#9c988e' }}>No hay capacitaciones programadas.</div>
+                    <EstadoVacio mensaje="No hay capacitaciones programadas." />
                   )}
                   {capacitaciones.map((c) => {
                     const lleno = c.inscritos >= c.cupos;
@@ -812,7 +813,7 @@ export default function TalentoHumano() {
                   </div>
 
                   {!cargando && nominas.length === 0 && (
-                    <div style={{ ...card, textAlign: 'center', color: '#6f6b62' }}>No hay corridas de nómina.</div>
+                    <EstadoVacio mensaje="No hay corridas de nómina. Contabilidad las genera." />
                   )}
 
                   {nominas.length > 0 && (
@@ -993,7 +994,7 @@ export default function TalentoHumano() {
                   {cargando && <div data-cargando="1" style={card}>Cargando certificados…</div>}
 
                   {!cargando && certificados.length === 0 && (
-                    <div style={{ ...card, textAlign: 'center', color: '#9c988e' }}>Aún no se han emitido certificados laborales.</div>
+                    <EstadoVacio mensaje="Aún no se han emitido certificados laborales." />
                   )}
 
                   {certificados.length > 0 && (

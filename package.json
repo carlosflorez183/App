@@ -9,6 +9,7 @@
     "lint": "oxlint",
     "smoke": "node scripts/smoke.mjs",
     "acciones": "node scripts/acciones.mjs",
+    "backup": "bash scripts/backup-db.sh",
     "preview": "vite preview"
   },
   "dependencies": {

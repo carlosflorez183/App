@@ -658,6 +658,8 @@ model Novedad {
   nominaId     Int?
   reportadoPor Int?
   ajustadoPor  Int?
+  /// Cuándo Contabilidad ajustó la novedad por última vez (auditoría).
+  ajustadoEn   DateTime?
   creadoEn     DateTime @default(now())
 
   empleado Empleado? @relation(fields: [empleadoId], references: [id], onDelete: Cascade)

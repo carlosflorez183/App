@@ -9,6 +9,7 @@ import Icon, { Ico } from '../components/Icon';
 import { useNavigate } from 'react-router-dom';
 import ModuleLayout from '../components/ModuleLayout';
 import AsignacionDocentes from '../components/AsignacionDocentes';
+import { EstadoVacio } from '../components/Estado';
 import {
   actualizarDocente,
   actualizarEstudianteAdmin,
@@ -369,7 +370,7 @@ export default function Admin() {
                   </tbody>
                 </table>
                 {!cargandoAdmin && lista.length === 0 && (
-                  <div style={{ padding: 24, textAlign: 'center', color: '#9c988e' }}>Sin resultados.</div>
+                  <EstadoVacio mensaje="Sin resultados." />
                 )}
               </div>
             </div>
@@ -532,7 +533,7 @@ export default function Admin() {
                   </tbody>
                 </table>
                 {!cargandoAdmin && lista.length === 0 && (
-                  <div style={{ padding: 24, textAlign: 'center', color: '#9c988e' }}>Sin resultados.</div>
+                  <EstadoVacio mensaje="Sin resultados." />
                 )}
               </div>
             </div>

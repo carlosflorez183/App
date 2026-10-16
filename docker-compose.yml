@@ -27,18 +27,25 @@ services:
       retries: 20
     restart: unless-stopped
 
-  # Tarea de un solo uso: crea el esquema y siembra los datos de demostración.
-  # Si la base ya tiene datos, el seed los reemplaza.
+  # Tarea de un solo uso: aplica las migraciones y siembra los datos de
+  # demostración. El `resolve` deja marcada la migración inicial en bases que
+  # ya tenían el esquema creado con `db push` (evita el "relation already
+  # exists"). SEED_FORCE=1 autoriza reemplazar la base: aquí es desechable.
   seed:
     build:
       context: .
       dockerfile: server/Dockerfile
     image: uni-plataforma-api
     container_name: uni-seed
-    command: sh -c "npx prisma generate && npx prisma db push --skip-generate && node prisma/seed.js"
+    command: >-
+      sh -c "npx prisma generate &&
+      (npx prisma migrate deploy || npx prisma migrate resolve --applied 20260101000000_init) &&
+      npx prisma migrate deploy &&
+      node prisma/seed.js"
     environment:
       DATABASE_URL: postgresql://uni:${DB_PASSWORD:-uni_dev_password}@db:5432/uni_plataforma
       MOCK_DATA_PATH: /app/mock/mockData.js
+      SEED_FORCE: "1"
     depends_on:
       db:
         condition: service_healthy

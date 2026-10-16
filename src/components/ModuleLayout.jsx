@@ -49,6 +49,21 @@ export default function ModuleLayout({
     setParams(siguiente, { replace: true });
   };
 
+  /* Navegación por teclado de las pestañas (patrón WAI-ARIA tabs):
+     flechas mueven el foco y Home/End van a los extremos. */
+  const moverTab = (e, idx) => {
+    if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(e.key)) return;
+    e.preventDefault();
+    let destino = idx;
+    if (e.key === 'ArrowRight') destino = (idx + 1) % tabs.length;
+    if (e.key === 'ArrowLeft') destino = (idx - 1 + tabs.length) % tabs.length;
+    if (e.key === 'Home') destino = 0;
+    if (e.key === 'End') destino = tabs.length - 1;
+    const key = tabs[destino].key;
+    setTab(key);
+    document.getElementById(`tab-${key}`)?.focus();
+  };
+
   // Los ítems de menú que pertenecen al Dashboard viven en su propio estado,
   // así que desde un módulo hay que saltar a la ruta con la vista pedida.
   const handleNavigate = (view, tab) => {
@@ -110,12 +125,24 @@ export default function ModuleLayout({
 
         <div className="main-content">
           {tabs.length > 0 && !hideTabs && (
-            <div className="t-tabs" style={{ display: 'flex', gap: 6, marginBottom: 18, flexWrap: 'wrap' }}>
-              {tabs.map((t) => (
+            <div
+              className="t-tabs"
+              role="tablist"
+              aria-label={`Secciones de ${title}`}
+              style={{ display: 'flex', gap: 6, marginBottom: 18, flexWrap: 'wrap' }}
+            >
+              {tabs.map((t, idx) => (
                 <button
                   key={t.key}
+                  id={`tab-${t.key}`}
+                  type="button"
+                  role="tab"
+                  aria-selected={current === t.key}
+                  aria-controls={`panel-${t.key}`}
+                  tabIndex={current === t.key ? 0 : -1}
                   className={`t-btn ${current === t.key ? 'active' : ''}`}
                   onClick={() => setTab(t.key)}
+                  onKeyDown={(e) => moverTab(e, idx)}
                   style={{ display: 'flex', alignItems: 'center', gap: 6 }}
                 >
                    {t.icon ? <Icon name={t.icon} size={15} /> : null}
@@ -125,9 +152,15 @@ export default function ModuleLayout({
             </div>
           )}
 
-          {typeof children === 'function'
-            ? children({ tab: current, setTab, data, setData, recargar })
-            : children}
+          <div
+            role={tabs.length > 0 && !hideTabs ? 'tabpanel' : undefined}
+            id={tabs.length > 0 && !hideTabs ? `panel-${current}` : undefined}
+            aria-labelledby={tabs.length > 0 && !hideTabs ? `tab-${current}` : undefined}
+          >
+            {typeof children === 'function'
+              ? children({ tab: current, setTab, data, setData, recargar })
+              : children}
+          </div>
 
           {aside}
         </div>

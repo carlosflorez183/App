@@ -630,7 +630,7 @@ export default async function rutasAdmin(app) {
       return reply.code(409).send({ error: 'La novedad ya fue aplicada a una corrida' });
     }
     const { valor, tipoAjuste, estado, descripcion } = req.body || {};
-    const cambios = { ajustadoPor: req.usuario.id };
+    const cambios = { ajustadoPor: req.usuario.id, ajustadoEn: new Date() };
     if (valor !== undefined) cambios.valor = Number(valor) || 0;
     if (tipoAjuste !== undefined) {
       if (!['ingreso', 'descuento', 'ninguno'].includes(tipoAjuste)) {

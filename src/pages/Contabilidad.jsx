@@ -49,7 +49,7 @@ import {
 
 import { formatCurrency, formatDate } from '../data/mockData';
 import { descargarExcel } from '../utils/excel';
-import { EstadoVacio } from '../components/Estado';
+import { EstadoVacio, EstadoError } from '../components/Estado';
 
 
 
@@ -796,6 +796,13 @@ export default function Contabilidad() {
                 </table>
 
 
+                {cobros.length === 0 && (
+                  error
+                    ? <EstadoError mensaje={error} onReintentar={cargar} />
+                    : <EstadoVacio mensaje="Todavía no hay cobros registrados." />
+                )}
+
+
                 {cobros.length > 40 && (
 
 
@@ -1011,7 +1018,7 @@ export default function Contabilidad() {
                 {visibles.length === 0 && (
 
 
-                  <div style={{ textAlign: 'center', color: '#9c988e', padding: 20 }}>Ningún cobro coincide con el filtro.</div>
+                  <EstadoVacio mensaje="Ningún cobro coincide con el filtro." />
 
 
                 )}
@@ -1420,7 +1427,7 @@ export default function Contabilidad() {
                     {egresos.porCategoria.length === 0 && (
 
 
-                      <div style={{ fontSize: 12, color: '#9c988e' }}>Todavía no hay egresos.</div>
+                      <EstadoVacio mensaje="Todavía no hay egresos registrados." />
 
 
                     )}
@@ -1628,7 +1635,7 @@ export default function Contabilidad() {
                       </tbody>
                     </table>
                   ) : (
-                    <div style={{ fontSize: 12, color: '#6f6b62' }}>Sin datos.</div>
+                    <EstadoVacio mensaje="Todavía no se ha generado ninguna corrida de nómina." />
                   )}
                 </div>
 
@@ -1768,7 +1775,14 @@ export default function Contabilidad() {
                               <span style={{ color: '#6f6b62', fontSize: 12 }}>{ETIQUETA_AJUSTE[n.tipoAjuste] || n.tipoAjuste}</span>
                             )}
                           </td>
-                          <td style={td}><Badge color={TONO_ESTADO_NOVEDAD[n.estado] || '#6f6b62'}>{n.estado}</Badge></td>
+                          <td style={td}>
+                            <Badge color={TONO_ESTADO_NOVEDAD[n.estado] || '#6f6b62'}>{n.estado}</Badge>
+                            {n.ajustadoEn && (
+                              <div style={{ fontSize: 10, color: '#9c988e', marginTop: 4 }}>
+                                Ajustada {new Date(n.ajustadoEn).toLocaleDateString('es-CO')}
+                              </div>
+                            )}
+                          </td>
                           <td style={{ ...td, whiteSpace: 'nowrap' }}>
                             {puedeEditar(n) && (
                               <>

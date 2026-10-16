@@ -99,8 +99,24 @@ function horarioDesdeTexto(texto) {
   return m ? { dia: m[1], bloque: m[2] } : { dia: texto, bloque: '' };
 }
 
+/* El seed reemplaza TODA la base (TRUNCATE), así que por defecto se niega a
+   correr sobre una base con datos: hay que pedirlo explícitamente con
+   SEED_FORCE=1. Así una corrida accidental no borra producción. El stack demo
+   lo activa en docker-compose porque su base es desechable. */
+const FORZAR = process.env.SEED_FORCE === '1' || process.env.SEED_FORCE === 'true';
+
 async function main() {
   console.log(`→ Leyendo datos de ${RUTA_MOCK}`);
+
+  const yaHayDatos = await prisma.usuario.count().catch(() => 0);
+  if (yaHayDatos > 0 && !FORZAR) {
+    console.error(
+      '✖ La base ya tiene datos y el seed los reemplaza por completo (TRUNCATE).\n' +
+      '  Si es intencional, ejecútalo con SEED_FORCE=1 (p. ej. `SEED_FORCE=1 npm run prisma:seed`).'
+    );
+    process.exit(1);
+  }
+
   console.log('→ Limpiando tablas');
   await limpiar();
 
