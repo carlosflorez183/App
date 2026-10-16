@@ -1040,6 +1040,46 @@ export default async function rutasAdmin(app) {
     return prisma.pago.update({ where: { id: Number(req.params.id) }, data });
   });
 
+  /* Tablero de conciliación: totales por estado y los últimos pagos ya
+     conciliados con su referencia. La cola fina la sigue dando
+     GET /contabilidad/pagos; esto resume el estado del periodo. */
+  app.get('/contabilidad/conciliacion', cta, async () => {
+    const pagos = await prisma.pago.findMany({
+      include: {
+        estudiante: { select: { nombre: true, documento: true } },
+      },
+    });
+    const porEstado = { pagado: 0, pendiente: 0, vencido: 0 };
+    const valorPorEstado = { pagado: 0, pendiente: 0, vencido: 0 };
+    for (const p of pagos) {
+      if (!(p.estado in porEstado)) continue;
+      porEstado[p.estado] += 1;
+      valorPorEstado[p.estado] += p.valor;
+    }
+    const conciliados = pagos
+      .filter((p) => p.estado === 'pagado' && p.referencia)
+      .sort((a, b) => new Date(b.fechaPago || 0) - new Date(a.fechaPago || 0))
+      .slice(0, 10)
+      .map((p) => ({
+        id: p.id,
+        estudiante: p.estudiante?.nombre ?? 'Estudiante eliminado',
+        documento: p.estudiante?.documento ?? null,
+        concepto: p.concepto,
+        valor: p.valor,
+        referencia: p.referencia,
+        fechaPago: p.fechaPago,
+      }));
+    return {
+      resumen: {
+        total: pagos.length,
+        totalValor: pagos.reduce((a, p) => a + p.valor, 0),
+        porEstado,
+        valorPorEstado,
+      },
+      conciliados,
+    };
+  });
+
   /* ── Notificaciones del usuario ──────────────────────────────────────── */
   /* Solo devuelve las que corresponden al rol: `roles` vacío = para todos. */
   app.get('/notificaciones', { preHandler: [app.autenticar] }, async (req) => {

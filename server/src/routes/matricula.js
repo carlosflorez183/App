@@ -4,6 +4,11 @@
    ============================================= */
 import { prisma } from '../config.js';
 
+/* Periodo que se matricula y tope de créditos por semestre. Es el mismo tope
+   que valida el portal (23): la API no debe aceptar lo que la vista rechaza. */
+const PERIODO_MATRICULA = '2026-2';
+const MAX_CREDITOS = 23;
+
 export default async function rutasMatricula(app) {
   const soloAutenticado = { preHandler: [app.autenticar] };
 
@@ -56,4 +61,96 @@ export default async function rutasMatricula(app) {
       })),
     };
   });
+
+  /* Matricula de verdad: guarda las materias elegidas como filas de notas del
+     estudiante en el periodo en curso. Antes la vista solo cambiaba un estado
+     local y al recargar la matrícula desaparecía. */
+  app.post(
+    '/matricula',
+    {
+      preHandler: [app.autenticar, app.requiereRoles('estudiante')],
+      schema: {
+        body: {
+          type: 'object',
+          required: ['materiaIds'],
+          additionalProperties: false,
+          properties: {
+            materiaIds: {
+              type: 'array',
+              minItems: 1,
+              maxItems: 20,
+              uniqueItems: true,
+              items: { type: 'integer', minimum: 1 },
+            },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
+      const estudiante = await prisma.estudiante.findFirst({
+        where: { usuarioId: req.usuario.id },
+      });
+      if (!estudiante) {
+        return reply.code(403).send({ error: 'Solo un estudiante puede matricular materias' });
+      }
+
+      const ids = [...new Set(req.body.materiaIds)];
+      const materias = await prisma.materia.findMany({ where: { id: { in: ids } } });
+      if (materias.length !== ids.length) {
+        return reply.code(400).send({ error: 'Alguna de las materias seleccionadas no existe' });
+      }
+
+      const bloqueadas = materias.filter((m) => m.estado === 'bloqueada');
+      if (bloqueadas.length) {
+        return reply.code(400).send({
+          error: `Hay materias bloqueadas: ${bloqueadas.map((m) => m.nombre).join(', ')}`,
+        });
+      }
+
+      const totalCreditos = materias.reduce((a, m) => a + m.creditos, 0);
+      if (totalCreditos > MAX_CREDITOS) {
+        return reply.code(400).send({
+          error: `No puedes superar ${MAX_CREDITOS} créditos (seleccionaste ${totalCreditos}).`,
+        });
+      }
+
+      /* Upsert por la clave única (estudiante, periodo, código): repetir la
+         matrícula actualiza la materia en vez de duplicarla. */
+      await prisma.$transaction(
+        materias.map((m) =>
+          prisma.nota.upsert({
+            where: {
+              estudianteId_periodo_codigo: {
+                estudianteId: estudiante.id,
+                periodo: PERIODO_MATRICULA,
+                codigo: m.codigo,
+              },
+            },
+            create: {
+              estudianteId: estudiante.id,
+              programaId: estudiante.programaId,
+              codigo: m.codigo,
+              nombre: m.nombre,
+              creditos: m.creditos,
+              profesor: m.profesor,
+              estado: 'en_curso',
+              periodo: PERIODO_MATRICULA,
+            },
+            update: { nombre: m.nombre, creditos: m.creditos, profesor: m.profesor },
+          })
+        )
+      );
+
+      return {
+        ok: true,
+        periodo: PERIODO_MATRICULA,
+        totalCreditos,
+        matriculadas: materias.map((m) => ({
+          codigo: m.codigo,
+          nombre: m.nombre,
+          creditos: m.creditos,
+        })),
+      };
+    }
+  );
 }

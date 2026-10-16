@@ -86,6 +86,11 @@ export const yo = () => api('/auth/yo');
 /* ── Datos ─────────────────────────────────────────────────────────────── */
 export const bootstrap = () => api('/bootstrap');
 
+/* ── Matrícula ─────────────────────────────────────────────────────────── */
+/* Guarda la matrícula del estudiante autenticado en el periodo en curso. */
+export const registrarMatricula = (materiaIds) =>
+  api('/matricula', { method: 'POST', body: { materiaIds } });
+
 /* ── Acciones ──────────────────────────────────────────────────────────── */
 export const marcarNotificacionLeida = (id) =>
   api(`/notificaciones/${id}/leida`, { method: 'PATCH' });
@@ -382,3 +387,6 @@ export const listarCobros = () => api('/contabilidad/pagos');
 
 export const conciliarCobro = (id, cambios) =>
   api(`/contabilidad/pagos/${id}`, { method: 'PATCH', body: cambios });
+
+/* Tablero de conciliación: totales por estado y últimos pagos conciliados. */
+export const obtenerConciliacion = () => api('/contabilidad/conciliacion');

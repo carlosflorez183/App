@@ -35,6 +35,7 @@ import {
 
 
   listarCobros,
+  obtenerConciliacion,
 
 
   listarGastos,
@@ -47,6 +48,8 @@ import {
 
 
 import { formatCurrency, formatDate } from '../data/mockData';
+import { descargarExcel } from '../utils/excel';
+import { EstadoVacio } from '../components/Estado';
 
 
 
@@ -182,6 +185,7 @@ export default function Contabilidad() {
 
 
   const [cobros, setCobros] = useState([]);
+  const [conciliacion, setConciliacion] = useState(null);
 
 
   const [egresos, setEgresos] = useState({ gastos: [], porCategoria: [], total: 0 });
@@ -273,6 +277,11 @@ export default function Contabilidad() {
       setNovedades(await listarNovedadesContabilidad());
     } catch {
       setNovedades([]);
+    }
+    try {
+      setConciliacion(await obtenerConciliacion());
+    } catch {
+      setConciliacion(null);
     }
   }, []);
 
@@ -415,6 +424,31 @@ export default function Contabilidad() {
 
 
   }, [cobros, filtroEstado, busqueda]);
+
+  const exportarCartera = () => {
+    const filas = visibles.map((p) => [
+      p.estudiante,
+      p.documento,
+      p.programa || '—',
+      p.concepto,
+      formatDate(p.fechaLimite),
+      p.valor,
+      p.estado,
+    ]);
+    descargarExcel(`Cartera_Contabilidad_${new Date().toISOString().slice(0, 10)}`, {
+      nombre: 'Cartera',
+      columnas: [
+        { titulo: 'Estudiante', ancho: 32 },
+        { titulo: 'Documento', ancho: 16 },
+        { titulo: 'Programa', ancho: 28 },
+        { titulo: 'Concepto', ancho: 24 },
+        { titulo: 'Límite', ancho: 14 },
+        { titulo: 'Valor', ancho: 16, moneda: true },
+        { titulo: 'Estado', ancho: 14 },
+      ],
+      filas,
+    });
+  };
 
 
 
@@ -876,6 +910,23 @@ export default function Contabilidad() {
                 <span style={{ fontSize: 11, color: '#9c988e' }}>{visibles.length} de {cobros.length}</span>
 
 
+                <button
+
+                  className="btn"
+
+                  style={{ marginLeft: 'auto', padding: '6px 12px', fontSize: 12 }}
+
+                  onClick={exportarCartera}
+
+                  disabled={visibles.length === 0}
+
+                >
+
+                  Exportar a Excel
+
+                </button>
+
+
               </div>
 
 
@@ -999,6 +1050,28 @@ export default function Contabilidad() {
 
 
 
+              {conciliacion && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 14 }}>
+                  <div style={card}>
+                    <div style={{ fontSize: 11, color: '#9c988e', fontWeight: 700 }}>Cobros totales</div>
+                    <div style={{ fontSize: 22, fontWeight: 900 }}>{conciliacion.resumen.total}</div>
+                  </div>
+                  <div style={card}>
+                    <div style={{ fontSize: 11, color: '#9c988e', fontWeight: 700 }}>Por conciliar</div>
+                    <div style={{ fontSize: 22, fontWeight: 900, color: '#e0a52e' }}>{conciliacion.resumen.porEstado.pendiente}</div>
+                  </div>
+                  <div style={card}>
+                    <div style={{ fontSize: 11, color: '#9c988e', fontWeight: 700 }}>Vencidos</div>
+                    <div style={{ fontSize: 22, fontWeight: 900, color: '#c0392b' }}>{conciliacion.resumen.porEstado.vencido}</div>
+                  </div>
+                  <div style={card}>
+                    <div style={{ fontSize: 11, color: '#9c988e', fontWeight: 700 }}>Valor conciliado</div>
+                    <div style={{ fontSize: 22, fontWeight: 900, color: '#17a06d' }}>{formatCurrency(conciliacion.resumen.valorPorEstado.pagado)}</div>
+                  </div>
+                </div>
+              )}
+
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr minmax(280px, 360px)', gap: 14, alignItems: 'start' }}>
 
 
@@ -1020,7 +1093,7 @@ export default function Contabilidad() {
                   {pendientes.length === 0 && (
 
 
-                    <div style={{ textAlign: 'center', color: '#9c988e', padding: 24 }}>No hay cobros pendientes de conciliar.</div>
+                    <EstadoVacio mensaje="No hay cobros pendientes de conciliar." />
 
 
                   )}
@@ -1101,7 +1174,7 @@ export default function Contabilidad() {
                   {!conciliando ? (
 
 
-                    <div style={{ textAlign: 'center', color: '#9c988e', padding: 24 }}>Seleccione un cobro de la cola.</div>
+                    <EstadoVacio mensaje="Seleccione un cobro de la cola." />
 
 
                   ) : (

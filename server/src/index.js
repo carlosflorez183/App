@@ -4,6 +4,8 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
+import helmet from '@fastify/helmet';
+import rateLimit from '@fastify/rate-limit';
 
 import { prisma, PUERTO, ORIGENES } from './config.js';
 import { autenticar, requiereRoles, requiereModulo } from './auth.js';
@@ -22,12 +24,32 @@ const app = Fastify({
     : false,
 });
 
-/* La clave del JWT se lee del entorno. En producción tiene que ser fija y
-   distinta de la de desarrollo. */
+/* La clave del JWT se lee del entorno. En producción es obligatoria: sin ella
+   el arranque falla en vez de caer a un secreto conocido. */
 const SECRETO = process.env.JWT_SECRET || 'uni-plataforma-dev-secret-cambiar-en-produccion';
 if (!process.env.JWT_SECRET) {
+  if (process.env.NODE_ENV === 'production') {
+    console.error('✖ JWT_SECRET es obligatorio en producción. Abortando.');
+    process.exit(1);
+  }
   console.warn('⚠  JWT_SECRET no definido: usando el secreto de desarrollo.');
 }
+
+/* Cabeceras de seguridad (se desactiva CSP: la API solo sirve JSON y PDF). */
+await app.register(helmet, { contentSecurityPolicy: false });
+
+/* Límite global amplio; el login aplica uno más estricto por cuenta. */
+await app.register(rateLimit, {
+  global: true,
+  max: 600,
+  timeWindow: '1 minute',
+  /* El cuerpo ya está parseado cuando corre este hook, así que el login se
+     puede limitar por cuenta (frena la fuerza bruta contra un usuario sin
+     castigar a todos los que comparten la IP del proxy). */
+  hook: 'preHandler',
+  keyGenerator: (req) =>
+    req.body && req.body.usuario ? `user:${req.body.usuario}` : req.ip,
+});
 
 await app.register(cors, { origin: ORIGENES, credentials: true });
 await app.register(jwt, { secret: SECRETO });

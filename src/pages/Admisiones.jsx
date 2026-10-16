@@ -9,6 +9,7 @@
 import React, { useState } from 'react';
 import Icon, { Ico } from '../components/Icon';
 import ModuleLayout from '../components/ModuleLayout';
+import { EstadoVacio } from '../components/Estado';
 import {
   actualizarAspirante,
   actualizarEstudiante,
@@ -29,6 +30,7 @@ import {
   puedeEmitir,
   saldo,
 } from '../data/registro';
+import { descargarExcel } from '../utils/excel';
 
 const TABS = [
   { key: 'resumen', label: 'Resumen', icon: 'home' },
@@ -85,9 +87,7 @@ const Kpi = ({ icon, bg, value, label, hint, onClick, color }) => {
   );
 };
 
-const Vacio = ({ children }) => (
-  <div style={{ padding: 28, textAlign: 'center', color: '#9c988e', fontSize: 13 }}>{children}</div>
-);
+const Vacio = ({ children }) => <EstadoVacio mensaje={children} />;
 
 const Encabezado = ({ titulo, sub, accion }) => (
   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
@@ -156,6 +156,33 @@ export default function Admisiones() {
             e.documento.includes(busqueda) ||
             e.id.toLowerCase().includes(t)
           );
+        };
+
+        const exportarCartera = () => {
+          const filas = porPagar.filter(enFiltro).map((e) => [
+            e.id,
+            e.documento,
+            e.nombre,
+            nombreProg(e.programaId),
+            ESTADO_ESTUDIANTE[e.estado].label,
+            saldo(e),
+            pagosVencidos(e).reduce((a, p) => a + p.valor, 0),
+            estadoCuenta(e).label,
+          ]);
+          descargarExcel(`Cartera_Admisiones_${new Date().toISOString().slice(0, 10)}`, {
+            nombre: 'Cartera',
+            columnas: [
+              { titulo: 'Código', ancho: 12 },
+              { titulo: 'Documento', ancho: 16 },
+              { titulo: 'Estudiante', ancho: 32 },
+              { titulo: 'Programa', ancho: 28 },
+              { titulo: 'Estado', ancho: 14 },
+              { titulo: 'Saldo', ancho: 16, moneda: true },
+              { titulo: 'Vencido', ancho: 16, moneda: true },
+              { titulo: 'Situación', ancho: 16 },
+            ],
+            filas,
+          });
         };
 
         /* ---------- mutaciones ---------- */
@@ -783,6 +810,14 @@ export default function Admisiones() {
                   <option value="al_dia">Paz y salvo</option>
                 </select>
                 <span style={{ fontSize: 12, color: '#9c988e' }}>{porPagar.filter(enFiltro).length} estudiantes</span>
+                <button
+                  className="btn"
+                  style={{ marginLeft: 'auto', display: 'inline-flex', gap: 6, alignItems: 'center' }}
+                  onClick={exportarCartera}
+                  disabled={porPagar.filter(enFiltro).length === 0}
+                >
+                  <Ico name="descarga" size={14} /> Exportar a Excel
+                </button>
               </div>
 
               <div style={card}>

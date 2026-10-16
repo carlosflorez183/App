@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { formatCurrency } from '../data/mockData';
 import { usePersistentData } from '../hooks/usePersistentData';
+import { registrarMatricula } from '../api/client';
 
 export default function Matricula({ readOnly = false }) {
   const { user } = useAuth();
@@ -24,6 +25,8 @@ export default function Matricula({ readOnly = false }) {
       .map((m) => m.id)
   );
   const [matriculaFinalizada, setMatriculaFinalizada] = useState(false);
+  const [guardandoMatricula, setGuardandoMatricula] = useState(false);
+  const [errorMatricula, setErrorMatricula] = useState('');
 
   const programasFiltrados = data.matricula.programas.filter(
     (p) => p.modalidadId === modalidad?.id
@@ -73,6 +76,24 @@ export default function Matricula({ readOnly = false }) {
     setPrograma(p);
     if (programa?.id === p.id) return;
     setSeleccionadas([]);
+  };
+
+  /* Confirma la matrícula contra la API. En modo sin servidor (la app también
+     corre con datos de respaldo) el fallo de red no debe romper el flujo: se
+     conserva la confirmación local. Si el servidor responde con un error
+     (créditos, materias bloqueadas), se muestra el motivo. */
+  const confirmarMatricula = async () => {
+    setGuardandoMatricula(true);
+    setErrorMatricula('');
+    try {
+      await registrarMatricula(materiasSeleccionadasObj.map((m) => m.id));
+      setMatriculaFinalizada(true);
+    } catch (err) {
+      if (!err?.status) setMatriculaFinalizada(true);
+      else setErrorMatricula(err.message);
+    } finally {
+      setGuardandoMatricula(false);
+    }
   };
 
   const pasosList = [
@@ -611,6 +632,12 @@ export default function Matricula({ readOnly = false }) {
                     </button>
                   </div>
 
+                  {errorMatricula && (
+                    <div style={{ background: '#fdecec', color: '#b02a2a', border: '1px solid #f2c4c4', borderRadius: 8, padding: '10px 12px', fontSize: 12, fontWeight: 600, marginBottom: 12 }}>
+                      <Icon name="alerta" size={14} /> {errorMatricula}
+                    </div>
+                  )}
+
                   <div style={{ display: 'flex', gap: 12 }}>
                     <button
                       onClick={() => setPaso(3)}
@@ -619,10 +646,11 @@ export default function Matricula({ readOnly = false }) {
                       ← Volver a Horario
                     </button>
                     <button
-                      onClick={() => setMatriculaFinalizada(true)}
-                      style={{ flex: 2, background: '#17a06d', color: '#fff', border: 'none', padding: '12px', borderRadius: 10, fontWeight: 800, cursor: 'pointer' }}
+                      onClick={confirmarMatricula}
+                      disabled={guardandoMatricula}
+                      style={{ flex: 2, background: '#17a06d', color: '#fff', border: 'none', padding: '12px', borderRadius: 10, fontWeight: 800, cursor: guardandoMatricula ? 'wait' : 'pointer', opacity: guardandoMatricula ? 0.7 : 1 }}
                     >
-                      Confirmar y Registrar Matrícula <Icon name="check" size={14} />
+                      {guardandoMatricula ? 'Registrando…' : <>Confirmar y Registrar Matrícula <Icon name="check" size={14} /></>}
                     </button>
                   </div>
                 </>

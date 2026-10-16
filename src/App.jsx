@@ -1,18 +1,29 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import ErrorBoundary from './components/ErrorBoundary';
 import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import Matricula from './pages/Matricula';
-import Curso from './pages/Curso';
-import Admin from './pages/Admin';
-import Admisiones from './pages/Admisiones';
-import Docente from './pages/Docente';
-import Rectoria from './pages/Rectoria';
-import TalentoHumano from './pages/TalentoHumano';
-import Contabilidad from './pages/Contabilidad';
 
-// Sin sesión: al login. Con sesión pero sin el rol permitido: al dashboard.
+/* Las páginas se cargan bajo demanda: cada módulo pesado (Curso, Contabilidad,
+   Talento Humano…) queda en su propio chunk y no bloquea el arranque. */
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Matricula = lazy(() => import('./pages/Matricula'));
+const Curso = lazy(() => import('./pages/Curso'));
+const Admin = lazy(() => import('./pages/Admin'));
+const Admisiones = lazy(() => import('./pages/Admisiones'));
+const Docente = lazy(() => import('./pages/Docente'));
+const Rectoria = lazy(() => import('./pages/Rectoria'));
+const TalentoHumano = lazy(() => import('./pages/TalentoHumano'));
+const Contabilidad = lazy(() => import('./pages/Contabilidad'));
+
+function Cargando() {
+  return (
+    <div style={{ minHeight: '60vh', display: 'grid', placeItems: 'center', color: '#6f6b62', fontSize: 14 }}>
+      Cargando…
+    </div>
+  );
+}
+
 function ProtectedRoute({ children, roles }) {
   const { user } = useAuth();
   if (!user) {
@@ -29,8 +40,6 @@ function RootRedirect() {
   return <Navigate to={user ? "/dashboard" : "/login"} replace />;
 }
 
-// El plan de estudios en modo lectura lo consulta Admisiones; el administrador
-// lo tiene dentro de su propio panel. Los demás roles no lo necesitan.
 function ConsultaPensum() {
   return (
     <ProtectedRoute roles={['admisiones']}>
@@ -41,96 +50,98 @@ function ConsultaPensum() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<RootRedirect />} />
-          <Route path="/login" element={<Login />} />
+    <ErrorBoundary>
+      <AuthProvider>
+        <BrowserRouter>
+          <Suspense fallback={<Cargando />}>
+            <Routes>
+              <Route path="/" element={<RootRedirect />} />
+              <Route path="/login" element={<Login />} />
 
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
 
-          {/* Solo el estudiante puede ejecutar el proceso de matrícula. */}
-          <Route
-            path="/matricula"
-            element={
-              <ProtectedRoute roles={['estudiante']}>
-                <Matricula />
-              </ProtectedRoute>
-            }
-          />
+              <Route
+                path="/matricula"
+                element={
+                  <ProtectedRoute roles={['estudiante']}>
+                    <Matricula />
+                  </ProtectedRoute>
+                }
+              />
 
-          <Route path="/pensum" element={<ConsultaPensum />} />
+              <Route path="/pensum" element={<ConsultaPensum />} />
 
-          <Route
-            path="/curso/:id"
-            element={
-              <ProtectedRoute>
-                <Curso />
-              </ProtectedRoute>
-            }
-          />
+              <Route
+                path="/curso/:id"
+                element={
+                  <ProtectedRoute>
+                    <Curso />
+                  </ProtectedRoute>
+                }
+              />
 
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute roles={['admin']}>
-                <Admin />
-              </ProtectedRoute>
-            }
-          />
-          {/* Admisiones es exclusivo del proceso de admisión. El administrador
-              tiene su propio panel en /admin y no entra a este módulo. */}
-          <Route
-            path="/admisiones"
-            element={
-              <ProtectedRoute roles={['admisiones']}>
-                <Admisiones />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/docente"
-            element={
-              <ProtectedRoute roles={['profesor']}>
-                <Docente />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/rectoria"
-            element={
-              <ProtectedRoute roles={['rectoria']}>
-                <Rectoria />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/talento-humano"
-            element={
-              <ProtectedRoute roles={['talento_humano']}>
-                <TalentoHumano />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/contabilidad"
-            element={
-              <ProtectedRoute roles={['contabilidad']}>
-                <Contabilidad />
-              </ProtectedRoute>
-            }
-          />
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute roles={['admin']}>
+                    <Admin />
+                  </ProtectedRoute>
+                }
+              />
 
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+              <Route
+                path="/admisiones"
+                element={
+                  <ProtectedRoute roles={['admisiones']}>
+                    <Admisiones />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/docente"
+                element={
+                  <ProtectedRoute roles={['profesor']}>
+                    <Docente />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/rectoria"
+                element={
+                  <ProtectedRoute roles={['rectoria']}>
+                    <Rectoria />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/talento-humano"
+                element={
+                  <ProtectedRoute roles={['talento_humano']}>
+                    <TalentoHumano />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/contabilidad"
+                element={
+                  <ProtectedRoute roles={['contabilidad']}>
+                    <Contabilidad />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }

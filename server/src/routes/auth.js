@@ -4,8 +4,30 @@
 import { prisma } from '../config.js';
 import { verificar, publico, hash } from '../auth.js';
 
+/* Intentos de login permitidos por cuenta y por minuto. En producción el valor
+   seguro es bajo (5); el stack demo lo sube por las corridas de verificación. */
+const LIMITE_LOGIN = Number(process.env.RATE_LIMIT_LOGIN_MAX ?? 5) || 5;
+
 export default async function rutasAuth(app) {
-  app.post('/auth/login', async (req, reply) => {
+  app.post(
+    '/auth/login',
+    {
+      config: {
+        /* Freno a la fuerza bruta: pocos intentos por minuto y por cuenta. */
+        rateLimit: { max: LIMITE_LOGIN, timeWindow: '1 minute' },
+      },
+      schema: {
+        body: {
+          type: 'object',
+          required: ['usuario', 'password'],
+          properties: {
+            usuario: { type: 'string', minLength: 1, maxLength: 100 },
+            password: { type: 'string', minLength: 1, maxLength: 200 },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
     const { usuario, password } = req.body || {};
     if (!usuario || !password) {
       return reply.code(400).send({ error: 'Faltan usuario y contraseña' });

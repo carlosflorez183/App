@@ -50,6 +50,9 @@ services:
     environment:
       DATABASE_URL: postgresql://uni:${DB_PASSWORD:-uni_dev_password}@db:5432/uni_plataforma
       JWT_SECRET: ${JWT_SECRET:-uni-plataforma-dev-secret-cambiar-en-produccion}
+      # Límite de intentos de login por cuenta. En producción bájalo a 5:
+      # el valor alto de aquí permite las corridas de smoke/acciones del demo.
+      RATE_LIMIT_LOGIN_MAX: ${RATE_LIMIT_LOGIN_MAX:-30}
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080,http://localhost:5173}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       PORT: "3000"
