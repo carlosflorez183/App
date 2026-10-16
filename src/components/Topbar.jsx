@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import Icon from './Icon';
 
 export default function Topbar({ title, subtitle, onNavigate, onToggleSidebar, notifications, onMarkNotifRead, onOpenNotif }) {
   const { user } = useAuth();
@@ -23,12 +24,12 @@ export default function Topbar({ title, subtitle, onNavigate, onToggleSidebar, n
           onClick={onToggleSidebar}
           aria-label="Abrir menú de navegación"
         >
-          ☰
+          <Icon name="menu" size={18} />
         </button>
 
         {/* Barra de búsqueda clásica */}
         <div className="tb-search">
-          <span style={{ fontSize: 13, color: '#64748b' }}>🔍</span>
+          <Icon name="buscar" size={16} color="#6f6b62" />
           <input
             type="text"
             placeholder="Buscar..."
@@ -40,7 +41,7 @@ export default function Topbar({ title, subtitle, onNavigate, onToggleSidebar, n
         {/* Notificaciones */}
         <div style={{ position: 'relative' }}>
           <div className="ic-btn" onClick={() => setShowNotifs(!showNotifs)}>
-            🔔
+            <Icon name="campana" size={18} />
             {unreadCount > 0 && <div className="dot" />}
           </div>
 
@@ -62,13 +63,13 @@ export default function Topbar({ title, subtitle, onNavigate, onToggleSidebar, n
                         if (onOpenNotif) onOpenNotif(n);
                         setShowNotifs(false);
                       }}
-                      style={{ cursor: 'pointer', background: n.leida ? '#fff' : '#f0f9ff', width: '100%', textAlign: 'left', border: 'none', fontFamily: 'inherit' }}
+                      style={{ cursor: 'pointer', background: n.leida ? '#fff' : '#eef7ff', width: '100%', textAlign: 'left', border: 'none', fontFamily: 'inherit' }}
                     >
                       <div
                         className="notif-ic"
-                        style={{ background: n.tipo === 'success' ? '#dcfce7' : n.tipo === 'warning' ? '#fef9c3' : '#dbeafe' }}
+                        style={{ background: n.tipo === 'success' ? '#d8f0e5' : n.tipo === 'warning' ? '#fbefd6' : '#e3f1ff' }}
                       >
-                        {n.tipo === 'success' ? '✅' : n.tipo === 'warning' ? '⚠️' : 'ℹ️'}
+                        {n.tipo === 'success' ? <Icon name="check" size={16} color="#0e8a5f" /> : n.tipo === 'warning' ? <Icon name="alerta" size={16} color="#c77e12" /> : <Icon name="info" size={16} color="#0a5cae" />}
                       </div>
                       <div className="notif-txt flex-1">
                         <p>{n.titulo}</p>
@@ -79,7 +80,7 @@ export default function Topbar({ title, subtitle, onNavigate, onToggleSidebar, n
                     </button>
                   ))
                 ) : (
-                  <div style={{ padding: 18, textAlign: 'center', color: '#94a3b8', fontSize: 12 }}>
+                  <div style={{ padding: 18, textAlign: 'center', color: '#9c988e', fontSize: 12 }}>
                     Sin notificaciones
                   </div>
                 )}

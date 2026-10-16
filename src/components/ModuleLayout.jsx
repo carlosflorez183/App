@@ -11,6 +11,7 @@ import { marcarNotificacionLeida } from '../api/client';
 import { notificacionesDeRol } from '../data/mockData';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
+import Icon from './Icon';
 
 export default function ModuleLayout({
   title,
@@ -117,7 +118,7 @@ export default function ModuleLayout({
                   onClick={() => setTab(t.key)}
                   style={{ display: 'flex', alignItems: 'center', gap: 6 }}
                 >
-                  {t.icon ? <span>{t.icon}</span> : null}
+                   {t.icon ? <Icon name={t.icon} size={15} /> : null}
                   {t.label}
                 </button>
               ))}

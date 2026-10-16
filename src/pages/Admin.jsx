@@ -5,6 +5,7 @@
    edición de docentes, programas y matrícula.
    ============================================= */
 import React, { useCallback, useEffect, useState } from 'react';
+import Icon, { Ico } from '../components/Icon';
 import { useNavigate } from 'react-router-dom';
 import ModuleLayout from '../components/ModuleLayout';
 import AsignacionDocentes from '../components/AsignacionDocentes';
@@ -18,28 +19,28 @@ import {
 } from '../api/client';
 
 const TABS = [
-  { key: 'resumen', label: 'Resumen', icon: '📊' },
-  { key: 'usuarios', label: 'Usuarios', icon: '🔐' },
-  { key: 'estudiantes', label: 'Estudiantes', icon: '🎓' },
-  { key: 'programas', label: 'Programas', icon: '📚' },
-  { key: 'pensum', label: 'Pensum', icon: '📖' },
-  { key: 'docentes', label: 'Docentes', icon: '👨‍🏫' },
-  { key: 'asignacion', label: 'Asignación docente', icon: '🧑‍🏫' },
-  { key: 'matricula', label: 'Matrícula', icon: '📝' },
+  { key: 'resumen', label: 'Resumen', icon: 'grafica-barras' },
+  { key: 'usuarios', label: 'Usuarios', icon: 'candado' },
+  { key: 'estudiantes', label: 'Estudiantes', icon: 'graduacion' },
+  { key: 'programas', label: 'Programas', icon: 'libro' },
+  { key: 'pensum', label: 'Pensum', icon: 'libro' },
+  { key: 'docentes', label: 'Docentes', icon: 'usuario-config' },
+  { key: 'asignacion', label: 'Asignación docente', icon: 'usuario-config' },
+  { key: 'matricula', label: 'Matrícula', icon: 'cuaderno' },
 ];
 
-const th = { textAlign: 'left', padding: '10px 12px', fontSize: 12, fontWeight: 700, color: '#64748b', borderBottom: '1px solid #e2e8f0' };
-const td = { padding: '10px 12px', fontSize: 13, borderBottom: '1px solid #f1f5f9' };
-const card = { background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 18 };
+const th = { textAlign: 'left', padding: '10px 12px', fontSize: 12, fontWeight: 700, color: '#6f6b62', borderBottom: '1px solid #e5e2da' };
+const td = { padding: '10px 12px', fontSize: 13, borderBottom: '1px solid #f0eee9' };
+const card = { background: '#fff', border: '1px solid #e5e2da', borderRadius: 12, padding: 18 };
 
 const Badge = ({ children, tone = 'slate' }) => {
   const tones = {
-    slate: ['#f1f5f9', '#475569'],
-    green: ['#dcfce7', '#15803d'],
-    amber: ['#fef3c7', '#b45309'],
-    red: ['#fee2e2', '#b91c1c'],
-    blue: ['#dbeafe', '#1d4ed8'],
-    purple: ['#ede9fe', '#6d28d9'],
+    slate: ['#f0eee9', '#4e4a43'],
+    green: ['#d8f0e5', '#0a6e4b'],
+    amber: ['#fbefd6', '#99610e'],
+    red: ['#ffe0e5', '#c1122c'],
+    blue: ['#e3f1ff', '#06468c'],
+    purple: ['#efe9fb', '#5a37ad'],
   };
   const [bg, fg] = tones[tone] || tones.slate;
   return (
@@ -53,16 +54,16 @@ const Kpi = ({ label, value, sub, icon }) => (
   <div style={card}>
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
       <div>
-        <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>{label}</div>
-        <div style={{ fontSize: 26, fontWeight: 800, marginTop: 4, color: '#0f172a' }}>{value}</div>
-        {sub ? <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>{sub}</div> : null}
+        <div style={{ fontSize: 12, color: '#6f6b62', fontWeight: 600 }}>{label}</div>
+        <div style={{ fontSize: 26, fontWeight: 800, marginTop: 4, color: '#14110c' }}>{value}</div>
+        {sub ? <div style={{ fontSize: 11, color: '#9c988e', marginTop: 4 }}>{sub}</div> : null}
       </div>
-      <div style={{ fontSize: 24 }}>{icon}</div>
+      <div style={{ fontSize: 24 }}><Ico name={icon} size={20} /></div>
     </div>
   </div>
 );
 
-const input = { padding: '7px 9px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13, background: '#fff' };
+const input = { padding: '7px 9px', borderRadius: 8, border: '1px solid #cdc9bf', fontSize: 13, background: '#fff' };
 
 const ROLES = [
   ['admin', 'Administración'],
@@ -152,50 +153,50 @@ export default function Admin() {
           return (
             <div className="fade-in">
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 14, marginBottom: 18 }}>
-                <Kpi label="Estudiantes matriculados" value={totalMatriculados.toLocaleString('es-CO')} sub={`${ocupacion}% de la capacidad`} icon="👥" />
-                <Kpi label="Programas activos" value={programas.length} sub="3 modalidades" icon="🎓" />
-                <Kpi label="Planta docente" value={data.docentes.length} sub={`${data.docentes.filter((d) => d.estado === 'activo').length} en servicio`} icon="👨‍🏫" />
-                <Kpi label="Asignaturas en pensum" value={materias.length} sub="10 planes de estudio" icon="📚" />
-                <Kpi label="Cuentas de acceso" value={usuarios.length} sub={`${usuarios.filter((u) => u.activo).length} habilitadas`} icon="🔐" />
+                <Kpi label="Estudiantes matriculados" value={totalMatriculados.toLocaleString('es-CO')} sub={`${ocupacion}% de la capacidad`} icon={<Icon name="users" size={16} />} />
+                <Kpi label="Programas activos" value={programas.length} sub="3 modalidades" icon={<Icon name="graduacion" size={16} />} />
+                <Kpi label="Planta docente" value={data.docentes.length} sub={`${data.docentes.filter((d) => d.estado === 'activo').length} en servicio`} icon="usuario-config" />
+                <Kpi label="Asignaturas en pensum" value={materias.length} sub="10 planes de estudio" icon={<Icon name="libro" size={16} />} />
+                <Kpi label="Cuentas de acceso" value={usuarios.length} sub={`${usuarios.filter((u) => u.activo).length} habilitadas`} icon={<Icon name="candado" size={16} />} />
                 <Kpi
                   label="Estudiantes bloqueados"
                   value={estudiantes.filter((e) => e.estado === 'bloqueado').length}
                   sub={`${estudiantes.length} matriculados`}
-                  icon="🚫"
+                  icon="bloqueado"
                 />
               </div>
 
               <div style={{ ...card, marginBottom: 18 }}>
                 <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 4 }}>Matriculados por programa</div>
-                <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 16 }}>Comparativo frente a la capacidad máxima de cada programa</div>
+                <div style={{ fontSize: 12, color: '#9c988e', marginBottom: 16 }}>Comparativo frente a la capacidad máxima de cada programa</div>
                 {programas.map((p) => (
                   <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
-                    <div style={{ width: 210, fontSize: 12, color: '#334155', fontWeight: 600 }}>{p.nombre}</div>
-                    <div style={{ flex: 1, height: 20, background: '#f1f5f9', borderRadius: 6, overflow: 'hidden', position: 'relative' }}>
-                      <div style={{ width: `${(p.matriculados / maxMat) * 100}%`, height: '100%', background: p.cupo > 0 && p.matriculados / p.cupo > 0.95 ? '#ef4444' : 'linear-gradient(90deg,#1e3a8a,#3b82f6)' }} />
-                      <div style={{ position: 'absolute', top: 0, bottom: 0, left: `${Math.min(100, (p.matriculados / p.cupo) * 100)}%`, width: 2, background: '#0f172a' }} />
+                    <div style={{ width: 210, fontSize: 12, color: '#3a3630', fontWeight: 600 }}>{p.nombre}</div>
+                    <div style={{ flex: 1, height: 20, background: '#f0eee9', borderRadius: 6, overflow: 'hidden', position: 'relative' }}>
+                      <div style={{ width: `${(p.matriculados / maxMat) * 100}%`, height: '100%', background: p.cupo > 0 && p.matriculados / p.cupo > 0.95 ? '#ff314d' : 'linear-gradient(90deg,#00116f,#0a84ff)' }} />
+                      <div style={{ position: 'absolute', top: 0, bottom: 0, left: `${Math.min(100, (p.matriculados / p.cupo) * 100)}%`, width: 2, background: '#14110c' }} />
                     </div>
-                    <div style={{ width: 108, fontSize: 12, textAlign: 'right', color: '#334155', fontWeight: 700 }}>
+                    <div style={{ width: 108, fontSize: 12, textAlign: 'right', color: '#3a3630', fontWeight: 700 }}>
                       {p.matriculados} / {p.cupo}
                     </div>
                   </div>
                 ))}
-                <div style={{ fontSize: 11, color: '#94a3b8' }}>
+                <div style={{ fontSize: 11, color: '#9c988e' }}>
                   La línea vertical marca el límite de capacidad. En rojo, programas por encima del 95% de ocupación.
                 </div>
               </div>
 
               <div style={card}>
                 <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 12 }}>Acciones de administración</div>
-                <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 12 }}>
+                <div style={{ fontSize: 12, color: '#9c988e', marginBottom: 12 }}>
                   Este panel no incluye el proceso de Admisiones: lo lleva el rol de Admisiones. Aquí se gestionan
                   las cuentas de la plataforma y los datos maestros.
                 </div>
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                  <button className="btn" onClick={() => navigate('/admin?tab=usuarios')}>🔐 Usuarios y accesos</button>
-                  <button className="btn" onClick={() => navigate('/admin?tab=estudiantes')}>🎓 Bloquear / editar estudiantes</button>
-                  <button className="btn" onClick={() => navigate('/admin?tab=programas')}>📚 Ajustar cupo de programas</button>
-                  <button className="btn" onClick={() => navigate('/dashboard?view=home')}>🏠 Ir al Inicio</button>
+                  <button className="btn" onClick={() => navigate('/admin?tab=usuarios')}><Icon name="candado" size={16} /> Usuarios y accesos</button>
+                  <button className="btn" onClick={() => navigate('/admin?tab=estudiantes')}><Icon name="graduacion" size={16} /> Bloquear / editar estudiantes</button>
+                  <button className="btn" onClick={() => navigate('/admin?tab=programas')}><Icon name="libro" size={16} /> Ajustar cupo de programas</button>
+                  <button className="btn" onClick={() => navigate('/dashboard?view=home')}><Icon name="home" size={16} /> Ir al Inicio</button>
                 </div>
               </div>
             </div>
@@ -269,7 +270,7 @@ export default function Admin() {
                 <Badge tone="red">{lista.filter((u) => !u.activo).length} bloqueadas</Badge>
               </div>
 
-              {cargandoAdmin && <div style={{ ...card, color: '#94a3b8', marginBottom: 14 }}>Cargando cuentas…</div>}
+              {cargandoAdmin && <div style={{ ...card, color: '#9c988e', marginBottom: 14 }}>Cargando cuentas…</div>}
 
               <div style={{ ...card, overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -286,7 +287,7 @@ export default function Admin() {
                           <td style={td}>
                             <strong>{u.nombre}</strong>
                             <br />
-                            <span style={{ fontSize: 11, color: '#94a3b8' }}>{u.usuario}{u.codigo ? ` · ${u.codigo}` : ''}</span>
+                            <span style={{ fontSize: 11, color: '#9c988e' }}>{u.usuario}{u.codigo ? ` · ${u.codigo}` : ''}</span>
                           </td>
                           <td style={td}><Badge tone="purple">{ROLES.find(([r]) => r === u.role)?.[1] || u.role}</Badge></td>
                           <td style={td}>{u.programa || '—'}</td>
@@ -294,7 +295,7 @@ export default function Admin() {
                           <td style={td}>
                             <Badge tone={u.activo ? 'green' : 'red'}>{u.activo ? 'Habilitada' : 'Bloqueada'}</Badge>
                             {u.estudianteEstado === 'bloqueado' && (
-                              <div style={{ fontSize: 11, color: '#b91c1c', marginTop: 4 }}>Estudiante bloqueado</div>
+                              <div style={{ fontSize: 11, color: '#c1122c', marginTop: 4 }}>Estudiante bloqueado</div>
                             )}
                           </td>
                           <td style={td}>
@@ -304,14 +305,14 @@ export default function Admin() {
                                 style={{ padding: '4px 9px', fontSize: 12 }}
                                 onClick={() => abrirEdicion(`u-${u.id}`, { _id: u.id, _fila: u.id, nombre: u.nombre, email: u.email || '', telefono: u.telefono || '', role: u.role })}
                               >
-                                ✏️ Editar
+                                <Icon name="editar" size={16} /> Editar
                               </button>
                               <button
                                 className="btn"
-                                style={{ padding: '4px 9px', fontSize: 12, background: u.activo ? '#fee2e2' : '#dcfce7', color: u.activo ? '#b91c1c' : '#15803d', border: 'none' }}
+                                style={{ padding: '4px 9px', fontSize: 12, background: u.activo ? '#ffe0e5' : '#d8f0e5', color: u.activo ? '#c1122c' : '#0a6e4b', border: 'none' }}
                                 onClick={() => alternarAcceso(u)}
                               >
-                                {u.activo ? '🚫 Bloquear' : '✅ Habilitar'}
+                                {u.activo ? <><Icon name="bloqueado" size={16} /> Bloquear</> : <><Icon name="check" size={16} /> Habilitar</>}
                               </button>
                             </div>
                           </td>
@@ -319,21 +320,21 @@ export default function Admin() {
                         {edit && edit._fila === u.id && (
                           <tr key={`${u.id}-edit`}>
                             <td style={td} colSpan={6}>
-                              <div style={{ background: '#f8fafc', borderRadius: 10, padding: 14, display: 'grid', gap: 12 }}>
+                              <div style={{ background: '#f7f6f3', borderRadius: 10, padding: 14, display: 'grid', gap: 12 }}>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 10 }}>
-                                  <label style={{ fontSize: 12, color: '#475569', fontWeight: 600 }}>
+                                  <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
                                     Nombre completo
                                     <input value={edit.nombre} onChange={(e) => setForm({ ...edit, nombre: e.target.value })} style={{ ...input, width: '100%', marginTop: 4 }} />
                                   </label>
-                                  <label style={{ fontSize: 12, color: '#475569', fontWeight: 600 }}>
+                                  <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
                                     Correo
                                     <input value={edit.email} onChange={(e) => setForm({ ...edit, email: e.target.value })} style={{ ...input, width: '100%', marginTop: 4 }} />
                                   </label>
-                                  <label style={{ fontSize: 12, color: '#475569', fontWeight: 600 }}>
+                                  <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
                                     Teléfono
                                     <input value={edit.telefono} onChange={(e) => setForm({ ...edit, telefono: e.target.value })} style={{ ...input, width: '100%', marginTop: 4 }} />
                                   </label>
-                                  <label style={{ fontSize: 12, color: '#475569', fontWeight: 600 }}>
+                                  <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
                                     Rol
                                     <select value={edit.role} onChange={(e) => setForm({ ...edit, role: e.target.value })} style={{ ...input, width: '100%', marginTop: 4 }}>
                                       {ROLES.map(([v, l]) => (
@@ -343,7 +344,7 @@ export default function Admin() {
                                   </label>
                                 </div>
                                 <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                                  <label style={{ fontSize: 12, color: '#475569', fontWeight: 600 }}>
+                                  <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
                                     Nueva contraseña
                                     <input
                                       type="password"
@@ -353,12 +354,12 @@ export default function Admin() {
                                       style={{ ...input, width: 220, marginTop: 4 }}
                                     />
                                   </label>
-                                  <button className="btn" onClick={guardarPassword} disabled={password.length < 6}>🔑 Cambiar contraseña</button>
-                                  <button className="btn" onClick={guardarUsuario}>💾 Guardar datos</button>
-                                  <button className="btn" onClick={cerrarEdicion} style={{ background: '#f1f5f9' }}>Cancelar</button>
+                                  <button className="btn" onClick={guardarPassword} disabled={password.length < 6}>llave Cambiar contraseña</button>
+                                  <button className="btn" onClick={guardarUsuario}><Icon name="guardar" size={16} /> Guardar datos</button>
+                                  <button className="btn" onClick={cerrarEdicion} style={{ background: '#f0eee9' }}>Cancelar</button>
                                 </div>
-                                {edit._error && <div style={{ fontSize: 12, color: '#b91c1c' }}>⚠️ {edit._error}</div>}
-                                {edit._mensaje && <div style={{ fontSize: 12, color: '#15803d' }}>✅ {edit._mensaje}</div>}
+                                {edit._error && <div style={{ fontSize: 12, color: '#c1122c' }}><Icon name="alerta" size={14} /> {edit._error}</div>}
+                                {edit._mensaje && <div style={{ fontSize: 12, color: '#0a6e4b' }}><Icon name="check" size={16} /> {edit._mensaje}</div>}
                               </div>
                             </td>
                           </tr>
@@ -368,7 +369,7 @@ export default function Admin() {
                   </tbody>
                 </table>
                 {!cargandoAdmin && lista.length === 0 && (
-                  <div style={{ padding: 24, textAlign: 'center', color: '#94a3b8' }}>Sin resultados.</div>
+                  <div style={{ padding: 24, textAlign: 'center', color: '#9c988e' }}>Sin resultados.</div>
                 )}
               </div>
             </div>
@@ -422,13 +423,13 @@ export default function Admin() {
                 />
                 <Badge tone="blue">{lista.length} estudiantes</Badge>
                 <Badge tone="red">{bloqueados} bloqueados</Badge>
-                <span style={{ fontSize: 11, color: '#94a3b8' }}>
+                <span style={{ fontSize: 11, color: '#9c988e' }}>
                   Bloquear a un estudiante deshabilita también su cuenta de acceso al campus; desbloquear se la
                   devuelve. Desde la pestaña Usuarios se controla la cuenta por separado.
                 </span>
               </div>
 
-              {cargandoAdmin && <div style={{ ...card, color: '#94a3b8', marginBottom: 14 }}>Cargando estudiantes…</div>}
+              {cargandoAdmin && <div style={{ ...card, color: '#9c988e', marginBottom: 14 }}>Cargando estudiantes…</div>}
 
               <div style={{ ...card, overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -445,12 +446,12 @@ export default function Admin() {
                           <td style={td}>
                             <strong>{e.nombre}</strong>
                             <br />
-                            <span style={{ fontSize: 11, color: '#94a3b8' }}>{e.id} · {e.documento}</span>
+                            <span style={{ fontSize: 11, color: '#9c988e' }}>{e.id} · {e.documento}</span>
                           </td>
                           <td style={td}>{e.programa}</td>
                           <td style={td}>{e.semestre}</td>
                           <td style={td}>{e.promedio}</td>
-                          <td style={td}>{e.usuario ? <Badge tone={e.usuarioActivo ? 'blue' : 'red'}>{e.usuario}</Badge> : <span style={{ color: '#94a3b8' }}>sin cuenta</span>}</td>
+                          <td style={td}>{e.usuario ? <Badge tone={e.usuarioActivo ? 'blue' : 'red'}>{e.usuario}</Badge> : <span style={{ color: '#9c988e' }}>sin cuenta</span>}</td>
                           <td style={td}>
                             <Badge tone={e.estado === 'bloqueado' ? 'red' : e.estado === 'matriculado' ? 'green' : 'amber'}>
                               {e.estado.replace('_', ' ')}
@@ -466,14 +467,14 @@ export default function Admin() {
                                   semestre: e.semestre, jornada: e.jornada || 'diurna', telefono: e.telefono || '', correo: e.correo || '',
                                 })}
                               >
-                                ✏️ Editar
+                                <Icon name="editar" size={16} /> Editar
                               </button>
                               <button
                                 className="btn"
-                                style={{ padding: '4px 9px', fontSize: 12, background: e.estado === 'bloqueado' ? '#dcfce7' : '#fee2e2', color: e.estado === 'bloqueado' ? '#15803d' : '#b91c1c', border: 'none' }}
+                                style={{ padding: '4px 9px', fontSize: 12, background: e.estado === 'bloqueado' ? '#d8f0e5' : '#ffe0e5', color: e.estado === 'bloqueado' ? '#0a6e4b' : '#c1122c', border: 'none' }}
                                 onClick={() => alternarBloqueo(e)}
                               >
-                                {e.estado === 'bloqueado' ? '✅ Desbloquear' : '🚫 Bloquear'}
+                                {e.estado === 'bloqueado' ? <><Icon name="check" size={16} /> Desbloquear</> : <><Icon name="bloqueado" size={16} /> Bloquear</>}
                               </button>
                             </div>
                           </td>
@@ -481,8 +482,8 @@ export default function Admin() {
                         {edit && edit._fila === e.id && (
                           <tr key={`${e.id}-edit`}>
                             <td style={td} colSpan={7}>
-                              <div style={{ background: '#f8fafc', borderRadius: 10, padding: 14, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
-                                <label style={{ fontSize: 12, color: '#475569', fontWeight: 600 }}>
+                              <div style={{ background: '#f7f6f3', borderRadius: 10, padding: 14, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+                                <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
                                   Estado
                                   <select value={edit.estado} onChange={(ev) => setForm({ ...edit, estado: ev.target.value })} style={{ ...input, width: '100%', marginTop: 4 }}>
                                     {ESTADOS_ESTUDIANTE.map((s) => (
@@ -490,7 +491,7 @@ export default function Admin() {
                                     ))}
                                   </select>
                                 </label>
-                                <label style={{ fontSize: 12, color: '#475569', fontWeight: 600 }}>
+                                <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
                                   Programa
                                   <select value={edit.programaId} onChange={(ev) => setForm({ ...edit, programaId: ev.target.value })} style={{ ...input, width: '100%', marginTop: 4 }}>
                                     {programas.map((p) => (
@@ -498,11 +499,11 @@ export default function Admin() {
                                     ))}
                                   </select>
                                 </label>
-                                <label style={{ fontSize: 12, color: '#475569', fontWeight: 600 }}>
+                                <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
                                   Semestre
                                   <input type="number" min={1} max={12} value={edit.semestre} onChange={(ev) => setForm({ ...edit, semestre: ev.target.value })} style={{ ...input, width: '100%', marginTop: 4 }} />
                                 </label>
-                                <label style={{ fontSize: 12, color: '#475569', fontWeight: 600 }}>
+                                <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
                                   Jornada
                                   <select value={edit.jornada} onChange={(ev) => setForm({ ...edit, jornada: ev.target.value })} style={{ ...input, width: '100%', marginTop: 4 }}>
                                     {['diurna', 'nocturna', 'sabado-matutina'].map((j) => (
@@ -510,17 +511,17 @@ export default function Admin() {
                                     ))}
                                   </select>
                                 </label>
-                                <label style={{ fontSize: 12, color: '#475569', fontWeight: 600 }}>
+                                <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
                                   Teléfono
                                   <input value={edit.telefono} onChange={(ev) => setForm({ ...edit, telefono: ev.target.value })} style={{ ...input, width: '100%', marginTop: 4 }} />
                                 </label>
-                                <label style={{ fontSize: 12, color: '#475569', fontWeight: 600 }}>
+                                <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
                                   Correo
                                   <input value={edit.correo} onChange={(ev) => setForm({ ...edit, correo: ev.target.value })} style={{ ...input, width: '100%', marginTop: 4 }} />
                                 </label>
                                 <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 10 }}>
-                                  <button className="btn" onClick={guardarEstudiante}>💾 Guardar cambios</button>
-                                  <button className="btn" onClick={cerrarEdicion} style={{ background: '#f1f5f9' }}>Cancelar</button>
+                                  <button className="btn" onClick={guardarEstudiante}><Icon name="guardar" size={16} /> Guardar cambios</button>
+                                  <button className="btn" onClick={cerrarEdicion} style={{ background: '#f0eee9' }}>Cancelar</button>
                                 </div>
                               </div>
                             </td>
@@ -531,7 +532,7 @@ export default function Admin() {
                   </tbody>
                 </table>
                 {!cargandoAdmin && lista.length === 0 && (
-                  <div style={{ padding: 24, textAlign: 'center', color: '#94a3b8' }}>Sin resultados.</div>
+                  <div style={{ padding: 24, textAlign: 'center', color: '#9c988e' }}>Sin resultados.</div>
                 )}
               </div>
             </div>
@@ -565,7 +566,7 @@ export default function Admin() {
                       return (
                         <React.Fragment key={p.id}>
                         <tr>
-                          <td style={td}><strong>{p.icon} {p.nombre}</strong><br /><span style={{ fontSize: 11, color: '#94a3b8' }}>SNIES {p.snies}</span></td>
+                          <td style={td}><strong><Ico name={p.icon} size={14} /> {p.nombre}</strong><br /><span style={{ fontSize: 11, color: '#9c988e' }}>SNIES {p.snies}</span></td>
                           <td style={td}><Badge tone="blue">{mod?.nombre}</Badge></td>
                           <td style={td}>{p.facultad}</td>
                           <td style={td}>{p.semestres}</td>
@@ -584,31 +585,31 @@ export default function Admin() {
                                 semestres: p.semestres, creditos: p.creditos, jornada: p.jornada || 'diurna',
                               })}
                             >
-                              ✏️ Ajustar
+                              <Icon name="editar" size={16} /> Ajustar
                             </button>
                           </td>
                         </tr>
                         {edit && edit._fila === p.id && (
                           <tr>
                             <td style={td} colSpan={9}>
-                              <div style={{ background: '#f8fafc', borderRadius: 10, padding: 14, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
-                                <label style={{ fontSize: 12, color: '#475569', fontWeight: 600 }}>
+                              <div style={{ background: '#f7f6f3', borderRadius: 10, padding: 14, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
+                                <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
                                   Cupo
                                   <input type="number" min={0} value={edit.cupo} onChange={(e) => setForm({ ...edit, cupo: e.target.value })} style={{ ...input, width: '100%', marginTop: 4 }} />
                                 </label>
-                                <label style={{ fontSize: 12, color: '#475569', fontWeight: 600 }}>
+                                <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
                                   Matriculados
                                   <input type="number" min={0} value={edit.matriculados} onChange={(e) => setForm({ ...edit, matriculados: e.target.value })} style={{ ...input, width: '100%', marginTop: 4 }} />
                                 </label>
-                                <label style={{ fontSize: 12, color: '#475569', fontWeight: 600 }}>
+                                <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
                                   Semestres
                                   <input type="number" min={1} value={edit.semestres} onChange={(e) => setForm({ ...edit, semestres: e.target.value })} style={{ ...input, width: '100%', marginTop: 4 }} />
                                 </label>
-                                <label style={{ fontSize: 12, color: '#475569', fontWeight: 600 }}>
+                                <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
                                   Créditos
                                   <input type="number" min={0} value={edit.creditos} onChange={(e) => setForm({ ...edit, creditos: e.target.value })} style={{ ...input, width: '100%', marginTop: 4 }} />
                                 </label>
-                                <label style={{ fontSize: 12, color: '#475569', fontWeight: 600 }}>
+                                <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
                                   Jornada
                                   <select value={edit.jornada} onChange={(e) => setForm({ ...edit, jornada: e.target.value })} style={{ ...input, width: '100%', marginTop: 4 }}>
                                     {['diurna', 'nocturna', 'sabado-matutina'].map((j) => (
@@ -629,9 +630,9 @@ export default function Admin() {
                                       }
                                     }}
                                   >
-                                    💾 Guardar
+                                    <Icon name="guardar" size={16} /> Guardar
                                   </button>
-                                  <button className="btn" onClick={cerrarEdicion} style={{ background: '#f1f5f9' }}>Cancelar</button>
+                                  <button className="btn" onClick={cerrarEdicion} style={{ background: '#f0eee9' }}>Cancelar</button>
                                 </div>
                               </div>
                             </td>
@@ -656,29 +657,29 @@ export default function Admin() {
           return (
             <div>
               <div style={{ ...card, display: 'flex', gap: 10, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b' }}>Programa:</span>
-                <select value={progSel} onChange={(e) => setProgSel(Number(e.target.value))} style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#6f6b62' }}>Programa:</span>
+                <select value={progSel} onChange={(e) => setProgSel(Number(e.target.value))} style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #cdc9bf' }}>
                   {programas.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
                 </select>
                 <Badge tone="purple">{mias.length} asignaturas</Badge>
                 <Badge tone="blue">{mias.reduce((a, m) => a + m.creditos, 0)} créditos</Badge>
-                <span style={{ fontSize: 11, color: '#94a3b8' }}>Modo consulta: la matrícula la realiza el estudiante en /matricula</span>
+                <span style={{ fontSize: 11, color: '#9c988e' }}>Modo consulta: la matrícula la realiza el estudiante en /matricula</span>
               </div>
 
               {porSem.map((ms, i) => (
                 <div key={i} style={{ ...card, marginBottom: 10 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
                     <span style={{ fontWeight: 800, fontSize: 14 }}>Semestre {i + 1}</span>
-                    <span style={{ fontSize: 12, color: '#64748b', fontWeight: 700 }}>
+                    <span style={{ fontSize: 12, color: '#6f6b62', fontWeight: 700 }}>
                       {ms.length} materias · {ms.reduce((a, m) => a + m.creditos, 0)} cr
                     </span>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 8 }}>
                     {ms.map((m) => (
-                      <div key={m.id} style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 10px' }}>
+                      <div key={m.id} style={{ border: '1px solid #e5e2da', borderRadius: 8, padding: '8px 10px' }}>
                         <div style={{ fontSize: 12, fontWeight: 700 }}>{m.codigo}</div>
-                        <div style={{ fontSize: 12, color: '#334155' }}>{m.nombre}</div>
-                        <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{m.creditos} cr · {m.area}</div>
+                        <div style={{ fontSize: 12, color: '#3a3630' }}>{m.nombre}</div>
+                        <div style={{ fontSize: 11, color: '#9c988e', marginTop: 2 }}>{m.creditos} cr · {m.area}</div>
                       </div>
                     ))}
                   </div>
@@ -692,7 +693,7 @@ export default function Admin() {
           return (
             <div style={card}>
               <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 4 }}>Planta docente</div>
-              <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 14 }}>
+              <div style={{ fontSize: 12, color: '#9c988e', marginBottom: 14 }}>
                 Carga académica estimada según las asignaturas del pensum que tienen asignadas. La categoría y el
                 estado se editan aquí; el reparto de cursos por docente se hace en la pestaña
                 <strong> Asignación docente</strong>.
@@ -717,7 +718,7 @@ export default function Admin() {
                       return (
                         <React.Fragment key={d.id}>
                         <tr>
-                          <td style={td}><strong>{d.nombre}</strong><br /><span style={{ fontSize: 11, color: '#94a3b8' }}>{d.titulo}</span></td>
+                          <td style={td}><strong>{d.nombre}</strong><br /><span style={{ fontSize: 11, color: '#9c988e' }}>{d.titulo}</span></td>
                           <td style={td}>{d.area}</td>
                           <td style={td}><Badge>{d.categoria}</Badge></td>
                           <td style={td}>{asignadas.length}</td>
@@ -733,19 +734,19 @@ export default function Admin() {
                               style={{ padding: '4px 9px', fontSize: 12 }}
                               onClick={() => abrirEdicion(`d-${d.id}`, { _id: d.id, _fila: d.id, categoria: d.categoria || '', estado: d.estado, area: d.area || '' })}
                             >
-                              ✏️
+                              <Icon name="editar" size={16} />
                             </button>
                           </td>
                         </tr>
                         {edit && edit._fila === d.id && (
                           <tr>
                             <td style={td} colSpan={7}>
-                              <div style={{ background: '#f8fafc', borderRadius: 10, padding: 14, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                                <label style={{ fontSize: 12, color: '#475569', fontWeight: 600 }}>
+                              <div style={{ background: '#f7f6f3', borderRadius: 10, padding: 14, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                                <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
                                   Área
                                   <input value={edit.area} onChange={(e) => setForm({ ...edit, area: e.target.value })} style={{ ...input, width: 200, marginTop: 4 }} />
                                 </label>
-                                <label style={{ fontSize: 12, color: '#475569', fontWeight: 600 }}>
+                                <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
                                   Categoría
                                   <select value={edit.categoria} onChange={(e) => setForm({ ...edit, categoria: e.target.value })} style={{ ...input, marginTop: 4 }}>
                                     {['Docente titular', 'Catedrático', 'Contratista', 'Adjunto', 'Asistente'].map((c) => (
@@ -753,7 +754,7 @@ export default function Admin() {
                                     ))}
                                   </select>
                                 </label>
-                                <label style={{ fontSize: 12, color: '#475569', fontWeight: 600 }}>
+                                <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
                                   Estado
                                   <select value={edit.estado} onChange={(e) => setForm({ ...edit, estado: e.target.value })} style={{ ...input, marginTop: 4 }}>
                                     {['activo', 'permensa', 'jubilado', 'retirado'].map((s) => (
@@ -773,9 +774,9 @@ export default function Admin() {
                                     }
                                   }}
                                 >
-                                  💾 Guardar
+                                  <Icon name="guardar" size={16} /> Guardar
                                 </button>
-                                <button className="btn" onClick={cerrarEdicion} style={{ background: '#f1f5f9' }}>Cancelar</button>
+                                <button className="btn" onClick={cerrarEdicion} style={{ background: '#f0eee9' }}>Cancelar</button>
                               </div>
                             </td>
                           </tr>
@@ -798,7 +799,7 @@ export default function Admin() {
           return (
             <div style={card}>
               <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 4 }}>Estructura de la matrícula</div>
-              <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 14 }}>
+              <div style={{ fontSize: 12, color: '#9c988e', marginBottom: 14 }}>
                 Distribución de asignaturas y créditos por programa. Para matricular hay que usar el flujo del estudiante.
               </div>
               <div style={{ overflowX: 'auto' }}>

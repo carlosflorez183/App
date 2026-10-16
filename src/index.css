@@ -1,10 +1,18 @@
 /* =============================================
    UniPlataforma — Main Stylesheet
+   Identidad CUL · azul marino #00116F · rojo #FF314D
    ============================================= */
 @import './assets/css/uni.css';
 @import './assets/css/main.css';
 @import './assets/css/matricula.css';
 @import './assets/css/curso.css';
+
+/* Textura sutil de papel (humaniza el fondo frío de dashboard) */
+body {
+  background-color: var(--paper, #f6f4ef);
+  background-image: radial-gradient(rgba(0,17,111,.035) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
 
 /* Animaciones y utilidades de transición */
 .fade-in {
@@ -20,7 +28,7 @@
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.6);
+  background: rgba(0, 11, 71, 0.55);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
@@ -31,10 +39,10 @@
 
 .modal-content {
   background: #ffffff;
-  border-radius: 16px;
+  border-radius: 18px;
   max-width: 540px;
   width: 100%;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 30px 70px -24px rgba(0, 11, 71, 0.55);
   overflow: hidden;
   animation: fadeIn 0.2s ease-out;
 }

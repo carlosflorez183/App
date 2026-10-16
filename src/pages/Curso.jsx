@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import Icon from '../components/Icon';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { formatDate, formatDateTime } from '../data/mockData';
@@ -26,24 +27,24 @@ import {
   retirarEstudiante,
 } from '../api/client';
 
-const th = { padding: '10px 12px', fontSize: 12, fontWeight: 700, color: '#64748b', borderBottom: '1px solid #e2e8f0', textAlign: 'left' };
-const td = { padding: '10px 12px', fontSize: 13, borderBottom: '1px solid #f1f5f9' };
-const inputCss = { padding: '8px 10px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13, background: '#fff', width: '100%' };
-const labelCss = { fontSize: 11, fontWeight: 700, color: '#64748b', display: 'block', marginBottom: 4 };
+const th = { padding: '10px 12px', fontSize: 12, fontWeight: 700, color: '#6f6b62', borderBottom: '1px solid #e5e2da', textAlign: 'left' };
+const td = { padding: '10px 12px', fontSize: 13, borderBottom: '1px solid #f0eee9' };
+const inputCss = { padding: '8px 10px', borderRadius: 8, border: '1px solid #cdc9bf', fontSize: 13, background: '#fff', width: '100%' };
+const labelCss = { fontSize: 11, fontWeight: 700, color: '#6f6b62', display: 'block', marginBottom: 4 };
 
 /* Los mismos tres estados del módulo Docente, para que el docente no tenga
    que aprender dos vocabularios distintos. */
 const ESTADOS = [
-  ['presente', 'Presente', '#15803d', '#dcfce7'],
-  ['tardanza', 'Tardanza', '#b45309', '#fef3c7'],
-  ['ausente', 'Ausente', '#b91c1c', '#fee2e2'],
+  ['presente', 'Presente', '#0a6e4b', '#d8f0e5'],
+  ['tardanza', 'Tardanza', '#99610e', '#fbefd6'],
+  ['ausente', 'Ausente', '#c1122c', '#ffe0e5'],
 ];
 
 const Aviso = ({ children, tone = 'red' }) => {
   if (!children) return null;
   const estilo = tone === 'red'
-    ? { background: '#fee2e2', color: '#991b1b', borderColor: '#fecaca' }
-    : { background: '#dcfce7', color: '#166534', borderColor: '#bbf7d0' };
+    ? { background: '#ffe0e5', color: '#8f0d22', borderColor: '#f4c2ca' }
+    : { background: '#d8f0e5', color: '#0a5c40', borderColor: '#b6e3cf' };
   return (
     <div style={{ ...estilo, border: '1px solid', borderRadius: 10, padding: '9px 12px', fontSize: 12, fontWeight: 600, marginBottom: 12 }}>
       {children}
@@ -658,22 +659,22 @@ export default function Curso() {
   const getTipoIconAndColor = (tipo) => {
     switch (tipo) {
       case 'taller':
-        return { ic: '🔧', bg: '#dbeafe' };
+        return { ic: <Icon name="config" size={16} />, bg: '#e3f1ff' };
       case 'proyecto':
-        return { ic: '📋', bg: '#ede9fe' };
+        return { ic: '', bg: '#efe9fb' };
       case 'quiz':
-        return { ic: '❓', bg: '#fef9c3' };
+        return { ic: '', bg: '#fbefd6' };
       case 'informe':
-        return { ic: '📝', bg: '#dcfce7' };
+        return { ic: <Icon name="cuaderno" size={16} />, bg: '#d8f0e5' };
       case 'parcial':
-        return { ic: '📄', bg: '#ffedd5' };
+        return { ic: <Icon name="archivo" size={16} />, bg: '#fbe9d8' };
       default:
-        return { ic: '✅', bg: '#f1f5f9' };
+        return { ic: <Icon name="check" size={16} />, bg: '#f0eee9' };
     }
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc' }}>
+    <div style={{ minHeight: '100vh', background: '#f7f6f3' }}>
       {/* ═══════ TOPBAR EXACTO ═══════ */}
       <div className="pg-top">
         <div className="pg-top-inner">
@@ -684,14 +685,14 @@ export default function Curso() {
           <div className="breadcrumb">
             <span
               onClick={() => navigate('/dashboard')}
-              style={{ cursor: 'pointer', color: '#64748b' }}
+              style={{ cursor: 'pointer', color: '#6f6b62' }}
             >
               Inicio
             </span>
             <span>›</span>
             <span
               onClick={() => navigate('/dashboard')}
-              style={{ cursor: 'pointer', color: '#64748b' }}
+              style={{ cursor: 'pointer', color: '#6f6b62' }}
             >
               Campus Virtual
             </span>
@@ -704,15 +705,15 @@ export default function Curso() {
               display: 'flex',
               alignItems: 'center',
               gap: 7,
-              background: '#f1f5f9',
-              border: '1px solid #e2e8f0',
+              background: '#f0eee9',
+              border: '1px solid #e5e2da',
               borderRadius: 8,
               padding: '5px 12px'
             }}>
               <div className="hdr-av av-blue">
                 {user?.avatar || 'CA'}
               </div>
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#334155' }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#3a3630' }}>
                 {user?.name ? user.name.split(' ')[0] : 'Carlos'}
               </span>
             </div>
@@ -721,7 +722,7 @@ export default function Curso() {
       </div>
 
       {/* ═══════ HERO BANNER PURPURA EXACTO ═══════ */}
-      <div className="curso-hero" style={{ background: curso.color || 'linear-gradient(135deg,#6d28d9,#8b5cf6)' }}>
+      <div className="curso-hero" style={{ background: curso.color || 'linear-gradient(135deg,#5a37ad,#8a5cf0)' }}>
         <div className="hero-inner">
           <div className="hero-top">
             <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
@@ -729,7 +730,7 @@ export default function Curso() {
                   `icono`. Sin las dos opciones el ícono desaparece al cargar
                   los datos reales. */}
               <div className="hero-ic-box">
-                {curso.icono || curso.icon || '📘'}
+                {curso.icono || curso.icon || 'libro'}
               </div>
               <div className="hero-info">
                 <div className="hero-tags">
@@ -741,16 +742,16 @@ export default function Curso() {
                 </div>
                 <div className="hero-name">{curso.nombre}</div>
                 <div className="hero-meta">
-                👤 {curso.profesor} &nbsp;·&nbsp; 👥 {curso.estudiantes} estudiantes
+                <Icon name="usuario" size={16} /> {curso.profesor} &nbsp;·&nbsp; <Icon name="usuarios" size={16} /> {curso.estudiantes} estudiantes
                 </div>
               </div>
             </div>
             <div className="hero-btns">
               <button className="hero-btn" onClick={() => setActiveTab('asistencia')}>
-                📋 Asistencia
+                 Asistencia
               </button>
               <button className="hero-btn" onClick={() => setActiveTab('estudiantes')}>
-                👥 Estudiantes
+                <Icon name="usuarios" size={16} /> Estudiantes
               </button>
             </div>
           </div>
@@ -792,55 +793,55 @@ export default function Curso() {
             className={`ct-btn ${activeTab === 'inicio' ? 'active' : ''}`}
             onClick={() => setActiveTab('inicio')}
           >
-            🏠 Inicio
+            <Icon name="home" size={16} /> Inicio
           </button>
           <button
             className={`ct-btn ${activeTab === 'corte1' ? 'active' : ''}`}
             onClick={() => setActiveTab('corte1')}
           >
-            🟩 Corte 1
+             Corte 1
           </button>
           <button
             className={`ct-btn ${activeTab === 'corte2' ? 'active' : ''}`}
             onClick={() => setActiveTab('corte2')}
           >
-            🟦 Corte 2
+             Corte 2
           </button>
           <button
             className={`ct-btn ${activeTab === 'corte3' ? 'active' : ''}`}
             onClick={() => setActiveTab('corte3')}
           >
-            🟧 Corte 3
+             Corte 3
           </button>
           <button
             className={`ct-btn ${activeTab === 'notas' ? 'active' : ''}`}
             onClick={() => setActiveTab('notas')}
           >
-            ⭐ Notas
+            <Icon name="estrella" size={16} /> Notas
           </button>
           <button
             className={`ct-btn ${activeTab === 'asistencia' ? 'active' : ''}`}
             onClick={() => setActiveTab('asistencia')}
           >
-            📋 Asistencia
+             Asistencia
           </button>
           <button
             className={`ct-btn ${activeTab === 'foro' ? 'active' : ''}`}
             onClick={() => setActiveTab('foro')}
           >
-            💬 Foro
+            <Icon name="mensaje" size={16} /> Foro
           </button>
           <button
             className={`ct-btn ${activeTab === 'estudiantes' ? 'active' : ''}`}
             onClick={() => setActiveTab('estudiantes')}
           >
-            👥 Estudiantes
+            <Icon name="usuarios" size={16} /> Estudiantes
           </button>
           <button
             className={`ct-btn ${activeTab === 'recursos' ? 'active' : ''}`}
             onClick={() => setActiveTab('recursos')}
           >
-            📁 Recursos
+            <Icon name="carpeta" size={16} /> Recursos
           </button>
         </div>
       </div>
@@ -882,8 +883,8 @@ export default function Curso() {
                     {ic}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <h3 style={{ fontSize: 17, fontWeight: 800, color: '#0f172a', margin: 0 }}>{act.titulo}</h3>
-                    <p style={{ fontSize: 13, color: '#475569', margin: '6px 0 0', lineHeight: 1.5 }}>
+                    <h3 style={{ fontSize: 17, fontWeight: 800, color: '#14110c', margin: 0 }}>{act.titulo}</h3>
+                    <p style={{ fontSize: 13, color: '#4e4a43', margin: '6px 0 0', lineHeight: 1.5 }}>
                       {act.descripcion}
                     </p>
                     <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
@@ -913,14 +914,14 @@ export default function Curso() {
               {(act.archivo || puedeEditar) && (
                 <div className="card" style={{ marginBottom: 14 }}>
                   <div className="card-hd">
-                    <span className="card-ttl">📎 Material de apoyo</span>
+                    <span className="card-ttl"><Icon name="archivo" size={16} /> Material de apoyo</span>
                   </div>
                   <div className="card-bd" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                     {act.archivo ? (
                       <>
                         <span style={{ fontSize: 13 }}>{act.archivo}</span>
                         {act.archivoTamano ? (
-                          <span style={{ fontSize: 11, color: '#94a3b8' }}>{Math.round(act.archivoTamano / 1024)} KB</span>
+                          <span style={{ fontSize: 11, color: '#9c988e' }}>{Math.round(act.archivoTamano / 1024)} KB</span>
                         ) : null}
                         <button
                           type="button"
@@ -933,7 +934,7 @@ export default function Curso() {
                         </button>
                       </>
                     ) : (
-                      <span style={{ fontSize: 13, color: '#94a3b8' }}>Todavía no hay material de apoyo.</span>
+                      <span style={{ fontSize: 13, color: '#9c988e' }}>Todavía no hay material de apoyo.</span>
                     )}
                     {puedeEditar && (
                       <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer', marginLeft: 'auto' }}>
@@ -958,12 +959,12 @@ export default function Curso() {
               {parcial && (act.preguntas || []).length > 0 && (
                 <div className="card" style={{ marginBottom: 14 }}>
                   <div className="card-hd">
-                    <span className="card-ttl">📝 Preguntas del parcial</span>
+                    <span className="card-ttl"><Icon name="cuaderno" size={16} /> Preguntas del parcial</span>
                   </div>
                   <div className="card-bd">
                     {act.preguntas.map((p, i) => (
-                      <div key={p.id} style={{ padding: '10px 0', borderBottom: i < act.preguntas.length - 1 ? '1px solid #f1f5f9' : 0 }}>
-                        <p style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', margin: '0 0 6px' }}>
+                      <div key={p.id} style={{ padding: '10px 0', borderBottom: i < act.preguntas.length - 1 ? '1px solid #f0eee9' : 0 }}>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: '#14110c', margin: '0 0 6px' }}>
                           {i + 1}. {p.enunciado}
                         </p>
                         <ol style={{ margin: 0, paddingLeft: 20 }}>
@@ -971,11 +972,11 @@ export default function Curso() {
                             <li
                               key={k}
                               style={{
-                                fontSize: 12, color: k === p.correcta ? '#15803d' : '#475569',
+                                fontSize: 12, color: k === p.correcta ? '#0a6e4b' : '#4e4a43',
                                 fontWeight: k === p.correcta ? 700 : 400,
                               }}
                             >
-                              {o} {k === p.correcta && '✓ correcta'}
+                              {o} {k === p.correcta && <><Icon name="check" size={14} /> correcta</>}
                             </li>
                           ))}
                         </ol>
@@ -989,12 +990,12 @@ export default function Curso() {
               <div className="card">
                 <div className="card-hd">
                   <span className="card-ttl">
-                    📬 Entregas de esta actividad ({detalleEntregas.length})
+                    correo Entregas de esta actividad ({detalleEntregas.length})
                   </span>
                 </div>
                 <div className="card-bd">
                   {detalleEntregas.length === 0 ? (
-                    <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>
+                    <p style={{ fontSize: 13, color: '#6f6b62', margin: 0 }}>
                       Todavia nadie ha entregado esta actividad.
                     </p>
                   ) : (
@@ -1008,7 +1009,7 @@ export default function Curso() {
                         <div
                           key={e.estudianteId}
                           style={{
-                            borderBottom: '1px solid #f1f5f9',
+                            borderBottom: '1px solid #f0eee9',
                             display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
                             padding: '10px 2px',
                           }}
@@ -1022,19 +1023,19 @@ export default function Curso() {
                               padding: '3px 0', background: 'none', border: 0, cursor: 'pointer', textAlign: 'left',
                             }}
                           >
-                            <strong style={{ fontSize: 14, color: '#0f172a' }}>{e.estudiante?.nombre}</strong>
-                            <span style={{ fontSize: 11, color: '#94a3b8' }}>{e.estudiante?.documento}</span>
+                            <strong style={{ fontSize: 14, color: '#14110c' }}>{e.estudiante?.nombre}</strong>
+                            <span style={{ fontSize: 11, color: '#9c988e' }}>{e.estudiante?.documento}</span>
                             {parcial && (
                               <span className={`bs ${e.aciertos === e.total ? 'bg-g' : 'bg-y'}`}>
                                 {e.aciertos}/{e.total} correctas
                               </span>
                             )}
-                            {e.archivo && <span style={{ fontSize: 11, color: '#64748b' }}>📎 {e.archivo}</span>}
+                            {e.archivo && <span style={{ fontSize: 11, color: '#6f6b62' }}><Icon name="archivo" size={16} /> {e.archivo}</span>}
                             <span style={{ flex: 1 }} />
-                            <span style={{ fontSize: 11, color: '#94a3b8' }}>
+                            <span style={{ fontSize: 11, color: '#9c988e' }}>
                               {e.entregadoEn ? formatDate(e.entregadoEn) : 'sin fecha'}
                             </span>
-                            <span style={{ fontSize: 12, color: '#1e3a8a', fontWeight: 700 }}>Ver entrega →</span>
+                            <span style={{ fontSize: 12, color: '#00116f', fontWeight: 700 }}>Ver entrega →</span>
                           </button>
                           {puedeEditar && (
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1053,10 +1054,10 @@ export default function Curso() {
                                 onKeyDown={(ev) => { if (ev.key === 'Enter') ev.currentTarget.blur(); }}
                                 style={{
                                   width: 74, padding: '7px 9px', borderRadius: 8,
-                                  border: '1px solid #cbd5e1', textAlign: 'center', fontWeight: 700,
+                                  border: '1px solid #cdc9bf', textAlign: 'center', fontWeight: 700,
                                 }}
                               />
-                              <span style={{ fontSize: 11, color: '#64748b' }}>/ {act.puntos}</span>
+                              <span style={{ fontSize: 11, color: '#6f6b62' }}>/ {act.puntos}</span>
                             </div>
                           )}
                         </div>
@@ -1086,7 +1087,7 @@ export default function Curso() {
                   ← Volver a la actividad
                 </button>
                 <div className="card" style={{ padding: 18 }}>
-                  <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>
+                  <p style={{ fontSize: 13, color: '#6f6b62', margin: 0 }}>
                     Este estudiante todavia no ha entregado {act.titulo}.
                   </p>
                 </div>
@@ -1102,12 +1103,12 @@ export default function Curso() {
 
               <div className="card" style={{ padding: 20, marginBottom: 14 }}>
                 <div className="card-hd">
-                  <span className="card-ttl">📄 {e.estudiante?.nombre}</span>
-                  <span style={{ fontSize: 11, color: '#94a3b8' }}>
+                  <span className="card-ttl"><Icon name="archivo" size={16} /> {e.estudiante?.nombre}</span>
+                  <span style={{ fontSize: 11, color: '#9c988e' }}>
                     {e.estudiante?.documento} · {e.entregadoEn ? formatDate(e.entregadoEn) : 'sin fecha'}
                   </span>
                 </div>
-                <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 10px' }}>
+                <p style={{ fontSize: 12, color: '#6f6b62', margin: '0 0 10px' }}>
                   Entrega de <strong>{act.titulo}</strong> · Corte {act.corte} · {act.puntos} pts
                 </p>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -1125,12 +1126,12 @@ export default function Curso() {
               {e.archivo && (
                 <div className="card" style={{ marginBottom: 14 }}>
                   <div className="card-hd">
-                    <span className="card-ttl">📎 Archivo entregado</span>
+                    <span className="card-ttl"><Icon name="archivo" size={16} /> Archivo entregado</span>
                   </div>
                   <div className="card-bd" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 13 }}>{e.archivo}</span>
                     {e.archivoTamano ? (
-                      <span style={{ fontSize: 11, color: '#94a3b8' }}>{(e.archivoTamano / 1024).toFixed(0)} KB</span>
+                      <span style={{ fontSize: 11, color: '#9c988e' }}>{(e.archivoTamano / 1024).toFixed(0)} KB</span>
                     ) : null}
                     <button
                       type="button"
@@ -1147,10 +1148,10 @@ export default function Curso() {
               {e.contenido && (
                 <div className="card" style={{ marginBottom: 14 }}>
                   <div className="card-hd">
-                    <span className="card-ttl">✍️ Respuesta escrita</span>
+                    <span className="card-ttl"><Icon name="editar" size={16} /> Respuesta escrita</span>
                   </div>
                   <div className="card-bd">
-                    <p style={{ fontSize: 13, color: '#475569', margin: 0, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                    <p style={{ fontSize: 13, color: '#4e4a43', margin: 0, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
                       {e.contenido}
                     </p>
                   </div>
@@ -1162,7 +1163,7 @@ export default function Curso() {
               {parcial && (act.preguntas || []).length > 0 && (
                 <div className="card" style={{ marginBottom: 14 }}>
                   <div className="card-hd">
-                    <span className="card-ttl">📝 {act.titulo}</span>
+                    <span className="card-ttl"><Icon name="cuaderno" size={16} /> {act.titulo}</span>
                     <span className={`bs ${e.aciertos === e.total ? 'bg-g' : 'bg-y'}`}>
                       {e.aciertos} de {e.total}
                     </span>
@@ -1177,10 +1178,10 @@ export default function Curso() {
                           key={p.id}
                           style={{
                             padding: '14px 0',
-                            borderBottom: i < act.preguntas.length - 1 ? '1px solid #f1f5f9' : 0,
+                            borderBottom: i < act.preguntas.length - 1 ? '1px solid #f0eee9' : 0,
                           }}
                         >
-                          <p style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', margin: '0 0 10px' }}>
+                          <p style={{ fontSize: 13, fontWeight: 700, color: '#14110c', margin: '0 0 10px' }}>
                             {i + 1}. {p.enunciado}
                           </p>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -1191,19 +1192,19 @@ export default function Curso() {
                                  verdadera, para leer el resultado de un
                                  vistazo: verde si acierta, roja si fallo. */
                               const fondo = elegida && esLaCorrecta
-                                ? '#f0fdf4'
+                                ? '#e9f7f1'
                                 : elegida
-                                  ? '#fef2f2'
+                                  ? '#fff1f3'
                                   : esLaCorrecta
-                                    ? '#f0fdf4'
+                                    ? '#e9f7f1'
                                     : '#fff';
                               const borde = elegida && esLaCorrecta
-                                ? '#22c55e'
+                                ? '#17a06d'
                                 : elegida
-                                  ? '#ef4444'
+                                  ? '#ff314d'
                                   : esLaCorrecta
-                                    ? '#86efac'
-                                    : '#e2e8f0';
+                                    ? '#a7e3c8'
+                                    : '#e5e2da';
                               return (
                                 <div
                                   key={k}
@@ -1217,20 +1218,20 @@ export default function Curso() {
                                     width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     fontSize: 11, fontWeight: 800,
-                                    background: elegida ? (esLaCorrecta ? '#16a34a' : '#dc2626') : '#f1f5f9',
-                                    color: elegida ? '#fff' : '#64748b',
+                                    background: elegida ? (esLaCorrecta ? '#0e8a5f' : '#d2233c') : '#f0eee9',
+                                    color: elegida ? '#fff' : '#6f6b62',
                                   }}>
                                     {String.fromCharCode(65 + k)}
                                   </span>
-                                  <span style={{ flex: 1, fontSize: 13, color: '#334155' }}>{o}</span>
+                                  <span style={{ flex: 1, fontSize: 13, color: '#3a3630' }}>{o}</span>
                                   {elegida && (
-                                    <span style={{ fontSize: 11, fontWeight: 800, color: esLaCorrecta ? '#15803d' : '#b91c1c' }}>
-                                      {esLaCorrecta ? '✓ Correcta' : '✗ Incorrecta'}
+                                    <span style={{ fontSize: 11, fontWeight: 800, color: esLaCorrecta ? '#0a6e4b' : '#c1122c' }}>
+                                      {esLaCorrecta ? <><Icon name="check" size={14} /> Correcta</> : <><Icon name="x" size={14} /> Incorrecta</>}
                                     </span>
                                   )}
                                   {!elegida && esLaCorrecta && (
-                                    <span style={{ fontSize: 11, fontWeight: 800, color: '#15803d' }}>
-                                      ✓ Era la correcta
+                                    <span style={{ fontSize: 11, fontWeight: 800, color: '#0a6e4b' }}>
+                                      <Icon name="check" size={14} /> Era la correcta
                                     </span>
                                   )}
                                 </div>
@@ -1239,7 +1240,7 @@ export default function Curso() {
                           </div>
                           <p style={{
                             fontSize: 12, margin: '8px 0 0', fontWeight: 700,
-                            color: !respondio ? '#94a3b8' : acertó ? '#15803d' : '#b91c1c',
+                            color: !respondio ? '#9c988e' : acertó ? '#0a6e4b' : '#c1122c',
                           }}>
                             {!respondio
                               ? 'Sin responder'
@@ -1257,10 +1258,10 @@ export default function Curso() {
               {e.comentario && (
                 <div className="card" style={{ marginBottom: 14 }}>
                   <div className="card-hd">
-                    <span className="card-ttl">💬 Comentario del docente</span>
+                    <span className="card-ttl"><Icon name="mensaje" size={16} /> Comentario del docente</span>
                   </div>
                   <div className="card-bd">
-                    <p style={{ fontSize: 13, color: '#1e3a8a', margin: 0, fontStyle: 'italic' }}>{e.comentario}</p>
+                    <p style={{ fontSize: 13, color: '#00116f', margin: 0, fontStyle: 'italic' }}>{e.comentario}</p>
                   </div>
                 </div>
               )}
@@ -1269,7 +1270,7 @@ export default function Curso() {
               {puedeEditar && (
                 <div className="card" style={{ padding: 20 }}>
                   <div className="card-hd">
-                    <span className="card-ttl">✍️ Calificar esta entrega</span>
+                    <span className="card-ttl"><Icon name="editar" size={16} /> Calificar esta entrega</span>
                   </div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                     <input
@@ -1317,32 +1318,32 @@ export default function Curso() {
 
               <div className="card" style={{ marginBottom: 14 }}>
                 <div className="card-hd">
-                  <span className="card-ttl">💬 {hiloAbierto}</span>
-                  <span style={{ fontSize: 11, color: '#94a3b8' }}>
+                  <span className="card-ttl"><Icon name="mensaje" size={16} /> {hiloAbierto}</span>
+                  <span style={{ fontSize: 11, color: '#9c988e' }}>
                     {delTema.length} mensaje{delTema.length === 1 ? '' : 's'}
                   </span>
                 </div>
                 <div>
                   {delTema.length === 0 ? (
-                    <p style={{ padding: 18, fontSize: 13, color: '#64748b', margin: 0 }}>
+                    <p style={{ padding: 18, fontSize: 13, color: '#6f6b62', margin: 0 }}>
                       Este tema todavia no tiene mensajes.
                     </p>
                   ) : (
                     delTema.map((m) => (
-                      <div key={m.id} style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9' }}>
+                      <div key={m.id} style={{ padding: '14px 16px', borderBottom: '1px solid #f0eee9' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                           <span style={{
-                            background: '#eef2ff', color: '#4338ca', width: 28, height: 28, borderRadius: '50%',
+                            background: '#edf1ff', color: '#0a2fb0', width: 28, height: 28, borderRadius: '50%',
                             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, flexShrink: 0,
                           }}>
                             {(m.autor || '?').split(' ').map((x) => x[0]).slice(0, 2).join('')}
                           </span>
                           <div>
-                            <p style={{ fontSize: 13, fontWeight: 700, color: '#1e293b', margin: 0 }}>{m.autor}</p>
-                            <p style={{ fontSize: 11, color: '#94a3b8', margin: 0 }}>{formatDate(m.fecha)}</p>
+                            <p style={{ fontSize: 13, fontWeight: 700, color: '#211d17', margin: 0 }}>{m.autor}</p>
+                            <p style={{ fontSize: 11, color: '#9c988e', margin: 0 }}>{formatDate(m.fecha)}</p>
                           </div>
                         </div>
-                        <p style={{ fontSize: 13, color: '#475569', margin: '8px 0 0', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                        <p style={{ fontSize: 13, color: '#4e4a43', margin: '8px 0 0', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
                           {m.mensaje}
                         </p>
                       </div>
@@ -1375,10 +1376,10 @@ export default function Curso() {
         {vistaCrear && (() => {
           const corteCrear = Number(search.get('corte')) || formActividad.corte || 1;
           const cfg = {
-            1: { label: 'Corte 1', border: '#10b981' },
-            2: { label: 'Corte 2', border: '#3b82f6' },
-            3: { label: 'Corte 3', border: '#8b5cf6' },
-          }[corteCrear] || { label: 'Corte 1', border: '#10b981' };
+            1: { label: 'Corte 1', border: '#17a06d' },
+            2: { label: 'Corte 2', border: '#0a84ff' },
+            3: { label: 'Corte 3', border: '#8a5cf0' },
+          }[corteCrear] || { label: 'Corte 1', border: '#17a06d' };
           const esParcial = search.get('tipo') === 'parcial';
 
           return (
@@ -1397,9 +1398,9 @@ export default function Curso() {
                   <span className="card-ttl">
                     Crear en {cfg.label}
                   </span>
-                  <span style={{ fontSize: 11, color: '#94a3b8' }}>{curso.nombre}</span>
+                  <span style={{ fontSize: 11, color: '#9c988e' }}>{curso.nombre}</span>
                 </div>
-                <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 16px' }}>
+                <p style={{ fontSize: 12, color: '#6f6b62', margin: '0 0 16px' }}>
                   Lo que cree aquí queda guardado en {cfg.label} de este curso, no en los demás.
                 </p>
 
@@ -1410,8 +1411,8 @@ export default function Curso() {
                     onClick={() => setSearch({ ...Object.fromEntries(search), tab: 'crear', tipo: 'actividad' }, { replace: true })}
                     data-testid="elegir-actividad"
                     style={{
-                      background: esParcial ? '#fff' : cfg.border, color: esParcial ? '#475569' : '#fff',
-                      border: `1px solid ${esParcial ? '#cbd5e1' : cfg.border}`, borderRadius: 8,
+                      background: esParcial ? '#fff' : cfg.border, color: esParcial ? '#4e4a43' : '#fff',
+                      border: `1px solid ${esParcial ? '#cdc9bf' : cfg.border}`, borderRadius: 8,
                       padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer',
                     }}
                   >
@@ -1422,8 +1423,8 @@ export default function Curso() {
                     onClick={() => setSearch({ ...Object.fromEntries(search), tab: 'crear', tipo: 'parcial' }, { replace: true })}
                     data-testid="elegir-parcial"
                     style={{
-                      background: esParcial ? '#7c3aed' : '#fff', color: esParcial ? '#fff' : '#7c3aed',
-                      border: '1px solid #ddd6fe', borderRadius: 8, padding: '8px 16px',
+                      background: esParcial ? '#6d4ac4' : '#fff', color: esParcial ? '#fff' : '#6d4ac4',
+                      border: '1px solid #d8c8f5', borderRadius: 8, padding: '8px 16px',
                       fontSize: 13, fontWeight: 700, cursor: 'pointer',
                     }}
                   >
@@ -1518,7 +1519,7 @@ export default function Curso() {
                       />
                     </div>
                     <div style={{ gridColumn: '1 / 4', marginTop: -4 }}>
-                      <p style={{ fontSize: 11, color: '#94a3b8', margin: 0 }}>
+                      <p style={{ fontSize: 11, color: '#9c988e', margin: 0 }}>
                         Fuera de ese intervalo el estudiante no puede entregar. Si las dos quedan vacías, la entrega permanece habilitada durante todo el semestre.
                       </p>
                     </div>
@@ -1533,7 +1534,7 @@ export default function Curso() {
                         onChange={(e) => leerArchivoActividad(e.target.files?.[0])}
                       />
                       {formActividad.archivo && (
-                        <p style={{ fontSize: 11, color: '#15803d', margin: '5px 0 0' }}>
+                        <p style={{ fontSize: 11, color: '#0a6e4b', margin: '5px 0 0' }}>
                           Se adjuntará: {formActividad.archivo}
                         </p>
                       )}
@@ -1544,7 +1545,7 @@ export default function Curso() {
                         data-testid="guardar-actividad"
                         disabled={creando || !formActividad.titulo.trim()}
                         style={{
-                          background: formActividad.titulo.trim() ? cfg.border : '#cbd5e1',
+                          background: formActividad.titulo.trim() ? cfg.border : '#cdc9bf',
                           color: '#fff', border: 'none', borderRadius: 8, padding: '10px 18px',
                           fontSize: 13, fontWeight: 700, cursor: formActividad.titulo.trim() ? 'pointer' : 'not-allowed',
                         }}
@@ -1612,14 +1613,14 @@ export default function Curso() {
                       />
                     </div>
                     <div style={{ gridColumn: '1 / 4', marginTop: -4 }}>
-                      <p style={{ fontSize: 11, color: '#94a3b8', margin: 0 }}>
+                      <p style={{ fontSize: 11, color: '#9c988e', margin: 0 }}>
                         Fuera de ese intervalo el parcial no se puede contestar. Si las dos quedan vacías, queda habilitado durante todo el semestre.
                       </p>
                     </div>
 
                     <div style={{ gridColumn: '1 / 4' }}>
                       {formParcial.preguntas.map((p, i) => (
-                        <div key={i} style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 12, marginBottom: 10 }}>
+                        <div key={i} style={{ border: '1px solid #e5e2da', borderRadius: 10, padding: 12, marginBottom: 10 }}>
                           <label style={labelCss}>Pregunta {i + 1}</label>
                           <input
                             style={inputCss}
@@ -1662,7 +1663,7 @@ export default function Curso() {
                             ...f,
                             preguntas: [...f.preguntas, { enunciado: '', opciones: ['', '', ''], correcta: 0, puntos: 5 }],
                           }))}
-                          style={{ background: '#f1f5f9', color: '#1e293b', border: '1px solid #cbd5e1', borderRadius: 8, padding: '8px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                          style={{ background: '#f0eee9', color: '#211d17', border: '1px solid #cdc9bf', borderRadius: 8, padding: '8px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
                         >
                           + Agregar pregunta
                         </button>
@@ -1671,7 +1672,7 @@ export default function Curso() {
                           data-testid="guardar-parcial"
                           disabled={creando || !formParcial.titulo.trim()}
                           style={{
-                            background: formParcial.titulo.trim() ? '#7c3aed' : '#cbd5e1',
+                            background: formParcial.titulo.trim() ? '#6d4ac4' : '#cdc9bf',
                             color: '#fff', border: 'none', borderRadius: 8, padding: '9px 18px',
                             fontSize: 13, fontWeight: 700, cursor: formParcial.titulo.trim() ? 'pointer' : 'not-allowed',
                           }}
@@ -1697,15 +1698,15 @@ export default function Curso() {
               {/* Bloque Anuncios */}
               <div className="card">
                 <div className="card-hd">
-                  <span className="card-ttl">📢 Anuncios</span>
+                  <span className="card-ttl"><Icon name="megafono" size={16} /> Anuncios</span>
                 </div>
                 <div>
                   {anuncios.map((a) => (
-                    <div key={a.id} style={{ display: 'flex', gap: 12, padding: '14px 16px', borderBottom: '1px solid #f1f5f9' }}>
+                    <div key={a.id} style={{ display: 'flex', gap: 12, padding: '14px 16px', borderBottom: '1px solid #f0eee9' }}>
                       <div style={{
                         width: 38,
                         height: 38,
-                        background: '#ffedd5',
+                        background: '#fbe9d8',
                         borderRadius: 10,
                         display: 'flex',
                         alignItems: 'center',
@@ -1713,12 +1714,12 @@ export default function Curso() {
                         fontSize: 18,
                         flexShrink: 0
                       }}>
-                        📢
+                        <Icon name="megafono" size={16} />
                       </div>
                       <div style={{ flex: 1 }}>
-                        <p style={{ fontWeight: 700, fontSize: 14, color: '#1e293b', margin: '0 0 3px' }}>{a.titulo}</p>
-                        <p style={{ fontSize: 13, color: '#64748b', margin: 0, lineHeight: 1.5 }}>{a.contenido}</p>
-                        <p style={{ fontSize: 11, color: '#94a3b8', margin: '5px 0 0' }}>{formatDate(a.fecha)} · {a.autor}</p>
+                        <p style={{ fontWeight: 700, fontSize: 14, color: '#211d17', margin: '0 0 3px' }}>{a.titulo}</p>
+                        <p style={{ fontSize: 13, color: '#6f6b62', margin: 0, lineHeight: 1.5 }}>{a.contenido}</p>
+                        <p style={{ fontSize: 11, color: '#9c988e', margin: '5px 0 0' }}>{formatDate(a.fecha)} · {a.autor}</p>
                       </div>
                     </div>
                   ))}
@@ -1728,10 +1729,10 @@ export default function Curso() {
               {/* Bloque Actividades Recientes */}
               <div className="card" style={{ marginTop: 14 }}>
                 <div className="card-hd">
-                  <span className="card-ttl">✅ Actividades recientes</span>
+                  <span className="card-ttl"><Icon name="check" size={16} /> Actividades recientes</span>
                   <button
                     onClick={() => setActiveTab('corte1')}
-                    style={{ fontSize: 12, color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+                    style={{ fontSize: 12, color: '#0a5cae', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}
                   >
                     Ver por corte →
                   </button>
@@ -1753,12 +1754,12 @@ export default function Curso() {
                             padding: '12px 16px',
                             background: 'transparent',
                             border: 0,
-                            borderBottom: '1px solid #f1f5f9',
+                            borderBottom: '1px solid #f0eee9',
                             textAlign: 'left',
                             cursor: 'pointer',
                             transition: 'background 0.15s'
                           }}
-                          onMouseOver={(e) => { e.currentTarget.style.background = '#f8fafc'; }}
+                          onMouseOver={(e) => { e.currentTarget.style.background = '#f7f6f3'; }}
                           onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; }}
                         >
                           <div style={{
@@ -1775,15 +1776,15 @@ export default function Curso() {
                             {ic}
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{ fontWeight: 600, fontSize: 13, color: '#1e293b', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <p style={{ fontWeight: 600, fontSize: 13, color: '#211d17', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {a.titulo}
                             </p>
-                            <p style={{ fontSize: 11, color: '#94a3b8', margin: '2px 0 0' }}>
+                            <p style={{ fontSize: 11, color: '#9c988e', margin: '2px 0 0' }}>
                               Corte {a.corte} · {formatDate(a.fechaEntrega)} · {a.puntos} pts
                             </p>
                           </div>
                           {a.estado_est === 'calificado' ? (
-                            <span className="bs bg-g">✓ {a.nota}/{a.puntos}</span>
+                            <span className="bs bg-g"><Icon name="check" size={14} /> {a.nota}/{a.puntos}</span>
                           ) : a.estado_est === 'entregado' ? (
                             <span className="bs bg-b">Entregado</span>
                           ) : (
@@ -1802,53 +1803,53 @@ export default function Curso() {
             <div>
               <div className="card" style={{ marginBottom: 14 }}>
                 <div className="card-hd">
-                  <span className="card-ttl">📊 Progreso por corte</span>
+                  <span className="card-ttl"><Icon name="grafica-barras" size={16} /> Progreso por corte</span>
                 </div>
                 <div className="card-bd">
                   {/* Corte 1 */}
                   <div style={{ marginBottom: 14 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
-                      <span style={{ fontWeight: 600, color: '#1e293b' }}>
-                        Corte 1 <span style={{ color: '#94a3b8', fontSize: 11 }}>(30%)</span>
+                      <span style={{ fontWeight: 600, color: '#211d17' }}>
+                        Corte 1 <span style={{ color: '#9c988e', fontSize: 11 }}>(30%)</span>
                       </span>
-                      <span style={{ fontWeight: 800, color: '#059669' }}>3.8</span>
+                      <span style={{ fontWeight: 800, color: '#0e8a5f' }}>3.8</span>
                     </div>
                     <div className="prog-bar">
-                      <div className="prog-fill" style={{ width: '76%', background: '#22c55e' }} />
+                      <div className="prog-fill" style={{ width: '76%', background: '#17a06d' }} />
                     </div>
                   </div>
 
                   {/* Corte 2 */}
                   <div style={{ marginBottom: 14 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
-                      <span style={{ fontWeight: 600, color: '#1e293b' }}>
-                        Corte 2 <span style={{ color: '#94a3b8', fontSize: 11 }}>(30%)</span>
+                      <span style={{ fontWeight: 600, color: '#211d17' }}>
+                        Corte 2 <span style={{ color: '#9c988e', fontSize: 11 }}>(30%)</span>
                       </span>
-                      <span style={{ fontWeight: 800, color: '#059669' }}>4</span>
+                      <span style={{ fontWeight: 800, color: '#0e8a5f' }}>4</span>
                     </div>
                     <div className="prog-bar">
-                      <div className="prog-fill" style={{ width: '80%', background: '#3b82f6' }} />
+                      <div className="prog-fill" style={{ width: '80%', background: '#0a84ff' }} />
                     </div>
                   </div>
 
                   {/* Corte 3 */}
                   <div style={{ marginBottom: 14 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
-                      <span style={{ fontWeight: 600, color: '#1e293b' }}>
-                        Corte 3 <span style={{ color: '#94a3b8', fontSize: 11 }}>(40%)</span>
+                      <span style={{ fontWeight: 600, color: '#211d17' }}>
+                        Corte 3 <span style={{ color: '#9c988e', fontSize: 11 }}>(40%)</span>
                       </span>
-                      <span style={{ fontWeight: 800, color: '#94a3b8' }}>—</span>
+                      <span style={{ fontWeight: 800, color: '#9c988e' }}>—</span>
                     </div>
                     <div className="prog-bar">
-                      <div className="prog-fill" style={{ width: '0%', background: '#cbd5e1' }} />
+                      <div className="prog-fill" style={{ width: '0%', background: '#cdc9bf' }} />
                     </div>
-                    <p style={{ fontSize: 11, color: '#94a3b8', margin: '3px 0 0' }}>No iniciado</p>
+                    <p style={{ fontSize: 11, color: '#9c988e', margin: '3px 0 0' }}>No iniciado</p>
                   </div>
 
                   {/* Nota parcial grande */}
-                  <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontWeight: 700, color: '#1e293b', fontSize: 14 }}>Nota parcial</span>
-                    <span style={{ fontWeight: 900, fontSize: 24, color: '#4338ca' }}>3.9</span>
+                  <div style={{ borderTop: '1px solid #f0eee9', paddingTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontWeight: 700, color: '#211d17', fontSize: 14 }}>Nota parcial</span>
+                    <span style={{ fontWeight: 900, fontSize: 24, color: '#0a2fb0' }}>3.9</span>
                   </div>
                 </div>
               </div>
@@ -1863,9 +1864,9 @@ export default function Curso() {
         {(activeTab === 'corte1' || activeTab === 'corte2' || activeTab === 'corte3') && (() => {
           const numCorte = activeTab === 'corte1' ? 1 : activeTab === 'corte2' ? 2 : 3;
           const cfg = {
-            1: { label: 'Corte 1', peso: '30%', border: '#10b981', bg: '#f0fdf4' },
-            2: { label: 'Corte 2', peso: '30%', border: '#3b82f6', bg: '#eff6ff' },
-            3: { label: 'Corte 3', peso: '40%', border: '#8b5cf6', bg: '#faf5ff' },
+            1: { label: 'Corte 1', peso: '30%', border: '#17a06d', bg: '#e9f7f1' },
+            2: { label: 'Corte 2', peso: '30%', border: '#0a84ff', bg: '#eef7ff' },
+            3: { label: 'Corte 3', peso: '40%', border: '#8a5cf0', bg: '#f6f2fd' },
           }[numCorte];
 
           const actsCorte = actividades.filter((a) => a.corte === numCorte);
@@ -1903,31 +1904,31 @@ export default function Curso() {
                     <span style={{ background: cfg.bg, color: cfg.border, padding: '3px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700 }}>
                       {cfg.label}
                     </span>
-                    <span style={{ fontSize: 12, color: '#64748b' }}>
+                    <span style={{ fontSize: 12, color: '#6f6b62' }}>
                       Peso: <strong>{cfg.peso}</strong> de la nota final
                     </span>
                   </div>
-                  <h2 style={{ fontSize: 16, fontWeight: 800, color: '#1e293b', margin: 0 }}>
+                  <h2 style={{ fontSize: 16, fontWeight: 800, color: '#211d17', margin: 0 }}>
                     {cfg.label} — {curso.nombre}
                   </h2>
                 </div>
                 {esEstudiante && (
                   <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 26, fontWeight: 900, color: notaCorte ? '#059669' : '#cbd5e1' }}>
+                    <div style={{ fontSize: 26, fontWeight: 900, color: notaCorte ? '#0e8a5f' : '#cdc9bf' }}>
                       {notaCorte ? notaCorte.toFixed(1) : '—'}
                     </div>
-                    <div style={{ fontSize: 11, color: '#64748b' }}>
+                    <div style={{ fontSize: 11, color: '#6f6b62' }}>
                       Nota corte · {cfg.peso.replace('30%', '30 %').replace('40%', '40 %')}
                     </div>
                     {/* Lo que no entregó sale cero en el promedio: decirlo evita
                         que un 1,7 se lea como una nota mal puesta. */}
                     {miResumenCorte && miResumenCorte.sinEntregar > 0 && (
-                      <div style={{ fontSize: 11, color: '#b91c1c', fontWeight: 700 }}>
+                      <div style={{ fontSize: 11, color: '#c1122c', fontWeight: 700 }}>
                         {miResumenCorte.sinEntregar} sin entregar (valen 0)
                       </div>
                     )}
                     {actSinNota > 0 && (
-                      <div style={{ fontSize: 11, color: '#b45309', fontWeight: 700 }}>
+                      <div style={{ fontSize: 11, color: '#99610e', fontWeight: 700 }}>
                         {actSinNota} actividad(es) sin entregar
                       </div>
                     )}
@@ -1944,9 +1945,9 @@ export default function Curso() {
                         type="button"
                         onClick={() => borrarActividad(a)}
                         title="Eliminar actividad"
-                        style={{ background: '#fff', color: '#b91c1c', border: '1px solid #fecaca', borderRadius: 6, padding: '4px 8px', fontSize: 11, cursor: 'pointer', alignSelf: 'flex-start' }}
+                        style={{ background: '#fff', color: '#c1122c', border: '1px solid #f4c2ca', borderRadius: 6, padding: '4px 8px', fontSize: 11, cursor: 'pointer', alignSelf: 'flex-start' }}
                       >
-                        ✕
+                        <Icon name="x" size={14} />
                       </button>
                     )}
                     <div className="act-ic-box" style={{ background: bg }}>
@@ -1963,20 +1964,20 @@ export default function Curso() {
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <div>
-                          <h4 style={{ fontSize: 14, fontWeight: 700, color: '#1e293b', margin: 0 }}>{a.titulo}</h4>
-                          <p style={{ fontSize: 12, color: '#64748b', margin: '3px 0 0' }}>{a.descripcion}</p>
+                          <h4 style={{ fontSize: 14, fontWeight: 700, color: '#211d17', margin: 0 }}>{a.titulo}</h4>
+                          <p style={{ fontSize: 12, color: '#6f6b62', margin: '3px 0 0' }}>{a.descripcion}</p>
                         </div>
                         <div style={{ textAlign: 'right' }}>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: '#1e3a8a' }}>{a.puntos} pts</span>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: '#00116f' }}>{a.puntos} pts</span>
                         </div>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
-                        <span style={{ fontSize: 11, color: '#ef4444' }}>📅 Entrega: {formatDate(a.fechaEntrega)}</span>
+                        <span style={{ fontSize: 11, color: '#ff314d' }}><Icon name="calendario" size={16} /> Entrega: {formatDate(a.fechaEntrega)}</span>
                         {esEstudiante ? (() => {
                           const e = miDeEsta(a.id);
                           if (!e || !e.entregado) return <span className="bs bg-b">Sin entrega</span>;
                           if (e.nota === null) return <span className="bs bg-y">Entregado, sin calificar</span>;
-                          return <span className="bs bg-g">✓ {e.nota}/{a.puntos}</span>;
+                          return <span className="bs bg-g"><Icon name="check" size={14} /> {e.nota}/{a.puntos}</span>;
                         })() : (
                           <span className="bs bg-y">
                             {resumenEntregas.find((r) => r.id === a.id)?.calificadas ?? 0} calificada(s)
@@ -2013,20 +2014,20 @@ export default function Curso() {
         {activeTab === 'notas' && (
           <div className="card" style={{ padding: 20 }}>
             <h4 style={{ fontSize: 16, fontWeight: 800, marginBottom: 4 }}>Notas por actividad</h4>
-            <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 14px' }}>
+            <p style={{ fontSize: 12, color: '#6f6b62', margin: '0 0 14px' }}>
               Cada actividad muestra quién la entregó y quién ya está calificada. Al abrirla se ve
               la lista de estudiantes con su nota, y esa nota se guarda en el corte del alumno
               (promedio de las entregas de ese corte, sobre 5).
             </p>
             {resumenEntregas.length === 0 ? (
-              <p style={{ fontSize: 13, color: '#64748b', background: '#f8fafc', padding: 16, borderRadius: 10, margin: 0 }}>
+              <p style={{ fontSize: 13, color: '#6f6b62', background: '#f7f6f3', padding: 16, borderRadius: 10, margin: 0 }}>
                 Este curso todavía no tiene actividades ni parciales. Créalos desde la pestaña
                 <strong> Crear</strong>.
               </p>
             ) : (
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                 <thead>
-                  <tr style={{ background: '#f8fafc', color: '#64748b', borderBottom: '1px solid #e2e8f0', textAlign: 'left' }}>
+                  <tr style={{ background: '#f7f6f3', color: '#6f6b62', borderBottom: '1px solid #e5e2da', textAlign: 'left' }}>
                     <th style={{ padding: '10px 14px' }}>Actividad</th>
                     <th style={{ padding: '10px 14px' }}>Corte</th>
                     <th style={{ padding: '10px 14px', textAlign: 'center' }}>Puntaje</th>
@@ -2037,24 +2038,24 @@ export default function Curso() {
                 </thead>
                 <tbody>
                   {resumenEntregas.map((a) => (
-                    <tr key={a.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <tr key={a.id} style={{ borderBottom: '1px solid #f0eee9' }}>
                       <td style={{ padding: '12px 14px', fontWeight: 600 }}>
                         <button
                           type="button"
                           data-testid={`notas-abrir-${a.id}`}
                           onClick={() => abrirActividad(a)}
-                          style={{ background: 'none', border: 0, padding: 0, font: 'inherit', fontWeight: 700, color: '#1d4ed8', cursor: 'pointer', textAlign: 'left' }}
+                          style={{ background: 'none', border: 0, padding: 0, font: 'inherit', fontWeight: 700, color: '#06468c', cursor: 'pointer', textAlign: 'left' }}
                         >
                           {a.titulo}
                         </button>
-                        <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 400 }}>
+                        <div style={{ fontSize: 11, color: '#9c988e', fontWeight: 400 }}>
                           {a.tipo}
                           {a.preguntas ? ` · ${a.preguntas} preguntas` : ''}
                           {a.fechaEntrega ? ` · entrega ${formatDate(a.fechaEntrega)}` : ''}
                         </div>
                       </td>
-                      <td style={{ padding: '12px 14px', color: '#64748b' }}>Corte {a.corte}</td>
-                      <td style={{ padding: '12px 14px', textAlign: 'center', color: '#64748b' }}>{a.puntos}</td>
+                      <td style={{ padding: '12px 14px', color: '#6f6b62' }}>Corte {a.corte}</td>
+                      <td style={{ padding: '12px 14px', textAlign: 'center', color: '#6f6b62' }}>{a.puntos}</td>
                       <td style={{ padding: '12px 14px', textAlign: 'center' }}>{a.entregadas}/{a.total}</td>
                       <td style={{ padding: '12px 14px', textAlign: 'center' }}>
                         <span className={`bs ${a.calificadas === a.entregadas && a.entregadas ? 'bg-g' : a.calificadas ? 'bg-y' : 'bg-b'}`}>
@@ -2066,7 +2067,7 @@ export default function Curso() {
                           type="button"
                           data-testid={`notas-calificar-${a.id}`}
                           onClick={() => abrirActividad(a)}
-                          style={{ background: '#1d4ed8', color: '#fff', border: 0, borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                          style={{ background: '#06468c', color: '#fff', border: 0, borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
                         >
                           Calificar →
                         </button>
@@ -2091,7 +2092,7 @@ export default function Curso() {
                   type="button"
                   data-testid="abrir-sesion"
                   onClick={() => setMostrarFormSesion((v) => !v)}
-                  style={{ background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                  style={{ background: '#06468c', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
                 >
                   {mostrarFormSesion ? 'Cancelar' : '+ Abrir sesión'}
                 </button>
@@ -2099,7 +2100,7 @@ export default function Curso() {
             </div>
 
             {puedeEditar && mostrarFormSesion && (
-              <form onSubmit={abrirSesion} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 14, marginBottom: 16, display: 'grid', gridTemplateColumns: '1fr 2fr auto', gap: 10, alignItems: 'end' }}>
+              <form onSubmit={abrirSesion} style={{ background: '#f7f6f3', border: '1px solid #e5e2da', borderRadius: 10, padding: 14, marginBottom: 16, display: 'grid', gridTemplateColumns: '1fr 2fr auto', gap: 10, alignItems: 'end' }}>
                 <div>
                   <label style={labelCss} htmlFor="ses-fecha">Fecha</label>
                   <input
@@ -2125,7 +2126,7 @@ export default function Curso() {
                   type="submit"
                   data-testid="guardar-sesion"
                   disabled={guardando}
-                  style={{ background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 18px', fontSize: 13, fontWeight: 700, cursor: guardando ? 'wait' : 'pointer' }}
+                  style={{ background: '#06468c', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 18px', fontSize: 13, fontWeight: 700, cursor: guardando ? 'wait' : 'pointer' }}
                 >
                   Abrir
                 </button>
@@ -2133,7 +2134,7 @@ export default function Curso() {
             )}
 
             {sesiones.length === 0 ? (
-              <p style={{ fontSize: 13, color: '#64748b', background: '#f8fafc', padding: 16, borderRadius: 10, margin: 0 }}>
+              <p style={{ fontSize: 13, color: '#6f6b62', background: '#f7f6f3', padding: 16, borderRadius: 10, margin: 0 }}>
                 Todavía no hay sesiones de asistencia en este curso.
                 {puedeEditar && ' Use "Abrir sesión" para crear la primera.'}
               </p>
@@ -2148,9 +2149,9 @@ export default function Curso() {
                       data-testid={`fecha-${s.fecha.slice(0, 10)}`}
                       onClick={() => editarSesion(s)}
                       style={{
-                        background: sesionActiva === s.id ? '#1d4ed8' : '#fff',
-                        color: sesionActiva === s.id ? '#fff' : '#1e293b',
-                        border: `1px solid ${sesionActiva === s.id ? '#1d4ed8' : '#cbd5e1'}`,
+                        background: sesionActiva === s.id ? '#06468c' : '#fff',
+                        color: sesionActiva === s.id ? '#fff' : '#211d17',
+                        border: `1px solid ${sesionActiva === s.id ? '#06468c' : '#cdc9bf'}`,
                         borderRadius: 8, padding: '8px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
                       }}
                     >
@@ -2160,13 +2161,13 @@ export default function Curso() {
                 </div>
 
                 {borrador && (
-                  <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
-                    <div style={{ background: '#f8fafc', padding: '12px 14px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+                  <div style={{ border: '1px solid #e5e2da', borderRadius: 10, overflow: 'hidden' }}>
+                    <div style={{ background: '#f7f6f3', padding: '12px 14px', borderBottom: '1px solid #e5e2da', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
                       <div>
-                        <strong style={{ fontSize: 14, color: '#1e293b' }}>{formatDate(borrador.fecha)}</strong>
-                        {borrador.tema ? <span style={{ fontSize: 12, color: '#64748b', marginLeft: 8 }}>{borrador.tema}</span> : null}
+                        <strong style={{ fontSize: 14, color: '#211d17' }}>{formatDate(borrador.fecha)}</strong>
+                        {borrador.tema ? <span style={{ fontSize: 12, color: '#6f6b62', marginLeft: 8 }}>{borrador.tema}</span> : null}
                         {!puedeEditar && (
-                          <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                          <div style={{ fontSize: 11, color: '#9c988e', marginTop: 4 }}>
                             Tu asistencia a esta sesión. La registra el docente.
                           </div>
                         )}
@@ -2176,7 +2177,7 @@ export default function Curso() {
                           <button
                             type="button"
                             onClick={() => marcarTodos('presente')}
-                            style={{ background: '#fff', border: '1px solid #cbd5e1', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                            style={{ background: '#fff', border: '1px solid #cdc9bf', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
                           >
                             Marcar todos P
                           </button>
@@ -2185,14 +2186,14 @@ export default function Curso() {
                             data-testid="guardar-asistencia"
                             onClick={guardarBorrador}
                             disabled={guardando}
-                            style={{ background: '#15803d', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 12, fontWeight: 700, cursor: guardando ? 'wait' : 'pointer' }}
+                            style={{ background: '#0a6e4b', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 12, fontWeight: 700, cursor: guardando ? 'wait' : 'pointer' }}
                           >
                             {guardando ? 'Guardando...' : 'Guardar asistencia'}
                           </button>
                           <button
                             type="button"
                             onClick={() => borrarSesion(borrador.id)}
-                            style={{ background: '#fff', color: '#b91c1c', border: '1px solid #fecaca', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                            style={{ background: '#fff', color: '#c1122c', border: '1px solid #f4c2ca', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
                           >
                             Eliminar
                           </button>
@@ -2216,7 +2217,7 @@ export default function Curso() {
                             <tr key={r.estudianteId}>
                               <td style={{ ...td, fontWeight: 600 }}>
                                 {r.estudiante?.nombre || r.estudianteId}
-                                <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 400 }}>{r.estudiante?.documento}</div>
+                                <div style={{ fontSize: 11, color: '#9c988e', fontWeight: 400 }}>{r.estudiante?.documento}</div>
                               </td>
                               <td style={{ ...td, textAlign: 'center' }}>
                                 {puedeEditar ? (
@@ -2230,8 +2231,8 @@ export default function Curso() {
                                         title={texto}
                                         style={{
                                           background: r.estado === valor ? bg : '#fff',
-                                          color: r.estado === valor ? color : '#94a3b8',
-                                          border: `1px solid ${r.estado === valor ? color : '#e2e8f0'}`,
+                                          color: r.estado === valor ? color : '#9c988e',
+                                          border: `1px solid ${r.estado === valor ? color : '#e5e2da'}`,
                                           borderRadius: 6, padding: '4px 9px', fontSize: 11, fontWeight: 700, cursor: 'pointer',
                                         }}
                                       >
@@ -2241,8 +2242,8 @@ export default function Curso() {
                                   </div>
                                 ) : (
                                   <span style={{
-                                    background: ESTADOS.find(([v]) => v === r.estado)?.[3] || '#f1f5f9',
-                                    color: ESTADOS.find(([v]) => v === r.estado)?.[2] || '#64748b',
+                                    background: ESTADOS.find(([v]) => v === r.estado)?.[3] || '#f0eee9',
+                                    color: ESTADOS.find(([v]) => v === r.estado)?.[2] || '#6f6b62',
                                     padding: '3px 9px', borderRadius: 6, fontSize: 11, fontWeight: 700,
                                   }}>
                                     {ESTADOS.find(([v]) => v === r.estado)?.[1] || r.estado}
@@ -2259,12 +2260,12 @@ export default function Curso() {
                                     onChange={(e) => justificar(r.estudianteId, e.target.value)}
                                   />
                                 ) : (
-                                  <span style={{ fontSize: 12, color: r.justificacion ? '#475569' : '#cbd5e1' }}>
+                                  <span style={{ fontSize: 12, color: r.justificacion ? '#4e4a43' : '#cdc9bf' }}>
                                     {r.justificacion || (r.estado === 'presente' ? '—' : 'Sin justificar')}
                                   </span>
                                 )}
                               </td>
-                              <td style={{ ...td, textAlign: 'center', fontWeight: 800, color: pct === null ? '#cbd5e1' : pct >= 70 ? '#15803d' : '#b91c1c' }}>
+                              <td style={{ ...td, textAlign: 'center', fontWeight: 800, color: pct === null ? '#cdc9bf' : pct >= 70 ? '#0a6e4b' : '#c1122c' }}>
                                 {pct === null ? '—' : `${pct}%`}
                               </td>
                             </tr>
@@ -2289,9 +2290,9 @@ export default function Curso() {
           <div className="card">
             <div className="card-hd">
               <span className="card-ttl">
-                👥 Estudiantes inscritos ({roster ? roster.estudiantes.length : '...'})
+                <Icon name="usuarios" size={16} /> Estudiantes inscritos ({roster ? roster.estudiantes.length : '...'})
               </span>
-              <span style={{ fontSize: 11, color: '#94a3b8' }}>
+              <span style={{ fontSize: 11, color: '#9c988e' }}>
                 Periodo {roster ? roster.periodo : ''}
               </span>
             </div>
@@ -2299,7 +2300,7 @@ export default function Curso() {
               <Aviso>{error}</Aviso>
               <Aviso tone="green">{exito}</Aviso>
               {puedeEditar && (
-                <div style={{ marginBottom: 16, padding: 14, background: '#f8fafc', borderRadius: 12, border: '1px solid #e2e8f0' }}>
+                <div style={{ marginBottom: 16, padding: 14, background: '#f7f6f3', borderRadius: 12, border: '1px solid #e5e2da' }}>
                   <span style={labelCss}>Inscribir estudiante</span>
                   {/* Búsqueda y no lista desplegable: con veinte o treinta
                       alumnos por Kurs la lista se recorre a ciegas, y el
@@ -2312,17 +2313,17 @@ export default function Curso() {
                     style={{ ...inputCss, maxWidth: 460 }}
                   />
                   {candidatos === null && (
-                    <p style={{ fontSize: 11, color: '#94a3b8', margin: '6px 0 0' }}>Cargando estudiantes disponibles...</p>
+                    <p style={{ fontSize: 11, color: '#9c988e', margin: '6px 0 0' }}>Cargando estudiantes disponibles...</p>
                   )}
                   {candidatos && candidatos.length === 0 && (
-                    <p style={{ fontSize: 11, color: '#94a3b8', margin: '6px 0 0' }}>
+                    <p style={{ fontSize: 11, color: '#9c988e', margin: '6px 0 0' }}>
                       No quedan estudiantes por inscribir: todos los de la institución ya están en este curso.
                     </p>
                   )}
                   {candidatos && candidatos.length > 0 && (
-                    <div style={{ marginTop: 10, maxHeight: 210, overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: 10, background: '#fff' }}>
+                    <div style={{ marginTop: 10, maxHeight: 210, overflowY: 'auto', border: '1px solid #e5e2da', borderRadius: 10, background: '#fff' }}>
                       {coincidencias.length === 0 && (
-                        <p style={{ fontSize: 12, color: '#94a3b8', padding: '10px 12px', margin: 0 }}>
+                        <p style={{ fontSize: 12, color: '#9c988e', padding: '10px 12px', margin: 0 }}>
                           Ningún estudiante coincide con «{buscaAlumno.trim()}».
                         </p>
                       )}
@@ -2334,19 +2335,19 @@ export default function Curso() {
                           style={{
                             display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left',
                             padding: '9px 12px', border: 'none', cursor: 'pointer', fontSize: 13,
-                            background: elegido === c.estudianteId ? '#dbeafe' : 'transparent',
-                            borderBottom: '1px solid #f1f5f9',
+                            background: elegido === c.estudianteId ? '#e3f1ff' : 'transparent',
+                            borderBottom: '1px solid #f0eee9',
                           }}
                         >
-                          <span style={{ flex: 1, fontWeight: 600, color: '#1e293b' }}>{c.nombre}</span>
-                          <span style={{ fontSize: 11, color: '#64748b' }}>
+                          <span style={{ flex: 1, fontWeight: 600, color: '#211d17' }}>{c.nombre}</span>
+                          <span style={{ fontSize: 11, color: '#6f6b62' }}>
                             {c.documento}{c.programa ? ` · ${c.programa}` : ''}
                           </span>
-                          {elegido === c.estudianteId && <span style={{ fontSize: 11, fontWeight: 700, color: '#1d4ed8' }}>Elegido</span>}
+                          {elegido === c.estudianteId && <span style={{ fontSize: 11, fontWeight: 700, color: '#06468c' }}>Elegido</span>}
                         </button>
                       ))}
                       {coincidencias.length === 20 && (
-                        <p style={{ fontSize: 11, color: '#94a3b8', padding: '8px 12px', margin: 0 }}>
+                        <p style={{ fontSize: 11, color: '#9c988e', padding: '8px 12px', margin: 0 }}>
                           Se muestran los primeros 20: escriba parte del nombre o el código para acotar.
                         </p>
                       )}
@@ -2359,22 +2360,22 @@ export default function Curso() {
                       disabled={!elegido}
                       style={{
                         padding: '9px 18px', borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: elegido ? 'pointer' : 'not-allowed',
-                        border: 'none', background: elegido ? '#1e3a8a' : '#cbd5e1', color: '#fff',
+                        border: 'none', background: elegido ? '#00116f' : '#cdc9bf', color: '#fff',
                       }}
                     >
                       Inscribir
                     </button>
                     {elegido && (
-                      <span style={{ fontSize: 11, color: '#475569' }}>
+                      <span style={{ fontSize: 11, color: '#4e4a43' }}>
                         A inscribir: {(candidatos || []).find((c) => c.estudianteId === elegido)?.nombre}
                       </span>
                     )}
                   </div>
                 </div>
               )}
-              {!roster && <p style={{ fontSize: 12, color: '#94a3b8' }}>Cargando lista...</p>}
+              {!roster && <p style={{ fontSize: 12, color: '#9c988e' }}>Cargando lista...</p>}
               {roster && roster.estudiantes.length === 0 && (
-                <p style={{ fontSize: 12, color: '#94a3b8' }}>
+                <p style={{ fontSize: 12, color: '#9c988e' }}>
                   Nadie está matriculado en este curso todavía.
                 </p>
               )}
@@ -2386,15 +2387,15 @@ export default function Curso() {
                       {e.nombre.split(' ').map((x) => x[0]).slice(0, 2).join('')}
                     </div>
                     <div style={{ flex: 1 }}>
-                      <p style={{ fontSize: 13, fontWeight: 700, color: '#1e293b', margin: 0 }}>{e.nombre}</p>
-                      <p style={{ fontSize: 11, color: '#94a3b8', margin: 0 }}>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: '#211d17', margin: 0 }}>{e.nombre}</p>
+                      <p style={{ fontSize: 11, color: '#9c988e', margin: 0 }}>
                         Cód: {e.documento}
                         {e.programa ? ` · ${e.programa}` : ''}
                         {pct !== null && ` · Asistencia ${pct}%`}
                       </p>
                     </div>
                     {e.nota1 !== undefined && (
-                      <span style={{ fontSize: 11, color: '#475569', background: '#f1f5f9', padding: '3px 8px', borderRadius: 8, fontWeight: 700 }}>
+                      <span style={{ fontSize: 11, color: '#4e4a43', background: '#f0eee9', padding: '3px 8px', borderRadius: 8, fontWeight: 700 }}>
                         {e.definitiva ?? 'Cortes: ' + [e.nota1, e.nota2, e.nota3].filter((n) => n !== null && n !== undefined).join(' · ')}
                       </span>
                     )}
@@ -2404,13 +2405,13 @@ export default function Curso() {
                         onClick={() => retirar(e.estudianteId, e.nombre)}
                         style={{
                           padding: '5px 10px', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                          border: '1px solid #fecaca', background: '#fff', color: '#b91c1c',
+                          border: '1px solid #f4c2ca', background: '#fff', color: '#c1122c',
                         }}
                       >
                         Retirar
                       </button>
                     ) : (
-                      <span style={{ fontSize: 11, color: '#15803d', background: '#dcfce7', padding: '3px 8px', borderRadius: 8, fontWeight: 700 }}>
+                      <span style={{ fontSize: 11, color: '#0a6e4b', background: '#d8f0e5', padding: '3px 8px', borderRadius: 8, fontWeight: 700 }}>
                         Activo
                       </span>
                     )}
@@ -2441,14 +2442,14 @@ export default function Curso() {
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 18, alignItems: 'start' }}>
               <div className="card">
                 <div className="card-hd">
-                  <span className="card-ttl">💬 Foro de {curso.nombre}</span>
-                  <span style={{ fontSize: 11, color: '#94a3b8' }}>
+                  <span className="card-ttl"><Icon name="mensaje" size={16} /> Foro de {curso.nombre}</span>
+                  <span style={{ fontSize: 11, color: '#9c988e' }}>
                     {temas.length} tema{temas.length === 1 ? '' : 's'}
                   </span>
                 </div>
                 <div>
                   {temas.length === 0 ? (
-                    <p style={{ padding: 18, fontSize: 13, color: '#64748b', margin: 0 }}>
+                    <p style={{ padding: 18, fontSize: 13, color: '#6f6b62', margin: 0 }}>
                       Todavía no hay mensajes en este foro.
                     </p>
                   ) : (
@@ -2461,27 +2462,27 @@ export default function Curso() {
                         style={{
                           display: 'flex', alignItems: 'center', gap: 12, width: '100%',
                           padding: '14px 16px', background: 'transparent', border: 0,
-                          borderBottom: '1px solid #f1f5f9', textAlign: 'left', cursor: 'pointer',
+                          borderBottom: '1px solid #f0eee9', textAlign: 'left', cursor: 'pointer',
                         }}
-                        onMouseOver={(e) => { e.currentTarget.style.background = '#f8fafc'; }}
+                        onMouseOver={(e) => { e.currentTarget.style.background = '#f7f6f3'; }}
                         onMouseOut={(e) => { e.currentTarget.style.background = 'transparent'; }}
                       >
                         <span style={{
-                          background: '#eef2ff', color: '#4338ca', width: 32, height: 32, borderRadius: '50%',
+                          background: '#edf1ff', color: '#0a2fb0', width: 32, height: 32, borderRadius: '50%',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           fontSize: 12, fontWeight: 800, flexShrink: 0,
                         }}>
                           {(delTema[0].autor || '?').split(' ').map((x) => x[0]).slice(0, 2).join('')}
                         </span>
                         <span style={{ flex: 1, minWidth: 0 }}>
-                          <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#1e3a8a' }}>
+                          <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#00116f' }}>
                             {tema}
                           </span>
-                          <span style={{ display: 'block', fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                          <span style={{ display: 'block', fontSize: 12, color: '#6f6b62', marginTop: 2 }}>
                             {delTema[0].mensaje}
                           </span>
                         </span>
-                        <span style={{ fontSize: 11, color: '#94a3b8', flexShrink: 0 }}>
+                        <span style={{ fontSize: 11, color: '#9c988e', flexShrink: 0 }}>
                           {delTema.length} respuesta{delTema.length === 1 ? '' : 's'}
                         </span>
                       </button>
@@ -2518,7 +2519,7 @@ export default function Curso() {
                   data-testid="publicar-foro"
                   disabled={!nuevoMensaje.mensaje.trim()}
                   style={{
-                    background: nuevoMensaje.mensaje.trim() ? '#4f46e5' : '#cbd5e1',
+                    background: nuevoMensaje.mensaje.trim() ? '#1233c9' : '#cdc9bf',
                     color: '#fff', border: 'none', borderRadius: 8, padding: '10px 18px',
                     fontSize: 13, fontWeight: 700, width: '100%',
                     cursor: nuevoMensaje.mensaje.trim() ? 'pointer' : 'not-allowed',
@@ -2537,7 +2538,7 @@ export default function Curso() {
         {activeTab === 'recursos' && (
           <div className="card">
             <div className="card-hd">
-              <span className="card-ttl">📁 Material de Clase y Recursos</span>
+              <span className="card-ttl"><Icon name="carpeta" size={16} /> Material de Clase y Recursos</span>
             </div>
             <div>
               {[
@@ -2546,10 +2547,10 @@ export default function Curso() {
                 { n: 'Script Creación Tablas Empresa XYZ', t: 'SQL', p: '45 KB' },
               ].map((r, i) => (
                 <div key={i} className="res-row">
-                  <div style={{ fontSize: 24 }}>📄</div>
+                  <div style={{ fontSize: 24 }}><Icon name="archivo" size={16} /></div>
                   <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: '#1e293b', margin: 0 }}>{r.n}</p>
-                    <p style={{ fontSize: 11, color: '#94a3b8', margin: 0 }}>{r.t} · {r.p}</p>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: '#211d17', margin: 0 }}>{r.n}</p>
+                    <p style={{ fontSize: 11, color: '#9c988e', margin: 0 }}>{r.t} · {r.p}</p>
                   </div>
                   <button
                     onClick={() => alert(`Descargando ${r.n}...`)}

@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { formatCurrency, formatDate, notificacionesDeRol } from '../data/mockData';
 import { certificadoDescargable } from '../data/registro';
 import { usePersistentData } from '../hooks/usePersistentData';
+import Icon, { Ico } from '../components/Icon';
 import {
   actualizarActividad,
   descargarCertificado,
@@ -202,7 +203,7 @@ export default function Dashboard() {
         .finally(recargar);
     }
     setModalEntrega(null);
-    alert('¡Tarea entregada exitosamente! 🎉');
+    alert('¡Tarea entregada exitosamente! ');
   };
 
   const handleSolicitarCertificado = (tipo) => {
@@ -325,8 +326,8 @@ export default function Dashboard() {
             <div className="fade-in">
               <div className="hero">
                 <div>
-                  <div className="hero-period">📅 Viernes, 26 de Septiembre de 2026</div>
-                  <div className="hero-title">Hola, {user.name.split(' ')[0]} 👋</div>
+                  <div className="hero-period"><Icon name="calendario" size={16} /> Viernes, 26 de Septiembre de 2026</div>
+                  <div className="hero-title">Hola, {user.name.split(' ')[0]} <Icon name="estrella" size={18} /></div>
                   <div className="hero-sub">{roleLabels[user.role] || user.role} · {user.code || ''}</div>
                 </div>
                 <div className="hero-badge">
@@ -352,7 +353,7 @@ export default function Dashboard() {
                         onClick={() => handleNavigate('lms', 'cursos')}
                         title="Ver mis cursos"
                       >
-                        <div className="stat-ic" style={{ background: '#7c3aed' }}>📚</div>
+                        <div className="stat-ic" style={{ background: '#6d4ac4' }}><Icon name="libro" size={18} /></div>
                         <div>
                           <div className="stat-v">{data.cursos.length}</div>
                           <div className="stat-l">Mis cursos</div>
@@ -365,7 +366,7 @@ export default function Dashboard() {
                         onClick={() => handleNavigate('lms', 'tareas')}
                         title="Ver entregas por revisar"
                       >
-                        <div className="stat-ic" style={{ background: '#ede9fe' }}>📝</div>
+                        <div className="stat-ic" style={{ background: '#efe9fb' }}><Icon name="cuaderno" size={18} /></div>
                         <div>
                           <div className="stat-v">{porCalificar.filter((e) => !e.calificada).length}</div>
                           <div className="stat-l">Por calificar</div>
@@ -378,7 +379,7 @@ export default function Dashboard() {
                         onClick={() => handleNavigate('lms', 'cursos')}
                         title="Ver estudiantes"
                       >
-                        <div className="stat-ic" style={{ background: '#dcfce7' }}>👥</div>
+                        <div className="stat-ic" style={{ background: '#d8f0e5' }}><Icon name="usuarios" size={18} /></div>
                         <div>
                           <div className="stat-v">{totalEstudiantes}</div>
                           <div className="stat-l">Estudiantes</div>
@@ -391,7 +392,7 @@ export default function Dashboard() {
                         onClick={() => navigate('/docente?tab=notas')}
                         title="Ir al registro de notas"
                       >
-                        <div className="stat-ic" style={{ background: '#dbeafe' }}>📝</div>
+                        <div className="stat-ic" style={{ background: '#e3f1ff' }}><Icon name="cuaderno" size={18} /></div>
                         <div>
                           <div className="stat-v">{data.materias.length}</div>
                           <div className="stat-l">Asignaturas</div>
@@ -407,7 +408,7 @@ export default function Dashboard() {
                         onClick={() => handleNavigate('academico', 'notas')}
                         title="Ver mis notas"
                       >
-                        <div className="stat-ic" style={{ background: '#dbeafe' }}>⭐</div>
+                        <div className="stat-ic" style={{ background: '#e3f1ff' }}><Icon name="estrella" size={18} /></div>
                         <div>
                           <div className="stat-v">{promedioActual}</div>
                           <div className="stat-l">Promedio actual</div>
@@ -420,7 +421,7 @@ export default function Dashboard() {
                         onClick={() => handleNavigate('academico', 'notas')}
                         title="Ver materias matriculadas"
                       >
-                        <div className="stat-ic" style={{ background: '#dcfce7' }}>📚</div>
+                        <div className="stat-ic" style={{ background: '#d8f0e5' }}><Icon name="libro" size={18} /></div>
                         <div>
                           <div className="stat-v">{materiasPeriodo.length}</div>
                           <div className="stat-l">Materias activas</div>
@@ -433,7 +434,7 @@ export default function Dashboard() {
                         onClick={() => { setTareasFiltro('pendientes'); handleNavigate('lms', 'tareas'); }}
                         title="Ver tareas pendientes"
                       >
-                        <div className="stat-ic" style={{ background: '#ede9fe' }}>✅</div>
+                        <div className="stat-ic" style={{ background: '#efe9fb' }}><Icon name="check" size={18} /></div>
                         <div>
                           <div className="stat-v">{tareasPendientes.length}</div>
                           <div className="stat-l">Tareas pendientes</div>
@@ -446,7 +447,7 @@ export default function Dashboard() {
                         onClick={() => { setPagosFiltro('pendientes'); handleNavigate('academico', 'pagos'); }}
                         title="Ver pagos pendientes"
                       >
-                        <div className="stat-ic" style={{ background: '#fef9c3' }}>💳</div>
+                        <div className="stat-ic" style={{ background: '#fbefd6' }}><Icon name="tarjeta-credito" size={18} /></div>
                         <div>
                           <div className="stat-v">{pagosPendientes}</div>
                           <div className="stat-l">Pagos pendientes</div>
@@ -458,49 +459,49 @@ export default function Dashboard() {
 
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
                 <div className="card">
-                  <div className="card-hd"><span className="card-ttl">⚡ Accesos Rápidos</span></div>
+                  <div className="card-hd"><span className="card-ttl"> Accesos Rápidos</span></div>
                   <div className="card-bd">
                     <div className="qa-grid">
                       {/* Notas y Pagos son del alumno: el docente abre su
                           registro de notas, no un promedio que no gestiona. */}
                       {esDocente ? (
                         <button onClick={() => navigate('/docente?tab=notas')} className="qa-btn">
-                          <div className="qa-ic" style={{ background: '#3b82f6' }}>📝</div>
+                          <div className="qa-ic" style={{ background: '#0a84ff' }}><Icon name="cuaderno" size={18} /></div>
                           <span className="qa-lbl">Registro Notas</span>
                         </button>
                       ) : (
                         <button onClick={() => handleNavigate('academico', 'notas')} className="qa-btn">
-                          <div className="qa-ic" style={{ background: '#3b82f6' }}>⭐</div>
+                          <div className="qa-ic" style={{ background: '#0a84ff' }}><Icon name="estrella" size={18} /></div>
                           <span className="qa-lbl">Mis Notas</span>
                         </button>
                       )}
                       {esDocente && (
                         <button onClick={() => handleNavigate('lms', 'tareas')} className="qa-btn">
-                          <div className="qa-ic" style={{ background: '#059669' }}>💬</div>
+                          <div className="qa-ic" style={{ background: '#0e8a5f' }}><Icon name="mensaje" size={18} /></div>
                           <span className="qa-lbl">Foros</span>
                         </button>
                       )}
                       {!esDocente && (
                         <button onClick={() => handleNavigate('academico', 'pagos')} className="qa-btn">
-                          <div className="qa-ic" style={{ background: '#059669' }}>💳</div>
+                          <div className="qa-ic" style={{ background: '#0e8a5f' }}><Icon name="tarjeta-credito" size={18} /></div>
                           <span className="qa-lbl">Pagos</span>
                         </button>
                       )}
                       <button onClick={() => handleNavigate('academico', 'certificados')} className="qa-btn">
-                        <div className="qa-ic" style={{ background: '#d97706' }}>📜</div>
+                        <div className="qa-ic" style={{ background: '#c77e12' }}><Icon name="certificado" size={18} /></div>
                         <span className="qa-lbl">Certificados</span>
                       </button>
                       <button onClick={() => handleNavigate('lms', 'cursos')} className="qa-btn">
-                        <div className="qa-ic" style={{ background: '#7c3aed' }}>📚</div>
+                        <div className="qa-ic" style={{ background: '#6d4ac4' }}><Icon name="libro" size={18} /></div>
                         <span className="qa-lbl">Mis Cursos</span>
                       </button>
                       <button onClick={() => handleNavigate('lms', 'tareas')} className="qa-btn">
-                        <div className="qa-ic" style={{ background: '#ea580c' }}>{esDocente ? '📝' : '✅'}</div>
+                        <div className="qa-ic" style={{ background: '#c2560f' }}>{esDocente ? <><Icon name="cuaderno" size={18} /></> : <><Icon name="check" size={18} /></>}</div>
                         <span className="qa-lbl">{esDocente ? 'Por Calificar' : 'Tareas'}</span>
                       </button>
                       {!esDocente && (
                         <button onClick={() => navigate('/matricula')} className="qa-btn">
-                          <div className="qa-ic" style={{ background: '#4338ca' }}>📝</div>
+                          <div className="qa-ic" style={{ background: '#0a2fb0' }}><Icon name="cuaderno" size={18} /></div>
                           <span className="qa-lbl">Matrícula</span>
                         </button>
                       )}
@@ -509,10 +510,10 @@ export default function Dashboard() {
                 </div>
 
                 <div className="card">
-                  <div className="card-hd"><span className="card-ttl">📅 Próximos eventos</span></div>
+                  <div className="card-hd"><span className="card-ttl"><Icon name="calendario" size={16} /> Próximos eventos</span></div>
                   <div>
                     {data.eventos.map((ev, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: '1px solid #f1f5f9' }}>
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: '1px solid #f0eee9' }}>
                         <div style={{
                           width: 40,
                           height: 40,
@@ -524,17 +525,17 @@ export default function Dashboard() {
                           fontSize: 11,
                           fontWeight: 700,
                           flexShrink: 0,
-                          background: ev.tipo === 'tarea' ? '#ffedd5' : '#dbeafe',
-                          color: ev.tipo === 'tarea' ? '#c2410c' : '#1d4ed8'
+                          background: ev.tipo === 'tarea' ? '#fbe9d8' : '#e3f1ff',
+                          color: ev.tipo === 'tarea' ? '#9c4710' : '#06468c'
                         }}>
                           <span style={{ fontSize: 17, lineHeight: 1 }}>{ev.fecha}</span>
                           <span>ago</span>
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: 13, fontWeight: 600, color: '#1e293b', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          <p style={{ fontSize: 13, fontWeight: 600, color: '#211d17', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {ev.titulo}
                           </p>
-                          <p style={{ fontSize: 11, color: '#94a3b8', margin: '2px 0 0' }}>
+                          <p style={{ fontSize: 11, color: '#9c988e', margin: '2px 0 0' }}>
                             {ev.tipo === 'tarea' ? 'Entrega' : 'Clase'}
                           </p>
                         </div>
@@ -561,7 +562,7 @@ export default function Dashboard() {
                     className={`t-btn ${tabAcademico === t.tab ? 'active' : ''}`}
                     onClick={() => setCurrentTab(t.tab)}
                   >
-                    {t.icon} {t.label}
+                    <Ico name={t.icon} size={15} /> {t.label}
                   </button>
                 ))}
               </div>
@@ -572,12 +573,12 @@ export default function Dashboard() {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14, marginBottom: 24 }}>
 
                     {[
-                      { ic: '📄', t: 'Certificado de Estudios', bg: '#dbeafe' },
-                      { ic: '⭐', t: 'Constancia de Notas', bg: '#dcfce7' },
-                      { ic: '✅', t: 'Paz y Salvo Financiero', bg: '#fef9c3' },
-                      { ic: '🪪', t: 'Certificado de Matrícula', bg: '#ede9fe' },
-                      { ic: '🎓', t: 'Constancia de Egresado', bg: '#e0e7ff' },
-                      { ic: '✉️', t: 'Carta de Presentación', bg: '#fce7f3' },
+                      { ic: <Icon name="archivo" size={16} />, t: 'Certificado de Estudios', bg: '#e3f1ff' },
+                      { ic: <Icon name="estrella" size={18} />, t: 'Constancia de Notas', bg: '#d8f0e5' },
+                      { ic: <Icon name="check" size={18} />, t: 'Paz y Salvo Financiero', bg: '#fbefd6' },
+                      { ic: 'cuaderno', t: 'Certificado de Matrícula', bg: '#efe9fb' },
+                      { ic: 'graduacion', t: 'Constancia de Egresado', bg: '#dfe7ff' },
+                      { ic: <Icon name="correo" size={18} />, t: 'Carta de Presentación', bg: '#fbe6ef' },
                     ].map((c, i) => (
                       <button
                         key={i}
@@ -589,7 +590,7 @@ export default function Dashboard() {
                           padding: '16px',
                           background: '#fff',
                           borderRadius: 12,
-                          border: '2px solid #e2e8f0',
+                          border: '2px solid #e5e2da',
                           cursor: 'pointer',
                           textAlign: 'left',
                           boxShadow: '0 1px 3px rgba(0,0,0,.06)',
@@ -597,11 +598,11 @@ export default function Dashboard() {
                           fontFamily: 'inherit'
                         }}
                         onMouseOver={(e) => {
-                          e.currentTarget.style.borderColor = '#93c5fd';
+                          e.currentTarget.style.borderColor = '#8ecbff';
                           e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,.1)';
                         }}
                         onMouseOut={(e) => {
-                          e.currentTarget.style.borderColor = '#e2e8f0';
+                          e.currentTarget.style.borderColor = '#e5e2da';
                           e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,.06)';
                         }}
                       >
@@ -616,13 +617,13 @@ export default function Dashboard() {
                           fontSize: 22,
                           flexShrink: 0
                         }}>
-                          {c.ic}
+                          <Ico name={c.ic} size={18} />
                         </div>
                         <div style={{ flex: 1 }}>
-                          <p style={{ fontWeight: 700, fontSize: 14, color: '#1e293b', margin: 0 }}>{c.t}</p>
-                          <p style={{ fontSize: 12, color: '#64748b', margin: '2px 0 0' }}>Click para solicitar</p>
+                          <p style={{ fontWeight: 700, fontSize: 14, color: '#211d17', margin: 0 }}>{c.t}</p>
+                          <p style={{ fontSize: 12, color: '#6f6b62', margin: '2px 0 0' }}>Click para solicitar</p>
                         </div>
-                        <span style={{ color: '#cbd5e1', fontSize: 14 }}>›</span>
+                        <span style={{ color: '#cdc9bf', fontSize: 14 }}>›</span>
                       </button>
                     ))}
                   </div>
@@ -630,7 +631,7 @@ export default function Dashboard() {
                   {/* Tabla Mis Solicitudes */}
                   <div className="card">
                     <div className="card-hd">
-                      <span className="card-ttl">🕐 Mis Solicitudes</span>
+                      <span className="card-ttl"><Icon name="reloj" size={16} /> Mis Solicitudes</span>
                     </div>
                     <div className="overflow-x">
                       <table className="tbl">
@@ -652,8 +653,8 @@ export default function Dashboard() {
                               <td>
                                 <span className={`bs ${certificadoDescargable(c) ? 'bg-g' : 'bg-y'}`}>
                                   {certificadoDescargable(c)
-                                    ? (c.estado === 'entregado' ? '✅ Entregado' : '✅ Disponible')
-                                    : '⏳ En proceso'}
+                                    ? (c.estado === 'entregado' ? <><Icon name="check" size={18} /> Entregado</> : <><Icon name="check" size={18} /> Disponible</>)
+                                    : <><Icon name="reloj" size={14} /> En proceso</>}
                                 </span>
                               </td>
                               <td>
@@ -664,10 +665,10 @@ export default function Dashboard() {
                                     data-testid={`descargar-certificado-${c.id}`}
                                     className="btn b-primary b-sm"
                                   >
-                                    {descargando === c.id ? '⏳ Generando...' : '⬇️ Descargar'}
+                                    {descargando === c.id ? <><Icon name="reloj" size={14} /> Generando...</> : <><Icon name="descargar" size={18} /> Descargar</>}
                                   </button>
                                 ) : (
-                                  <span style={{ fontSize: 12, color: '#94a3b8' }}>En proceso...</span>
+                                  <span style={{ fontSize: 12, color: '#9c988e' }}>En proceso...</span>
                                 )}
                               </td>
                             </tr>
@@ -684,8 +685,8 @@ export default function Dashboard() {
                         data-testid="aviso-descarga-certificado"
                         style={{
                           margin: '0 18px 16px', padding: '10px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600,
-                          background: avisoDescargas.ok ? '#dcfce7' : '#fee2e2',
-                          color: avisoDescargas.ok ? '#15803d' : '#b91c1c',
+                          background: avisoDescargas.ok ? '#d8f0e5' : '#ffe0e5',
+                          color: avisoDescargas.ok ? '#0a6e4b' : '#c1122c',
                         }}
                       >
                         {avisoDescargas.texto}
@@ -706,11 +707,11 @@ export default function Dashboard() {
                       onClick={() => toggleFiltro(pagosFiltro, 'pagados', setPagosFiltro)}
                       aria-pressed={pagosFiltro === 'pagados'}
                     >
-                      <div className="stat-ic" style={{ background: '#dcfce7' }}>✅</div>
+                      <div className="stat-ic" style={{ background: '#d8f0e5' }}><Icon name="check" size={18} /></div>
                       <div>
-                        <div className="stat-v" style={{ fontSize: 20, color: '#059669' }}>{formatCurrency(totalPagado)}</div>
+                        <div className="stat-v" style={{ fontSize: 20, color: '#0e8a5f' }}>{formatCurrency(totalPagado)}</div>
                         <div className="stat-l">Total pagado 2026</div>
-                        <div className="stat-go">{pagosFiltro === 'pagados' ? '✓ Filtrando' : 'Ver solo pagados →'}</div>
+                        <div className="stat-go">{pagosFiltro === 'pagados' ? <><Icon name="check" size={14} /> Filtrando</> : 'Ver solo pagados →'}</div>
                       </div>
                     </button>
                     <button
@@ -719,11 +720,11 @@ export default function Dashboard() {
                       onClick={() => toggleFiltro(pagosFiltro, 'pendientes', setPagosFiltro)}
                       aria-pressed={pagosFiltro === 'pendientes'}
                     >
-                      <div className="stat-ic" style={{ background: '#fee2e2' }}>🕐</div>
+                      <div className="stat-ic" style={{ background: '#ffe0e5' }}><Icon name="reloj" size={16} /></div>
                       <div>
-                        <div className="stat-v" style={{ fontSize: 20, color: '#dc2626' }}>{formatCurrency(totalPendiente)}</div>
+                        <div className="stat-v" style={{ fontSize: 20, color: '#d2233c' }}>{formatCurrency(totalPendiente)}</div>
                         <div className="stat-l">Pendiente</div>
-                        <div className="stat-go">{pagosFiltro === 'pendientes' ? '✓ Filtrando' : 'Ver solo pendientes →'}</div>
+                        <div className="stat-go">{pagosFiltro === 'pendientes' ? <><Icon name="check" size={14} /> Filtrando</> : 'Ver solo pendientes →'}</div>
                       </div>
                     </button>
                     <button
@@ -732,11 +733,11 @@ export default function Dashboard() {
                       onClick={() => setPagosFiltro('todos')}
                       aria-pressed={pagosFiltro === 'todos'}
                     >
-                      <div className="stat-ic" style={{ background: '#dbeafe' }}>🧾</div>
+                      <div className="stat-ic" style={{ background: '#e3f1ff' }}><Icon name="recibo" size={18} /></div>
                       <div>
                         <div className="stat-v">{data.pagos.length}</div>
                         <div className="stat-l">Total recibos</div>
-                        <div className="stat-go">{pagosFiltro === 'todos' ? '✓ Mostrando todo' : 'Ver todos →'}</div>
+                        <div className="stat-go">{pagosFiltro === 'todos' ? <><Icon name="check" size={14} /> Mostrando todo</> : 'Ver todos →'}</div>
                       </div>
                     </button>
                   </div>
@@ -744,7 +745,7 @@ export default function Dashboard() {
                   {/* Estado de Cuenta */}
                   <div className="card">
                     <div className="card-hd">
-                      <span className="card-ttl">💳 Estado de Cuenta</span>
+                      <span className="card-ttl"><Icon name="tarjeta-credito" size={18} /> Estado de Cuenta</span>
                       <span className="bs bg-s">
                         {pagosVisibles.length} de {data.pagos.length} recibos
                         {pagosFiltro !== 'todos' && ' · filtrado'}
@@ -752,7 +753,7 @@ export default function Dashboard() {
                     </div>
                     <div className="overflow-x">
                       {pagosVisibles.length === 0 ? (
-                        <div style={{ padding: '28px 20px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                        <div style={{ padding: '28px 20px', textAlign: 'center', color: '#9c988e', fontSize: 13 }}>
                           No hay recibos que coincidan con este filtro.
                         </div>
                       ) : (
@@ -776,7 +777,7 @@ export default function Dashboard() {
                               <td>{formatDate(p.fecha_pago)}</td>
                               <td>
                                 <span className={`bs ${p.estado === 'pagado' ? 'bg-g' : 'bg-r'}`}>
-                                  {p.estado === 'pagado' ? '✅ Pagado' : '❌ Pendiente'}
+                                  {p.estado === 'pagado' ? <><Icon name="check" size={18} /> Pagado</> : <><Icon name="x" size={14} /> Pendiente</>}
                                 </span>
                               </td>
                               <td>
@@ -785,14 +786,14 @@ export default function Dashboard() {
                                     onClick={() => alert(`Imprimiendo comprobante de ${p.concepto}...`)}
                                     className="btn b-secondary b-sm"
                                   >
-                                    🧾 Comprobante
+                                    <Icon name="recibo" size={18} /> Comprobante
                                   </button>
                                 ) : (
                                   <button
                                     onClick={() => setModalVolante(p)}
                                     className="btn b-primary b-sm"
                                   >
-                                    📄 Volante
+                                    <Icon name="archivo" size={16} /> Volante
                                   </button>
                                 )}
                               </td>
@@ -809,24 +810,24 @@ export default function Dashboard() {
               {/* ── SUBPESTAÑA: HORARIO (CONSERVADO DE LA MIGRACIÓN) ── */}
               {tabAcademico === 'horario' && (
                 <div className="card" style={{ padding: 24 }}>
-                  <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 16, color: '#1e293b' }}>
+                  <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 16, color: '#211d17' }}>
                     Horario Semanal — Periodo 2026-1
                   </h3>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12 }}>
                     {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'].map((dia) => (
-                      <div key={dia} style={{ background: '#f8fafc', borderRadius: 12, padding: 14, border: '1px solid #e2e8f0', minHeight: 220 }}>
-                        <div style={{ fontWeight: 800, color: '#1e3a8a', fontSize: 13, marginBottom: 10, borderBottom: '1px solid #cbd5e1', paddingBottom: 6 }}>
+                      <div key={dia} style={{ background: '#f7f6f3', borderRadius: 12, padding: 14, border: '1px solid #e5e2da', minHeight: 220 }}>
+                        <div style={{ fontWeight: 800, color: '#00116f', fontSize: 13, marginBottom: 10, borderBottom: '1px solid #cdc9bf', paddingBottom: 6 }}>
                           {dia}
                         </div>
-                        <div style={{ background: '#eff6ff', borderLeft: '3px solid #2563eb', padding: '8px 10px', borderRadius: 6, marginBottom: 8 }}>
-                          <div style={{ fontSize: 11, fontWeight: 700, color: '#1e40af' }}>7:00am - 9:00am</div>
-                          <div style={{ fontSize: 12, fontWeight: 700, color: '#1e293b' }}>Bases de Datos II</div>
-                          <div style={{ fontSize: 10, color: '#64748b' }}>Lab B-205</div>
+                        <div style={{ background: '#eef7ff', borderLeft: '3px solid #0a5cae', padding: '8px 10px', borderRadius: 6, marginBottom: 8 }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: '#04295f' }}>7:00am - 9:00am</div>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: '#211d17' }}>Bases de Datos II</div>
+                          <div style={{ fontSize: 10, color: '#6f6b62' }}>Lab B-205</div>
                         </div>
-                        <div style={{ background: '#f5f3ff', borderLeft: '3px solid #8b5cf6', padding: '8px 10px', borderRadius: 6 }}>
-                          <div style={{ fontSize: 11, fontWeight: 700, color: '#6b21a8' }}>9:00am - 11:00am</div>
-                          <div style={{ fontSize: 12, fontWeight: 700, color: '#1e293b' }}>Ingeniería de Software</div>
-                          <div style={{ fontSize: 10, color: '#64748b' }}>Aula 304</div>
+                        <div style={{ background: '#f4f0fb', borderLeft: '3px solid #8a5cf0', padding: '8px 10px', borderRadius: 6 }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: '#4e2a94' }}>9:00am - 11:00am</div>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: '#211d17' }}>Ingeniería de Software</div>
+                          <div style={{ fontSize: 10, color: '#6f6b62' }}>Aula 304</div>
                         </div>
                       </div>
                     ))}
@@ -839,21 +840,21 @@ export default function Dashboard() {
                 <div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 16 }}>
                     <div className="stat-card">
-                      <div className="stat-ic" style={{ background: '#dbeafe' }}>⭐</div>
+                      <div className="stat-ic" style={{ background: '#e3f1ff' }}><Icon name="estrella" size={18} /></div>
                       <div>
                         <div className="stat-v">4.2</div>
                         <div className="stat-l">Promedio 2026-1</div>
                       </div>
                     </div>
                     <div className="stat-card">
-                      <div className="stat-ic" style={{ background: '#dcfce7' }}>📚</div>
+                      <div className="stat-ic" style={{ background: '#d8f0e5' }}><Icon name="libro" size={18} /></div>
                       <div>
                         <div className="stat-v">{data.materias.filter(m => m.periodo === '2026-1').length}</div>
                         <div className="stat-l">Materias activas</div>
                       </div>
                     </div>
                     <div className="stat-card">
-                      <div className="stat-ic" style={{ background: '#ede9fe' }}>🎓</div>
+                      <div className="stat-ic" style={{ background: '#efe9fb' }}>graduacion</div>
                       <div>
                         <div className="stat-v">82</div>
                         <div className="stat-l">Créditos acumulados</div>
@@ -863,7 +864,7 @@ export default function Dashboard() {
 
                   <div className="card">
                     <div className="card-hd">
-                      <span className="card-ttl">⭐ Materias — Semestre 2026-1</span>
+                      <span className="card-ttl"><Icon name="estrella" size={18} /> Materias — Semestre 2026-1</span>
                     </div>
                     <div className="overflow-x">
                       <table className="tbl">
@@ -882,11 +883,11 @@ export default function Dashboard() {
                         <tbody>
                           {data.materias.filter(m => m.periodo === '2026-1').map((m) => (
                             <tr key={m.id}>
-                              <td><code style={{ fontSize: 11, color: '#64748b' }}>{m.codigo}</code></td>
-                              <td><strong>{m.nombre}</strong><br /><span style={{ fontSize: 11, color: '#94a3b8' }}>{m.profesor}</span></td>
+                              <td><code style={{ fontSize: 11, color: '#6f6b62' }}>{m.codigo}</code></td>
+                              <td><strong>{m.nombre}</strong><br /><span style={{ fontSize: 11, color: '#9c988e' }}>{m.profesor}</span></td>
                               <td style={{ textAlign: 'center' }}>{m.creditos}</td>
-                              <td style={{ textAlign: 'center', fontWeight: 700, color: m.nota1 >= 3 ? '#059669' : '#dc2626' }}>{m.nota1 ?? '—'}</td>
-                              <td style={{ textAlign: 'center', fontWeight: 700, color: m.nota2 >= 3 ? '#059669' : '#dc2626' }}>{m.nota2 ?? '—'}</td>
+                              <td style={{ textAlign: 'center', fontWeight: 700, color: m.nota1 >= 3 ? '#0e8a5f' : '#d2233c' }}>{m.nota1 ?? '—'}</td>
+                              <td style={{ textAlign: 'center', fontWeight: 700, color: m.nota2 >= 3 ? '#0e8a5f' : '#d2233c' }}>{m.nota2 ?? '—'}</td>
                               <td style={{ textAlign: 'center', fontWeight: 700 }}>{m.nota3 ?? '—'}</td>
                               <td style={{ textAlign: 'center' }}>
                                 <div className={`nc ${m.definitiva ? (m.definitiva >= 3 ? 'nc-ok' : 'nc-fail') : 'nc-pend'}`} style={{ margin: 'auto' }}>
@@ -921,7 +922,7 @@ export default function Dashboard() {
                     className={`t-btn ${tabLms === t.tab ? 'active' : ''}`}
                     onClick={() => setCurrentTab(t.tab)}
                   >
-                    {t.icon} {t.label}
+                    <Ico name={t.icon} size={15} /> {t.label}
                   </button>
                 ))}
               </div>
@@ -934,27 +935,27 @@ export default function Dashboard() {
                 <div data-testid="docente-por-calificar">
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 20 }}>
                     <div className="stat-card">
-                      <div className="stat-ic" style={{ background: '#ffedd5' }}>⏰</div>
+                      <div className="stat-ic" style={{ background: '#fbe9d8' }}><Icon name="reloj" size={18} /></div>
                       <div>
-                        <div className="stat-v" style={{ color: '#ea580c' }}>
+                        <div className="stat-v" style={{ color: '#c2560f' }}>
                           {porCalificar.filter((e) => !e.calificada).length}
                         </div>
                         <div className="stat-l">Sin calificar</div>
                       </div>
                     </div>
                     <div className="stat-card">
-                      <div className="stat-ic" style={{ background: '#dcfce7' }}>✅</div>
+                      <div className="stat-ic" style={{ background: '#d8f0e5' }}><Icon name="check" size={18} /></div>
                       <div>
-                        <div className="stat-v" style={{ color: '#059669' }}>
+                        <div className="stat-v" style={{ color: '#0e8a5f' }}>
                           {porCalificar.filter((e) => e.calificada).length}
                         </div>
                         <div className="stat-l">Calificadas</div>
                       </div>
                     </div>
                     <div className="stat-card">
-                      <div className="stat-ic" style={{ background: '#dbeafe' }}>📄</div>
+                      <div className="stat-ic" style={{ background: '#e3f1ff' }}><Icon name="archivo" size={16} /></div>
                       <div>
-                        <div className="stat-v" style={{ color: '#2563eb' }}>
+                        <div className="stat-v" style={{ color: '#0a5cae' }}>
                           {porCalificar.filter((e) => e.archivo).length}
                         </div>
                         <div className="stat-l">Con documento</div>
@@ -963,38 +964,38 @@ export default function Dashboard() {
                   </div>
 
                   {errorBandeja && (
-                    <div className="card" style={{ padding: 16, marginBottom: 16, color: '#991b1b', fontSize: 13 }}>
+                    <div className="card" style={{ padding: 16, marginBottom: 16, color: '#8f0d22', fontSize: 13 }}>
                       No se pudo cargar la bandeja: {errorBandeja}
                     </div>
                   )}
 
                   <div className="card">
                     <div className="card-hd">
-                      <span className="card-ttl">📝 Entregas por revisar</span>
+                      <span className="card-ttl"><Icon name="cuaderno" size={18} /> Entregas por revisar</span>
                       <button type="button" className="btn b-outline b-sm" onClick={cargarBandeja}>
                         Actualizar
                       </button>
                     </div>
                     <div>
                       {porCalificar.length === 0 ? (
-                        <div style={{ padding: '28px 20px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                        <div style={{ padding: '28px 20px', textAlign: 'center', color: '#9c988e', fontSize: 13 }}>
                           No hay entregas por revisar. Cuando un estudiante entregue algo, aparecerá aquí.
                         </div>
                       ) : (
                         porCalificar.map((e) => (
                           <div
                             key={e.entregaId}
-                            style={{ padding: '14px 20px', borderBottom: '1px solid #f1f5f9', display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}
+                            style={{ padding: '14px 20px', borderBottom: '1px solid #f0eee9', display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}
                           >
                             <div style={{ flex: 1, minWidth: 220 }}>
-                              <p style={{ fontWeight: 700, color: '#1e293b', fontSize: 14, margin: '0 0 2px' }}>
+                              <p style={{ fontWeight: 700, color: '#211d17', fontSize: 14, margin: '0 0 2px' }}>
                                 {e.estudiante}
                               </p>
-                              <p style={{ fontSize: 12, color: '#64748b', margin: 0 }}>
+                              <p style={{ fontSize: 12, color: '#6f6b62', margin: 0 }}>
                                 {e.titulo} · Corte {e.corte} · {e.puntos} pts
                               </p>
-                              <p style={{ fontSize: 11, color: '#94a3b8', margin: '3px 0 0' }}>
-                                {e.archivo ? `📎 ${e.archivo}` : e.tieneRespuestas ? '📝 Respuestas del parcial' : 'Sin documento'}
+                              <p style={{ fontSize: 11, color: '#9c988e', margin: '3px 0 0' }}>
+                                {e.archivo ? <><Icon name="archivo" size={16} />{e.archivo}</> : e.tieneRespuestas ? <><Icon name="cuaderno" size={18} /> Respuestas del parcial</> : 'Sin documento'}
                                 {e.entregadoEn ? ` · ${formatDate(e.entregadoEn)}` : ''}
                               </p>
                             </div>
@@ -1026,11 +1027,11 @@ export default function Dashboard() {
                       onClick={() => toggleFiltro(tareasFiltro, 'pendientes', setTareasFiltro)}
                       aria-pressed={tareasFiltro === 'pendientes'}
                     >
-                      <div className="stat-ic" style={{ background: '#ffedd5' }}>⏰</div>
+                      <div className="stat-ic" style={{ background: '#fbe9d8' }}><Icon name="reloj" size={18} /></div>
                       <div>
-                        <div className="stat-v" style={{ color: '#ea580c' }}>{tareasPendientes.length}</div>
+                        <div className="stat-v" style={{ color: '#c2560f' }}>{tareasPendientes.length}</div>
                         <div className="stat-l">Pendientes</div>
-                        <div className="stat-go">{tareasFiltro === 'pendientes' ? '✓ Filtrando' : 'Ver solo pendientes →'}</div>
+                        <div className="stat-go">{tareasFiltro === 'pendientes' ? <><Icon name="check" size={14} /> Filtrando</> : 'Ver solo pendientes →'}</div>
                       </div>
                     </button>
                     <button
@@ -1039,11 +1040,11 @@ export default function Dashboard() {
                       onClick={() => toggleFiltro(tareasFiltro, 'entregadas', setTareasFiltro)}
                       aria-pressed={tareasFiltro === 'entregadas'}
                     >
-                      <div className="stat-ic" style={{ background: '#dcfce7' }}>✅</div>
+                      <div className="stat-ic" style={{ background: '#d8f0e5' }}><Icon name="check" size={18} /></div>
                       <div>
-                        <div className="stat-v" style={{ color: '#059669' }}>{tareasEntregadas.length}</div>
+                        <div className="stat-v" style={{ color: '#0e8a5f' }}>{tareasEntregadas.length}</div>
                         <div className="stat-l">Realizadas</div>
-                        <div className="stat-go">{tareasFiltro === 'entregadas' ? '✓ Filtrando' : 'Ver solo realizadas →'}</div>
+                        <div className="stat-go">{tareasFiltro === 'entregadas' ? <><Icon name="check" size={14} /> Filtrando</> : 'Ver solo realizadas →'}</div>
                       </div>
                     </button>
                     <button
@@ -1052,11 +1053,11 @@ export default function Dashboard() {
                       onClick={() => setTareasFiltro('todas')}
                       aria-pressed={tareasFiltro === 'todas'}
                     >
-                      <div className="stat-ic" style={{ background: '#dbeafe' }}>📊</div>
+                      <div className="stat-ic" style={{ background: '#e3f1ff' }}><Icon name="grafica-barras" size={18} /></div>
                       <div>
-                        <div className="stat-v" style={{ color: '#2563eb' }}>{tasaEntrega}%</div>
+                        <div className="stat-v" style={{ color: '#0a5cae' }}>{tasaEntrega}%</div>
                         <div className="stat-l">Tasa de entrega</div>
-                        <div className="stat-go">{tareasFiltro === 'todas' ? '✓ Mostrando todo' : 'Ver todas →'}</div>
+                        <div className="stat-go">{tareasFiltro === 'todas' ? <><Icon name="check" size={14} /> Mostrando todo</> : 'Ver todas →'}</div>
                       </div>
                     </button>
                   </div>
@@ -1064,7 +1065,7 @@ export default function Dashboard() {
                   {/* Actividades filtradas */}
                   <div className="card">
                     <div className="card-hd">
-                      <span className="card-ttl">✅ Actividades</span>
+                      <span className="card-ttl"><Icon name="check" size={18} /> Actividades</span>
                       <span className="bs bg-s">
                         {tareasVisibles.length} de {data.actividades.length}
                         {tareasFiltro !== 'todas' && ' · filtrado'}
@@ -1072,21 +1073,21 @@ export default function Dashboard() {
                     </div>
                     <div>
                       {tareasVisibles.length === 0 ? (
-                        <div style={{ padding: '28px 20px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                        <div style={{ padding: '28px 20px', textAlign: 'center', color: '#9c988e', fontSize: 13 }}>
                           No hay actividades que coincidan con este filtro.
                         </div>
                       ) : (
                       tareasVisibles.map((a) => {
                         const cursoObj = data.cursos.find((c) => c.id === a.cursoId);
                         const tcol = {
-                          taller: { bg: '#dbeafe', color: '#1d4ed8' },
-                          quiz: { bg: '#fef9c3', color: '#854d0e' },
-                          proyecto: { bg: '#ede9fe', color: '#6d28d9' },
-                          informe: { bg: '#dcfce7', color: '#15803d' },
-                        }[a.tipo] || { bg: '#f1f5f9', color: '#475569' };
+                          taller: { bg: '#e3f1ff', color: '#06468c' },
+                          quiz: { bg: '#fbefd6', color: '#99610e' },
+                          proyecto: { bg: '#efe9fb', color: '#5a37ad' },
+                          informe: { bg: '#d8f0e5', color: '#0a6e4b' },
+                        }[a.tipo] || { bg: '#f0eee9', color: '#4e4a43' };
 
                         return (
-                          <div key={a.id} style={{ padding: '16px 20px', borderBottom: '1px solid #f1f5f9' }}>
+                          <div key={a.id} style={{ padding: '16px 20px', borderBottom: '1px solid #f0eee9' }}>
                             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
                               <div style={{ flex: 1 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
@@ -1100,24 +1101,24 @@ export default function Dashboard() {
                                   }}>
                                     {a.tipo}
                                   </span>
-                                  <span style={{ fontSize: 12, color: '#94a3b8' }}>{cursoObj?.nombre || ''}</span>
+                                  <span style={{ fontSize: 12, color: '#9c988e' }}>{cursoObj?.nombre || ''}</span>
                                 </div>
-                                <p style={{ fontWeight: 700, color: '#1e293b', fontSize: 14, margin: '0 0 2px' }}>{a.titulo}</p>
-                                <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 6px' }}>{a.descripcion}</p>
-                                <p style={{ fontSize: 11, color: '#94a3b8', margin: 0 }}>
-                                  📅 {formatDate(a.fechaEntrega)} · ⭐ {a.puntos} pts · Corte {a.corte || '?'}
+                                <p style={{ fontWeight: 700, color: '#211d17', fontSize: 14, margin: '0 0 2px' }}>{a.titulo}</p>
+                                <p style={{ fontSize: 13, color: '#6f6b62', margin: '0 0 6px' }}>{a.descripcion}</p>
+                                <p style={{ fontSize: 11, color: '#9c988e', margin: 0 }}>
+                                  <Icon name="calendario" size={16} /> {formatDate(a.fechaEntrega)} · <Icon name="estrella" size={18} /> {a.puntos} pts · Corte {a.corte || '?'}
                                 </p>
                               </div>
                               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flexShrink: 0 }}>
                                 <span className={`bs ${a.estado_est === 'calificado' ? 'bg-g' : (a.estado_est === 'entregado' ? 'bg-b' : 'bg-r')}`}>
-                                  {a.estado_est === 'calificado' ? `✓ ${a.nota}/${a.puntos}` : (a.estado_est === 'entregado' ? 'Entregado' : 'Pendiente')}
+                                  {a.estado_est === 'calificado' ? <><Icon name="check" size={14} />{a.nota}/{a.puntos}</> : (a.estado_est === 'entregado' ? 'Entregado' : 'Pendiente')}
                                 </span>
                                 {a.estado_est === 'pendiente' && (
                                   <button
                                     onClick={() => setModalEntrega(a)}
                                     className="btn b-primary b-sm"
                                   >
-                                    ⬆️ Entregar
+                                    subir Entregar
                                   </button>
                                 )}
                               </div>
@@ -1135,7 +1136,7 @@ export default function Dashboard() {
               {tabLms === 'cursos' && (
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                    <strong style={{ color: '#334155' }}>{data.cursos.length} cursos activos — 2026-1</strong>
+                    <strong style={{ color: '#3a3630' }}>{data.cursos.length} cursos activos — 2026-1</strong>
                     {esDocente ? (
                       /* El docente no se matricula a si mismo: matricula a los
                          alumnos de SU curso, asi que el botón lo lleva a la
@@ -1145,11 +1146,11 @@ export default function Dashboard() {
                         className="btn b-outline b-sm"
                         disabled={!data.cursos.length}
                       >
-                        👥 Inscribir estudiantes
+                        <Icon name="usuarios" size={18} /> Inscribir estudiantes
                       </button>
                     ) : (
                       <button onClick={() => navigate('/matricula')} className="btn b-outline b-sm">
-                        📝 Ir a Matrícula
+                        <Icon name="cuaderno" size={18} /> Ir a Matrícula
                       </button>
                     )}
                   </div>
@@ -1160,14 +1161,14 @@ export default function Dashboard() {
                         className="course-card"
                         onClick={() => navigate(`/curso/${c.id}`)}
                       >
-                        <div className="course-img" style={{ background: c.color }}>{c.icon}</div>
+                        <div className="course-img" style={{ background: c.color }}><Ico name={c.icon} size={22} /></div>
                         <div className="course-info">
                           <div className="course-title">{c.nombre}</div>
-                          <div className="course-meta">📌 {c.codigo} · Grupo {c.grupo}</div>
-                          <div className="course-meta">👤 {c.profesor}</div>
-                          <div className="course-meta" style={{ marginBottom: 10 }}>👥 {c.estudiantes} estudiantes</div>
+                          <div className="course-meta">marcador {c.codigo} · Grupo {c.grupo}</div>
+                          <div className="course-meta"><Icon name="usuario" size={16} /> {c.profesor}</div>
+                          <div className="course-meta" style={{ marginBottom: 10 }}><Icon name="usuarios" size={18} /> {c.estudiantes} estudiantes</div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
-                            <span style={{ color: '#64748b' }}>Progreso</span>
+                            <span style={{ color: '#6f6b62' }}>Progreso</span>
                             <span style={{ fontWeight: 700 }}>{c.progreso}%</span>
                           </div>
                           <div className="prog-bar">
@@ -1175,7 +1176,7 @@ export default function Dashboard() {
                               className="prog-fill"
                               style={{
                                 width: `${c.progreso}%`,
-                                background: c.progreso === 100 ? '#22c55e' : (c.progreso > 60 ? '#3b82f6' : '#eab308')
+                                background: c.progreso === 100 ? '#17a06d' : (c.progreso > 60 ? '#0a84ff' : '#e0a52e')
                               }}
                             />
                           </div>
@@ -1191,7 +1192,7 @@ export default function Dashboard() {
                                 navigate(`/curso/${c.id}?tab=estudiantes`);
                               }}
                             >
-                              👥 Gestionar inscritos
+                              <Icon name="usuarios" size={18} /> Gestionar inscritos
                             </button>
                           )}
                         </div>
@@ -1204,18 +1205,18 @@ export default function Dashboard() {
               {/* ── SUBPESTAÑA: RECURSOS ── */}
               {tabLms === 'recursos' && (
                 <div className="card">
-                  <div className="card-hd"><span className="card-ttl">📁 Material Institucional</span></div>
+                  <div className="card-hd"><span className="card-ttl"><Icon name="carpeta" size={16} /> Material Institucional</span></div>
                   <div>
                     {[
                       { nom: 'Calendario Académico 2026', t: 'PDF', p: '1.4 MB' },
                       { nom: 'Reglamento Estudiantil Vigente', t: 'PDF', p: '2.8 MB' },
                       { nom: 'Guía de Estilos de Grado y Tesis', t: 'DOCX', p: '520 KB' },
                     ].map((r, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', borderBottom: '1px solid #f1f5f9' }}>
-                        <div style={{ fontSize: 26 }}>📄</div>
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', borderBottom: '1px solid #f0eee9' }}>
+                        <div style={{ fontSize: 26 }}><Icon name="archivo" size={16} /></div>
                         <div style={{ flex: 1 }}>
-                          <p style={{ fontSize: 13, fontWeight: 600, color: '#1e293b', margin: 0 }}>{r.nom}</p>
-                          <p style={{ fontSize: 11, color: '#94a3b8', margin: '2px 0 0' }}>{r.t} · {r.p}</p>
+                          <p style={{ fontSize: 13, fontWeight: 600, color: '#211d17', margin: 0 }}>{r.nom}</p>
+                          <p style={{ fontSize: 11, color: '#9c988e', margin: '2px 0 0' }}>{r.t} · {r.p}</p>
                         </div>
                         <button onClick={() => alert(`Descargando ${r.nom}...`)} className="btn b-secondary b-sm">
                           Descargar
@@ -1236,7 +1237,7 @@ export default function Dashboard() {
               {/* ── Identidad ── */}
               <div className="card">
                 <div className="card-hd">
-                  <span className="card-ttl">👤 Mi Perfil</span>
+                  <span className="card-ttl"><Icon name="usuario" size={16} /> Mi Perfil</span>
                   <span className={`bs ${user.role === 'estudiante' ? 'bg-b' : 'bg-p'}`}>
                     {roleLabels[user.role] || user.role}
                   </span>
@@ -1248,37 +1249,37 @@ export default function Dashboard() {
                     </div>
                     <div style={{ minWidth: 0 }}>
                       <h3 style={{ fontSize: 19, fontWeight: 700, margin: 0 }}>{user.name}</h3>
-                      <p style={{ fontSize: 12, color: '#64748b', margin: '4px 0 0' }}>
+                      <p style={{ fontSize: 12, color: '#6f6b62', margin: '4px 0 0' }}>
                         Código institucional: <strong>{user.code}</strong>
                       </p>
                     </div>
                   </div>
 
                   {/* ── Datos académicos (solo lectura: los emite el sistema) ── */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, padding: 14, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, padding: 14, background: '#f7f6f3', border: '1px solid #e5e2da', borderRadius: 10 }}>
                     <div>
-                      <span style={{ color: '#64748b', display: 'block', fontSize: 10, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 3 }}>
+                      <span style={{ color: '#6f6b62', display: 'block', fontSize: 10, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 3 }}>
                         {user.program ? 'Programa' : 'Dependencia'}
                       </span>
                       <strong style={{ fontSize: 13 }}>{user.program || user.department || 'Facultad General'}</strong>
                     </div>
                     {user.semester && (
                       <div>
-                        <span style={{ color: '#64748b', display: 'block', fontSize: 10, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 3 }}>
+                        <span style={{ color: '#6f6b62', display: 'block', fontSize: 10, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 3 }}>
                           Semestre
                         </span>
                         <strong style={{ fontSize: 13 }}>{user.semester}</strong>
                       </div>
                     )}
                     <div>
-                      <span style={{ color: '#64748b', display: 'block', fontSize: 10, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 3 }}>
+                      <span style={{ color: '#6f6b62', display: 'block', fontSize: 10, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 3 }}>
                         Sesión iniciada
                       </span>
                       <strong style={{ fontSize: 13 }}>{user.username || user.code || '—'}</strong>
                     </div>
                   </div>
-                  <p style={{ fontSize: 11, color: '#94a3b8', margin: '10px 0 0' }}>
-                    ℹ️ Los datos académicos los administra la institución y no se pueden editar desde el portal.
+                  <p style={{ fontSize: 11, color: '#9c988e', margin: '10px 0 0' }}>
+                    <Icon name="info" size={14} /> Los datos académicos los administra la institución y no se pueden editar desde el portal.
                   </p>
                 </div>
               </div>
@@ -1286,10 +1287,10 @@ export default function Dashboard() {
               {/* ── Datos personales: lectura + modo edición ── */}
               <div className="card">
                 <div className="card-hd">
-                  <span className="card-ttl">📋 Datos Personales</span>
+                  <span className="card-ttl"> Datos Personales</span>
                   {!editando && (
                     <button type="button" className="btn b-outline b-sm" onClick={handleEditProfile}>
-                      ✏️ Editar Información
+                      <Icon name="editar" size={16} /> Editar Información
                     </button>
                   )}
                 </div>
@@ -1303,10 +1304,10 @@ export default function Dashboard() {
                         ['Dirección de residencia', user.address],
                       ].map(([label, value]) => (
                         <div key={label}>
-                          <span style={{ color: '#64748b', display: 'block', fontSize: 10, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 4 }}>
+                          <span style={{ color: '#6f6b62', display: 'block', fontSize: 10, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 4 }}>
                             {label}
                           </span>
-                          <strong style={{ fontSize: 13.5, color: value ? '#1e293b' : '#94a3b8', fontWeight: value ? 600 : 400 }}>
+                          <strong style={{ fontSize: 13.5, color: value ? '#211d17' : '#9c988e', fontWeight: value ? 600 : 400 }}>
                             {value || 'No registrado'}
                           </strong>
                         </div>
@@ -1370,9 +1371,9 @@ export default function Dashboard() {
                     <div
                       role="status"
                       style={{
-                        background: perfilMsg.ok ? '#dcfce7' : '#fee2e2',
-                        color: perfilMsg.ok ? '#15803d' : '#b91c1c',
-                        border: `1px solid ${perfilMsg.ok ? '#86efac' : '#fca5a5'}`,
+                        background: perfilMsg.ok ? '#d8f0e5' : '#ffe0e5',
+                        color: perfilMsg.ok ? '#0a6e4b' : '#c1122c',
+                        border: `1px solid ${perfilMsg.ok ? '#a7e3c8' : '#f4b6bf'}`,
                         padding: '10px 14px',
                         borderRadius: 9,
                         fontSize: 13,
@@ -1382,7 +1383,7 @@ export default function Dashboard() {
                         gap: 8,
                       }}
                     >
-                      <span>{perfilMsg.ok ? '✅' : '⚠️'}</span>
+                      <span>{perfilMsg.ok ? <><Icon name="check" size={18} /></> : <><Icon name="alerta" size={14} /></>}</span>
                       <span>{perfilMsg.text}</span>
                     </div>
                   )}
@@ -1390,10 +1391,10 @@ export default function Dashboard() {
                   {editando && (
                     <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 16 }}>
                       <button type="button" className="btn b-primary" onClick={handleSaveProfile}>
-                        💾 Guardar Cambios
+                        <Icon name="guardar" size={16} /> Guardar Cambios
                       </button>
                       <button type="button" className="btn b-secondary" onClick={handleResetProfile}>
-                        ↩️ Descartar Cambios
+                        <Icon name="flecha-izquierda" size={16} /> Descartar Cambios
                       </button>
                     </div>
                   )}
@@ -1403,14 +1404,14 @@ export default function Dashboard() {
               {/* ── Acciones ── */}
               <div className="card">
                 <div className="card-hd">
-                  <span className="card-ttl">⚙️ Acciones</span>
+                  <span className="card-ttl"><Icon name="config" size={16} /> Acciones</span>
                 </div>
                 <div className="card-bd" style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                   <button type="button" className="btn b-secondary" onClick={() => handleNavigate('academico', 'certificados')}>
-                    📜 Mis Certificados
+                    <Icon name="certificado" size={18} /> Mis Certificados
                   </button>
                   <button type="button" className="btn b-secondary" onClick={() => handleNavigate('academico', 'pagos')}>
-                    💳 Estado de Cuenta
+                    <Icon name="tarjeta-credito" size={18} /> Estado de Cuenta
                   </button>
                   <button
                     type="button"
@@ -1420,7 +1421,7 @@ export default function Dashboard() {
                       navigate('/login');
                     }}
                   >
-                    🚪 Cerrar Sesión
+                    <Icon name="salir" size={16} /> Cerrar Sesión
                   </button>
                 </div>
               </div>
@@ -1434,12 +1435,12 @@ export default function Dashboard() {
         <div className="modal-ov open">
           <div className="modal-box">
             <div className="modal-hd">
-              <span className="modal-ttl">📄 Solicitar: {modalCert}</span>
-              <button className="modal-x" onClick={() => setModalCert(null)}>✕</button>
+              <span className="modal-ttl"><Icon name="archivo" size={16} /> Solicitar: {modalCert}</span>
+              <button className="modal-x" onClick={() => setModalCert(null)}><Icon name="x" size={14} /></button>
             </div>
             <div className="modal-bd">
-              <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 9, padding: 12, fontSize: 13, color: '#1d4ed8', marginBottom: 16 }}>
-                ℹ️ Disponible en <strong>2 a 5 días hábiles</strong> después de la solicitud.
+              <div style={{ background: '#eef7ff', border: '1px solid #cfe8ff', borderRadius: 9, padding: 12, fontSize: 13, color: '#06468c', marginBottom: 16 }}>
+                <Icon name="info" size={14} /> Disponible en <strong>2 a 5 días hábiles</strong> después de la solicitud.
               </div>
               <div className="f-group">
                 <label className="f-label">Destino</label>
@@ -1462,7 +1463,7 @@ export default function Dashboard() {
             <div className="modal-ft">
               <button className="btn b-secondary" onClick={() => setModalCert(null)}>Cancelar</button>
               <button className="btn b-primary" onClick={() => handleSolicitarCertificado(modalCert)}>
-                📤 Enviar Solicitud
+                <Icon name="subir" size={18} /> Enviar Solicitud
               </button>
             </div>
           </div>
@@ -1474,15 +1475,15 @@ export default function Dashboard() {
         <div className="modal-ov open">
           <div className="modal-box">
             <div className="modal-hd">
-              <span className="modal-ttl">📄 Volante de Pago</span>
-              <button className="modal-x" onClick={() => setModalVolante(null)}>✕</button>
+              <span className="modal-ttl"><Icon name="archivo" size={16} /> Volante de Pago</span>
+              <button className="modal-x" onClick={() => setModalVolante(null)}><Icon name="x" size={14} /></button>
             </div>
             <div className="modal-bd">
-              <div style={{ border: '2px dashed #cbd5e1', borderRadius: 14, padding: 24, textAlign: 'center' }}>
-                <div style={{ fontSize: 36, marginBottom: 8 }}>🏛️</div>
+              <div style={{ border: '2px dashed #cdc9bf', borderRadius: 14, padding: 24, textAlign: 'center' }}>
+                <div style={{ fontSize: 36, marginBottom: 8 }}><Icon name="edificio" size={18} /></div>
                 <h3 style={{ fontWeight: 800, fontSize: 17, margin: 0 }}>UniPlataforma — Universidad</h3>
-                <p style={{ color: '#64748b', fontSize: 13, margin: '4px 0 16px' }}>NIT: 900.123.456-7</p>
-                <div style={{ background: '#f8fafc', borderRadius: 10, padding: 16, textAlign: 'left' }}>
+                <p style={{ color: '#6f6b62', fontSize: 13, margin: '4px 0 16px' }}>NIT: 900.123.456-7</p>
+                <div style={{ background: '#f7f6f3', borderRadius: 10, padding: 16, textAlign: 'left' }}>
                   {[
                     ['Estudiante', user.name],
                     ['Código', user.code],
@@ -1491,8 +1492,8 @@ export default function Dashboard() {
                     ['Vence', '25 de julio de 2026'],
                     ['Referencia', `REF-2026-${user.code}`],
                   ].map(([k, v], idx) => (
-                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid #e2e8f0', fontSize: 13 }}>
-                      <span style={{ color: '#64748b' }}>{k}:</span>
+                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid #e5e2da', fontSize: 13 }}>
+                      <span style={{ color: '#6f6b62' }}>{k}:</span>
                       <span style={{ fontWeight: 600 }}>{v}</span>
                     </div>
                   ))}
@@ -1502,7 +1503,7 @@ export default function Dashboard() {
             <div className="modal-ft">
               <button className="btn b-secondary" onClick={() => setModalVolante(null)}>Cerrar</button>
               <button className="btn b-primary" onClick={() => { alert('Imprimiendo comprobante en PDF...'); setModalVolante(null); }}>
-                🖨️ Imprimir
+                imprimir Imprimir
               </button>
             </div>
           </div>
@@ -1514,20 +1515,20 @@ export default function Dashboard() {
         <div className="modal-ov open">
           <div className="modal-box">
             <div className="modal-hd">
-              <span className="modal-ttl">📤 Entregar: {modalEntrega.titulo}</span>
-              <button className="modal-x" onClick={() => setModalEntrega(null)}>✕</button>
+              <span className="modal-ttl"><Icon name="subir" size={18} /> Entregar: {modalEntrega.titulo}</span>
+              <button className="modal-x" onClick={() => setModalEntrega(null)}><Icon name="x" size={14} /></button>
             </div>
             <div className="modal-bd">
-              <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 9, padding: 12, marginBottom: 14, fontSize: 13 }}>
-                <strong style={{ color: '#1d4ed8' }}>{modalEntrega.titulo}</strong><br />
-                <span style={{ color: '#3b82f6' }}>
+              <div style={{ background: '#eef7ff', border: '1px solid #cfe8ff', borderRadius: 9, padding: 12, marginBottom: 14, fontSize: 13 }}>
+                <strong style={{ color: '#06468c' }}>{modalEntrega.titulo}</strong><br />
+                <span style={{ color: '#0a84ff' }}>
                   Corte {modalEntrega.corte} · Fecha: {formatDate(modalEntrega.fechaEntrega)} · {modalEntrega.puntos} pts
                 </span>
               </div>
               <div className="upload-area">
-                <div style={{ fontSize: 40, marginBottom: 8 }}>☁️</div>
-                <p style={{ fontWeight: 600, color: '#475569', margin: 0 }}>Arrastra tu archivo aquí</p>
-                <p style={{ fontSize: 12, color: '#94a3b8', margin: '4px 0 0' }}>PDF, DOCX, ZIP — máx. 20MB</p>
+                <div style={{ fontSize: 40, marginBottom: 8 }}><Icon name="subir" size={40} /></div>
+                <p style={{ fontWeight: 600, color: '#4e4a43', margin: 0 }}>Arrastra tu archivo aquí</p>
+                <p style={{ fontSize: 12, color: '#9c988e', margin: '4px 0 0' }}>PDF, DOCX, ZIP — máx. 20MB</p>
               </div>
               <div className="f-group" style={{ marginTop: 14 }}>
                 <label className="f-label">Comentario (opcional)</label>
@@ -1537,7 +1538,7 @@ export default function Dashboard() {
             <div className="modal-ft">
               <button className="btn b-secondary" onClick={() => setModalEntrega(null)}>Cancelar</button>
               <button className="btn b-success" onClick={() => handleEntregarTarea(modalEntrega.id)}>
-                📤 Enviar entrega
+                <Icon name="subir" size={18} /> Enviar entrega
               </button>
             </div>
           </div>

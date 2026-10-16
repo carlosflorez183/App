@@ -93,8 +93,8 @@ addTabs('Admin', Admin, ['resumen', 'usuarios', 'estudiantes', 'programas', 'pen
 addTabs('Admisiones', Admisiones, ['resumen', 'aspirantes', 'procesos', 'documentos', 'registro', 'expedientes', 'cuenta', 'certificados', 'reportes']);
 addTabs('Docente', Docente, ['cursos', 'notas', 'actividades', 'asistencia', 'foro']);
 addTabs('Rectoria', Rectoria, ['indicadores', 'programas', 'admisiones', 'sostenibilidad']);
-addTabs('TalentoHumano', TalentoHumano, ['planta', 'convocatorias', 'capacitaciones', 'carga', 'areas', 'nomina', 'certificados']);
-addTabs('Contabilidad', Contabilidad, ['recaudo', 'cartera', 'conciliacion', 'egresos', 'nomina']);
+addTabs('TalentoHumano', TalentoHumano, ['planta', 'convocatorias', 'capacitaciones', 'carga', 'areas', 'nomina', 'novedades', 'certificados']);
+addTabs('Contabilidad', Contabilidad, ['recaudo', 'cartera', 'conciliacion', 'egresos', 'nomina', 'novedades']);
 
 CASOS.push({
   caso: 'Matricula:editable',

@@ -7,6 +7,7 @@
    compartido del demo.
    ============================================= */
 import React, { useState } from 'react';
+import Icon, { Ico } from '../components/Icon';
 import ModuleLayout from '../components/ModuleLayout';
 import {
   actualizarAspirante,
@@ -30,32 +31,32 @@ import {
 } from '../data/registro';
 
 const TABS = [
-  { key: 'resumen', label: 'Resumen', icon: '🏠' },
-  { key: 'aspirantes', label: 'Aspirantes', icon: '👥' },
-  { key: 'procesos', label: 'Procesos', icon: '🗓️' },
-  { key: 'documentos', label: 'Documentos', icon: '📎' },
-  { key: 'registro', label: 'Registro', icon: '🎓' },
-  { key: 'expedientes', label: 'Expedientes', icon: '📁' },
-  { key: 'cuenta', label: 'Estado de cuenta', icon: '💳' },
-  { key: 'certificados', label: 'Certificados', icon: '📜' },
-  { key: 'reportes', label: 'Reportes', icon: '📈' },
+  { key: 'resumen', label: 'Resumen', icon: 'home' },
+  { key: 'aspirantes', label: 'Aspirantes', icon: 'users' },
+  { key: 'procesos', label: 'Procesos', icon: 'calendario-dias' },
+  { key: 'documentos', label: 'Documentos', icon: 'archivo' },
+  { key: 'registro', label: 'Registro', icon: 'graduacion' },
+  { key: 'expedientes', label: 'Expedientes', icon: 'carpeta' },
+  { key: 'cuenta', label: 'Estado de cuenta', icon: 'tarjeta-credito' },
+  { key: 'certificados', label: 'Certificados', icon: 'certificado' },
+  { key: 'reportes', label: 'Reportes', icon: 'grafica-barras' },
 ];
 
-const th = { textAlign: 'left', padding: '10px 12px', fontSize: 12, fontWeight: 700, color: '#64748b', borderBottom: '1px solid #e2e8f0', whiteSpace: 'nowrap' };
-const td = { padding: '10px 12px', fontSize: 13, borderBottom: '1px solid #f1f5f9', verticalAlign: 'top' };
-const card = { background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 18 };
+const th = { textAlign: 'left', padding: '10px 12px', fontSize: 12, fontWeight: 700, color: '#6f6b62', borderBottom: '1px solid #e5e2da', whiteSpace: 'nowrap' };
+const td = { padding: '10px 12px', fontSize: 13, borderBottom: '1px solid #f0eee9', verticalAlign: 'top' };
+const card = { background: '#fff', border: '1px solid #e5e2da', borderRadius: 12, padding: 18 };
 const input = {
-  padding: '8px 10px', borderRadius: 8, border: '1px solid #cbd5e1',
-  fontSize: 13, background: '#fff', color: '#0f172a',
+  padding: '8px 10px', borderRadius: 8, border: '1px solid #cdc9bf',
+  fontSize: 13, background: '#fff', color: '#14110c',
 };
 
 const TONES = {
-  slate:  ['#f1f5f9', '#475569'],
-  green:  ['#dcfce7', '#15803d'],
-  amber:  ['#fef3c7', '#b45309'],
-  red:    ['#fee2e2', '#b91c1c'],
-  blue:   ['#dbeafe', '#1d4ed8'],
-  purple: ['#ede9fe', '#6d28d9'],
+  slate:  ['#f0eee9', '#4e4a43'],
+  green:  ['#d8f0e5', '#0a6e4b'],
+  amber:  ['#fbefd6', '#99610e'],
+  red:    ['#ffe0e5', '#c1122c'],
+  blue:   ['#e3f1ff', '#06468c'],
+  purple: ['#efe9fb', '#5a37ad'],
 };
 
 const Badge = ({ children, tone = 'slate' }) => {
@@ -69,30 +70,30 @@ const Kpi = ({ icon, bg, value, label, hint, onClick, color }) => {
     <Tag
       {...(onClick ? { type: 'button', onClick } : {})}
       style={{
-        background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 16,
+        background: '#fff', border: '1px solid #e5e2da', borderRadius: 12, padding: 16,
         display: 'flex', alignItems: 'center', gap: 14, textAlign: 'left',
         fontFamily: 'inherit', cursor: onClick ? 'pointer' : 'default', width: '100%',
       }}
     >
-      <div style={{ width: 44, height: 44, borderRadius: 12, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>{icon}</div>
+      <div style={{ width: 44, height: 44, borderRadius: 12, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}><Ico name={icon} size={20} /></div>
       <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 20, fontWeight: 800, color: color || '#0f172a' }}>{value}</div>
-        <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>{label}</div>
-        {hint && <div style={{ fontSize: 11, color: '#94a3b8' }}>{hint}</div>}
+        <div style={{ fontSize: 20, fontWeight: 800, color: color || '#14110c' }}>{value}</div>
+        <div style={{ fontSize: 12, color: '#6f6b62', fontWeight: 600 }}>{label}</div>
+        {hint && <div style={{ fontSize: 11, color: '#9c988e' }}>{hint}</div>}
       </div>
     </Tag>
   );
 };
 
 const Vacio = ({ children }) => (
-  <div style={{ padding: 28, textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>{children}</div>
+  <div style={{ padding: 28, textAlign: 'center', color: '#9c988e', fontSize: 13 }}>{children}</div>
 );
 
 const Encabezado = ({ titulo, sub, accion }) => (
   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
     <div>
-      <div style={{ fontSize: 15, fontWeight: 800, color: '#0f172a' }}>{titulo}</div>
-      {sub && <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 3 }}>{sub}</div>}
+      <div style={{ fontSize: 15, fontWeight: 800, color: '#14110c' }}>{titulo}</div>
+      {sub && <div style={{ fontSize: 12, color: '#9c988e', marginTop: 3 }}>{sub}</div>}
     </div>
     {accion}
   </div>
@@ -278,21 +279,21 @@ export default function Admisiones() {
           return (
             <div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12, marginBottom: 18 }}>
-                <Kpi icon="👥" bg="#dbeafe" value={adm.aspirantes.length} label="Aspirantes del proceso" hint={`${adm.aspirantes.filter((a) => a.estado === 'en_proceso').length} en revisión`} onClick={() => setTab('aspirantes')} />
-                <Kpi icon="🎓" bg="#dcfce7" value={conAspirante} label="Admitidos" color="#15803d" hint={`${adm.periodos[0].cuposTotales} cupos ofertados`} onClick={() => setTab('registro')} />
-                <Kpi icon="📝" bg="#fef3c7" value={inscritos.length} label="Pendientes de matrícula" color="#b45309" hint="Proceso de inscripción abierto" onClick={() => setTab('registro')} />
-                <Kpi icon="💳" bg="#fee2e2" value={formatCurrency(totales.pendiente + totales.vencido)} label="Saldo por cobrar" color="#b91c1c" hint={`${porMora.length} estudiantes en mora`} onClick={() => setTab('cuenta')} />
+                <Kpi icon={<Icon name="users" size={16} />} bg="#e3f1ff" value={adm.aspirantes.length} label="Aspirantes del proceso" hint={`${adm.aspirantes.filter((a) => a.estado === 'en_proceso').length} en revisión`} onClick={() => setTab('aspirantes')} />
+                <Kpi icon={<Icon name="graduacion" size={16} />} bg="#d8f0e5" value={conAspirante} label="Admitidos" color="#0a6e4b" hint={`${adm.periodos[0].cuposTotales} cupos ofertados`} onClick={() => setTab('registro')} />
+                <Kpi icon={<Icon name="cuaderno" size={16} />} bg="#fbefd6" value={inscritos.length} label="Pendientes de matrícula" color="#99610e" hint="Proceso de inscripción abierto" onClick={() => setTab('registro')} />
+                <Kpi icon={<Icon name="tarjeta-credito" size={16} />} bg="#ffe0e5" value={formatCurrency(totales.pendiente + totales.vencido)} label="Saldo por cobrar" color="#c1122c" hint={`${porMora.length} estudiantes en mora`} onClick={() => setTab('cuenta')} />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
                 <div style={card}>
                   <Encabezado titulo="Cola de trabajo del proceso" sub="Lo que hay que atender hoy" />
                   {[
-                    { t: 'Revisar documentación de aspirantes', d: `${adm.aspirantes.filter((a) => a.documentos !== 'completo').length} expedientes incompletos`, icon: '📎', tab: 'documentos' },
-                    { t: 'Resolver resultados en proceso', d: `${adm.aspirantes.filter((a) => a.estado === 'en_proceso').length} aspirantes sin decisión`, icon: '⚖️', tab: 'aspirantes' },
-                    { t: 'Completar inscripción de admitidos', d: `${inscritos.length} estudiantes por matricular`, icon: '🎓', tab: 'registro' },
-                    { t: 'Cobrar saldos vencidos', d: `${porMora.length} estudiantes en mora`, icon: '💳', tab: 'cuenta' },
-                    { t: 'Entregar certificados solicitados', d: `${pendientesCertificado} en trámite`, icon: '📜', tab: 'certificados' },
+                    { t: 'Revisar documentación de aspirantes', d: `${adm.aspirantes.filter((a) => a.documentos !== 'completo').length} expedientes incompletos`, icon: <Icon name="archivo" size={16} />, tab: 'documentos' },
+                    { t: 'Resolver resultados en proceso', d: `${adm.aspirantes.filter((a) => a.estado === 'en_proceso').length} aspirantes sin decisión`, icon: <Icon name="balanza" size={16} />, tab: 'aspirantes' },
+                    { t: 'Completar inscripción de admitidos', d: `${inscritos.length} estudiantes por matricular`, icon: <Icon name="graduacion" size={16} />, tab: 'registro' },
+                    { t: 'Cobrar saldos vencidos', d: `${porMora.length} estudiantes en mora`, icon: <Icon name="tarjeta-credito" size={16} />, tab: 'cuenta' },
+                    { t: 'Entregar certificados solicitados', d: `${pendientesCertificado} en trámite`, icon: <Icon name="certificado" size={16} />, tab: 'certificados' },
                   ].map((x) => (
                     <button
                       key={x.t}
@@ -301,16 +302,16 @@ export default function Admisiones() {
                       style={{
                         display: 'flex', gap: 12, alignItems: 'center', width: '100%',
                         padding: '10px 0', background: 'none', border: 0,
-                        borderBottom: '1px solid #f1f5f9', cursor: 'pointer',
+                        borderBottom: '1px solid #f0eee9', cursor: 'pointer',
                         fontFamily: 'inherit', textAlign: 'left',
                       }}
                     >
-                      <div style={{ fontSize: 20, flexShrink: 0 }}>{x.icon}</div>
+                      <div style={{ fontSize: 20, flexShrink: 0 }}><Ico name={x.icon} size={20} /></div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#1e293b' }}>{x.t}</div>
-                        <div style={{ fontSize: 12, color: '#94a3b8' }}>{x.d}</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#211d17' }}>{x.t}</div>
+                        <div style={{ fontSize: 12, color: '#9c988e' }}>{x.d}</div>
                       </div>
-                      <span style={{ color: '#94a3b8', fontSize: 14, flexShrink: 0 }}>›</span>
+                      <span style={{ color: '#9c988e', fontSize: 14, flexShrink: 0 }}>›</span>
                     </button>
                   ))}
                 </div>
@@ -323,8 +324,8 @@ export default function Admisiones() {
                     ['Inscripción de admitidos', adm.periodos[0].fechaInscripcion],
                     ['Apertura del siguiente proceso', adm.periodos[1].fechaApertura],
                   ].map(([t, f]) => (
-                    <div key={t} style={{ display: 'flex', justifyContent: 'space-between', padding: '9px 0', borderBottom: '1px solid #f1f5f9', fontSize: 13 }}>
-                      <span style={{ color: '#475569' }}>{t}</span>
+                    <div key={t} style={{ display: 'flex', justifyContent: 'space-between', padding: '9px 0', borderBottom: '1px solid #f0eee9', fontSize: 13 }}>
+                      <span style={{ color: '#4e4a43' }}>{t}</span>
                       <strong>{formatDate(f)}</strong>
                     </div>
                   ))}
@@ -341,10 +342,10 @@ export default function Admisiones() {
           return (
             <div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12, marginBottom: 16 }}>
-                <Kpi icon="👥" bg="#dbeafe" value={adm.aspirantes.length} label="Total aspirantes" />
-                <Kpi icon="🎓" bg="#dcfce7" value={adm.aspirantes.filter((a) => a.estado === 'admitido').length} label="Admitidos" color="#15803d" />
-                <Kpi icon="⏳" bg="#fef3c7" value={adm.aspirantes.filter((a) => a.estado === 'en_proceso').length} label="En proceso" color="#b45309" />
-                <Kpi icon="📎" bg="#fee2e2" value={adm.aspirantes.filter((a) => a.documentos !== 'completo').length} label="Docs. incompletos" color="#b91c1c" />
+                <Kpi icon={<Icon name="users" size={16} />} bg="#e3f1ff" value={adm.aspirantes.length} label="Total aspirantes" />
+                <Kpi icon={<Icon name="graduacion" size={16} />} bg="#d8f0e5" value={adm.aspirantes.filter((a) => a.estado === 'admitido').length} label="Admitidos" color="#0a6e4b" />
+                <Kpi icon={<Icon name="reloj" size={20} />} bg="#fbefd6" value={adm.aspirantes.filter((a) => a.estado === 'en_proceso').length} label="En proceso" color="#99610e" />
+                <Kpi icon={<Icon name="archivo" size={16} />} bg="#ffe0e5" value={adm.aspirantes.filter((a) => a.documentos !== 'completo').length} label="Docs. incompletos" color="#c1122c" />
               </div>
 
               <div style={{ ...card, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
@@ -359,7 +360,7 @@ export default function Admisiones() {
                   <option value="en_proceso">En proceso</option>
                   <option value="rechazado">Rechazados</option>
                 </select>
-                <span style={{ fontSize: 12, color: '#94a3b8' }}>{filtrados.length} resultados</span>
+                <span style={{ fontSize: 12, color: '#9c988e' }}>{filtrados.length} resultados</span>
               </div>
 
               <div style={card}>
@@ -385,7 +386,7 @@ export default function Admisiones() {
                           <tr key={a.id}>
                             <td style={td}>
                               <strong>{a.nombre}</strong><br />
-                              <span style={{ fontSize: 11, color: '#94a3b8' }}>{a.documento} · {a.id}</span>
+                              <span style={{ fontSize: 11, color: '#9c988e' }}>{a.documento} · {a.id}</span>
                             </td>
                             <td style={td}>{nombreProg(a.programaId)}</td>
                             <td style={td}>{a.puntajeIcfes}</td>
@@ -395,7 +396,7 @@ export default function Admisiones() {
                             <td style={td}><Badge tone={DOC_TONE[a.documentos]}>{a.documentos}</Badge></td>
                             <td style={td}>
                               <Badge tone={ESTADO_ASP[a.estado].tone}>{ESTADO_ASP[a.estado].label}</Badge>
-                              {est && <div style={{ fontSize: 11, color: '#15803d', marginTop: 4 }}>Matriculado {est.id}</div>}
+                              {est && <div style={{ fontSize: 11, color: '#0a6e4b', marginTop: 4 }}>Matriculado {est.id}</div>}
                             </td>
                             <td style={td}>
                               <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
@@ -403,7 +404,7 @@ export default function Admisiones() {
                                 <button className="btn" style={{ padding: '5px 9px', fontSize: 11 }} onClick={() => setAspirante(a.id, { estado: 'en_proceso' })}>Proceso</button>
                                 <button className="btn" style={{ padding: '5px 9px', fontSize: 11 }} onClick={() => setAspirante(a.id, { estado: 'rechazado' })}>Rechazar</button>
                                 <button className="btn" style={{ padding: '5px 9px', fontSize: 11 }} onClick={() => setAspirante(a.id, { documentos: a.documentos === 'completo' ? 'pendiente' : 'completo' })}>
-                                  {a.documentos === 'completo' ? 'Docs ⏸' : 'Docs ✓'}
+                                  {a.documentos === 'completo' ? <><Icon name="reloj" size={14} /> Docs</> : <>Docs <Icon name="check" size={14} /></>}
                                 </button>
                               </div>
                             </td>
@@ -429,19 +430,19 @@ export default function Admisiones() {
           return (
             <div>
               {activo && (
-                <div style={{ ...card, marginBottom: 16, background: '#eff6ff', borderColor: '#bfdbfe' }}>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: '#1e3a8a' }}>Proceso vigente: {activo.nombre}</div>
-                  <div style={{ fontSize: 12, color: '#1e40af', marginTop: 4 }}>
+                <div style={{ ...card, marginBottom: 16, background: '#eef7ff', borderColor: '#cfe8ff' }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: '#00116f' }}>Proceso vigente: {activo.nombre}</div>
+                  <div style={{ fontSize: 12, color: '#04295f', marginTop: 4 }}>
                     Inscripciones abiertas del {formatDate(activo.fechaApertura)} al {formatDate(activo.fechaCierre)}.
                     Resultados el {formatDate(activo.fechaResultados)} · Inscripción de admitidos desde el {formatDate(activo.fechaInscripcion)}.
                   </div>
                   <div style={{ marginTop: 12 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#1e40af', marginBottom: 4 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#04295f', marginBottom: 4 }}>
                       <span>Ocupación de cupos del proceso</span>
                       <strong>{inscritosProceso} inscritos</strong>
                     </div>
-                    <div style={{ height: 8, background: '#dbeafe', borderRadius: 4, overflow: 'hidden' }}>
-                      <div style={{ width: `${Math.min(100, (inscritosProceso / activo.cuposTotales) * 100)}%`, height: '100%', background: 'linear-gradient(90deg,#1e3a8a,#3b82f6)' }} />
+                    <div style={{ height: 8, background: '#e3f1ff', borderRadius: 4, overflow: 'hidden' }}>
+                      <div style={{ width: `${Math.min(100, (inscritosProceso / activo.cuposTotales) * 100)}%`, height: '100%', background: 'linear-gradient(90deg,#00116f,#0a84ff)' }} />
                     </div>
                   </div>
                 </div>
@@ -458,10 +459,10 @@ export default function Admisiones() {
                       </span>
                       <span style={{ fontWeight: 700 }}>{c.peso}%</span>
                     </div>
-                    <div style={{ height: 8, background: '#f1f5f9', borderRadius: 4, overflow: 'hidden' }}>
-                      <div style={{ width: `${c.peso}%`, height: '100%', background: 'linear-gradient(90deg,#1e3a8a,#3b82f6)' }} />
+                    <div style={{ height: 8, background: '#f0eee9', borderRadius: 4, overflow: 'hidden' }}>
+                      <div style={{ width: `${c.peso}%`, height: '100%', background: 'linear-gradient(90deg,#00116f,#0a84ff)' }} />
                     </div>
-                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 3 }}>{c.descripcion}</div>
+                    <div style={{ fontSize: 11, color: '#9c988e', marginTop: 3 }}>{c.descripcion}</div>
                   </div>
                 ))}
               </div>
@@ -511,16 +512,16 @@ export default function Admisiones() {
           return (
             <div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 16 }}>
-                <Kpi icon="📋" bg="#dbeafe" value={adm.documentos.length} label="Documentos exigidos" />
-                <Kpi icon="✅" bg="#dcfce7" value={adm.documentos.filter((d) => d.vigente).length} label="Vigentes" color="#15803d" />
-                <Kpi icon="⚠️" bg="#fef3c7" value={adm.documentos.filter((d) => !d.vigente).length} label="Por actualizar" color="#b45309" />
-                <Kpi icon="📎" bg="#fee2e2" value={incompletos.length} label="Expedientes incompletos" color="#b91c1c" />
+                <Kpi icon="archivo" bg="#e3f1ff" value={adm.documentos.length} label="Documentos exigidos" />
+                <Kpi icon={<Icon name="check" size={16} />} bg="#d8f0e5" value={adm.documentos.filter((d) => d.vigente).length} label="Vigentes" color="#0a6e4b" />
+                <Kpi icon={<Icon name="alerta" size={14} />} bg="#fbefd6" value={adm.documentos.filter((d) => !d.vigente).length} label="Por actualizar" color="#99610e" />
+                <Kpi icon={<Icon name="archivo" size={16} />} bg="#ffe0e5" value={incompletos.length} label="Expedientes incompletos" color="#c1122c" />
               </div>
 
               <div style={card}>
                 <Encabezado titulo="Documentación requerida para admitir" sub="Los documentos no vigentes aparecen marcados para actualización." />
                 {adm.documentos.map((d) => (
-                  <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: '1px solid #f1f5f9' }}>
+                  <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: '1px solid #f0eee9' }}>
                     <span style={{ fontSize: 13 }}>
                       {d.nombre} <Badge tone={d.obligatorio ? 'blue' : 'slate'}>{d.obligatorio ? 'Obligatorio' : 'Opcional'}</Badge>
                     </span>
@@ -558,7 +559,7 @@ export default function Admisiones() {
                         <tr key={a.id}>
                           <td style={td}>
                             <strong>{a.nombre}</strong><br />
-                            <span style={{ fontSize: 11, color: '#94a3b8' }}>{a.documento}</span>
+                            <span style={{ fontSize: 11, color: '#9c988e' }}>{a.documento}</span>
                           </td>
                           <td style={td}>{nombreProg(a.programaId)}</td>
                           <td style={td}><Badge tone={DOC_TONE[a.documentos]}>{a.documentos}</Badge></td>
@@ -586,20 +587,20 @@ export default function Admisiones() {
           return (
             <div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 16 }}>
-                <Kpi icon="📝" bg="#fef3c7" value={inscritos.length} label="Por matricular" color="#b45309" />
-                <Kpi icon="✅" bg="#dcfce7" value={estudiantes.filter((e) => e.estado === 'activo').length} label="Con matrícula activa" color="#15803d" />
-                <Kpi icon="📚" bg="#dbeafe" value={estudiantes.length} label="Total en el registro" />
-                <Kpi icon="🎓" bg="#ede9fe" value={estudiantes.filter((e) => e.estado === 'graduado').length} label="Graduados" color="#6d28d9" />
+                <Kpi icon={<Icon name="cuaderno" size={16} />} bg="#fbefd6" value={inscritos.length} label="Por matricular" color="#99610e" />
+                <Kpi icon={<Icon name="check" size={16} />} bg="#d8f0e5" value={estudiantes.filter((e) => e.estado === 'activo').length} label="Con matrícula activa" color="#0a6e4b" />
+                <Kpi icon={<Icon name="libro" size={16} />} bg="#e3f1ff" value={estudiantes.length} label="Total en el registro" />
+                <Kpi icon={<Icon name="graduacion" size={16} />} bg="#efe9fb" value={estudiantes.filter((e) => e.estado === 'graduado').length} label="Graduados" color="#5a37ad" />
               </div>
 
               <div style={{ ...card, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
                 <input placeholder="Buscar por nombre, documento o código…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={{ ...input, minWidth: 280 }} />
-                <span style={{ fontSize: 12, color: '#94a3b8' }}>{lista.filter(enFiltro).length} de {lista.length} admitidos por matricular</span>
+                <span style={{ fontSize: 12, color: '#9c988e' }}>{lista.filter(enFiltro).length} de {lista.length} admitidos por matricular</span>
               </div>
 
               {aviso && (
-                <div style={{ ...card, marginBottom: 14, background: aviso.ok ? '#f0fdf4' : '#fef2f2', borderColor: aviso.ok ? '#bbf7d0' : '#fecaca', padding: 12 }}>
-                  <span style={{ fontSize: 13, color: aviso.ok ? '#15803d' : '#b91c1c' }}>{aviso.text}</span>
+                <div style={{ ...card, marginBottom: 14, background: aviso.ok ? '#e9f7f1' : '#fff1f3', borderColor: aviso.ok ? '#b6e3cf' : '#f4c2ca', padding: 12 }}>
+                  <span style={{ fontSize: 13, color: aviso.ok ? '#0a6e4b' : '#c1122c' }}>{aviso.text}</span>
                 </div>
               )}
 
@@ -627,8 +628,8 @@ export default function Admisiones() {
                         const cuenta = estadoCuenta(e);
                         return (
                           <tr key={e.id}>
-                            <td style={td}><code style={{ fontSize: 12, color: '#475569' }}>{e.id}</code></td>
-                            <td style={td}><strong>{e.nombre}</strong><br /><span style={{ fontSize: 11, color: '#94a3b8' }}>{e.documento}</span></td>
+                            <td style={td}><code style={{ fontSize: 12, color: '#4e4a43' }}>{e.id}</code></td>
+                            <td style={td}><strong>{e.nombre}</strong><br /><span style={{ fontSize: 11, color: '#9c988e' }}>{e.documento}</span></td>
                             <td style={td}>{nombreProg(e.programaId)}</td>
                             <td style={td}>{e.semestre}</td>
                             <td style={td}>{e.jornada}</td>
@@ -669,7 +670,7 @@ export default function Admisiones() {
                     <option key={e.id} value={e.id}>{e.id} — {e.nombre}</option>
                   ))}
                 </select>
-                <span style={{ fontSize: 12, color: '#94a3b8' }}>{estudiantes.filter(enFiltro).length} expedientes</span>
+                <span style={{ fontSize: 12, color: '#9c988e' }}>{estudiantes.filter(enFiltro).length} expedientes</span>
               </div>
 
               {!est ? (
@@ -685,8 +686,8 @@ export default function Admisiones() {
                       ['Teléfono', est.telefono],
                       ['Dirección', est.direccion],
                     ].map(([k, v]) => (
-                      <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '8px 0', borderBottom: '1px solid #f1f5f9', fontSize: 13 }}>
-                        <span style={{ color: '#64748b' }}>{k}</span>
+                      <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '8px 0', borderBottom: '1px solid #f0eee9', fontSize: 13 }}>
+                        <span style={{ color: '#6f6b62' }}>{k}</span>
                         <strong style={{ textAlign: 'right' }}>{v}</strong>
                       </div>
                     ))}
@@ -701,17 +702,17 @@ export default function Admisiones() {
                       ['Promedio acumulado', est.promedio.toFixed(2)],
                       ['Fecha de ingreso', formatDate(est.fechaIngreso)],
                     ].map(([k, v]) => (
-                      <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '8px 0', borderBottom: '1px solid #f1f5f9', fontSize: 13 }}>
-                        <span style={{ color: '#64748b' }}>{k}</span>
+                      <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '8px 0', borderBottom: '1px solid #f0eee9', fontSize: 13 }}>
+                        <span style={{ color: '#6f6b62' }}>{k}</span>
                         <strong style={{ textAlign: 'right' }}>{v}</strong>
                       </div>
                     ))}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0 0', fontSize: 13 }}>
-                      <span style={{ color: '#64748b' }}>Estado</span>
+                      <span style={{ color: '#6f6b62' }}>Estado</span>
                       <Badge tone={ESTADO_ESTUDIANTE[est.estado].tone}>{ESTADO_ESTUDIANTE[est.estado].label}</Badge>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0 0', fontSize: 13 }}>
-                      <span style={{ color: '#64748b' }}>Expediente documental</span>
+                      <span style={{ color: '#6f6b62' }}>Expediente documental</span>
                       <Badge tone={DOC_TONE[est.documentos]}>{est.documentos}</Badge>
                     </div>
                   </div>
@@ -719,20 +720,20 @@ export default function Admisiones() {
                   <div style={card}>
                     <Encabezado titulo="Estado de cuenta" sub={cuenta.label} />
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-                      <div style={{ background: '#f8fafc', borderRadius: 10, padding: 12 }}>
-                        <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700 }}>SALDO</div>
-                        <div style={{ fontSize: 19, fontWeight: 800, color: saldo(est) > 0 ? '#b91c1c' : '#15803d' }}>{formatCurrency(saldo(est))}</div>
+                      <div style={{ background: '#f7f6f3', borderRadius: 10, padding: 12 }}>
+                        <div style={{ fontSize: 11, color: '#6f6b62', fontWeight: 700 }}>SALDO</div>
+                        <div style={{ fontSize: 19, fontWeight: 800, color: saldo(est) > 0 ? '#c1122c' : '#0a6e4b' }}>{formatCurrency(saldo(est))}</div>
                       </div>
-                      <div style={{ background: '#f8fafc', borderRadius: 10, padding: 12 }}>
-                        <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700 }}>PAGADO</div>
-                        <div style={{ fontSize: 19, fontWeight: 800, color: '#15803d' }}>
+                      <div style={{ background: '#f7f6f3', borderRadius: 10, padding: 12 }}>
+                        <div style={{ fontSize: 11, color: '#6f6b62', fontWeight: 700 }}>PAGADO</div>
+                        <div style={{ fontSize: 19, fontWeight: 800, color: '#0a6e4b' }}>
                           {formatCurrency(est.pagos.filter((p) => p.estado === 'pagado').reduce((a, p) => a + p.valor, 0))}
                         </div>
                       </div>
                     </div>
                     {est.pagos.map((p) => (
-                      <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '7px 0', borderBottom: '1px solid #f1f5f9', fontSize: 12.5 }}>
-                        <span style={{ color: '#475569' }}>{p.concepto}</span>
+                      <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '7px 0', borderBottom: '1px solid #f0eee9', fontSize: 12.5 }}>
+                        <span style={{ color: '#4e4a43' }}>{p.concepto}</span>
                         <Badge tone={PAGO_TONE[p.estado]}>{PAGO_LABEL[p.estado]}</Badge>
                       </div>
                     ))}
@@ -744,10 +745,10 @@ export default function Admisiones() {
                     {certificadosEst.map((c) => {
                       const est2 = estadoCertificado(c);
                       return (
-                        <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '9px 0', borderBottom: '1px solid #f1f5f9', fontSize: 13 }}>
-                          <span style={{ color: '#1e293b' }}>{c.tipo}</span>
+                        <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '9px 0', borderBottom: '1px solid #f0eee9', fontSize: 13 }}>
+                          <span style={{ color: '#211d17' }}>{c.tipo}</span>
                           <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                            <span style={{ color: '#94a3b8', fontSize: 11 }}>{formatDate(c.fecha)}</span>
+                            <span style={{ color: '#9c988e', fontSize: 11 }}>{formatDate(c.fecha)}</span>
                             <Badge tone={est2.tone}>{est2.label}</Badge>
                           </span>
                         </div>
@@ -767,10 +768,10 @@ export default function Admisiones() {
           return (
             <div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12, marginBottom: 16 }}>
-                <Kpi icon="✅" bg="#dcfce7" value={formatCurrency(totales.pagado)} label="Recaudado" color="#15803d" />
-                <Kpi icon="⏳" bg="#fef3c7" value={formatCurrency(totales.pendiente)} label="Por cobrar" color="#b45309" />
-                <Kpi icon="⚠️" bg="#fee2e2" value={formatCurrency(totales.vencido)} label="Cartera en mora" color="#b91c1c" hint={`${porMora.length} estudiantes`} />
-                <Kpi icon="🤝" bg="#dbeafe" value={totales.alDia} label="Estudiantes en paz y salvo" />
+                <Kpi icon={<Icon name="check" size={16} />} bg="#d8f0e5" value={formatCurrency(totales.pagado)} label="Recaudado" color="#0a6e4b" />
+                <Kpi icon={<Icon name="reloj" size={20} />} bg="#fbefd6" value={formatCurrency(totales.pendiente)} label="Por cobrar" color="#99610e" />
+                <Kpi icon={<Icon name="alerta" size={14} />} bg="#ffe0e5" value={formatCurrency(totales.vencido)} label="Cartera en mora" color="#c1122c" hint={`${porMora.length} estudiantes`} />
+                <Kpi icon="" bg="#e3f1ff" value={totales.alDia} label="Estudiantes en paz y salvo" />
               </div>
 
               <div style={{ ...card, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
@@ -781,7 +782,7 @@ export default function Admisiones() {
                   <option value="pendiente">Con saldo pendiente</option>
                   <option value="al_dia">Paz y salvo</option>
                 </select>
-                <span style={{ fontSize: 12, color: '#94a3b8' }}>{porPagar.filter(enFiltro).length} estudiantes</span>
+                <span style={{ fontSize: 12, color: '#9c988e' }}>{porPagar.filter(enFiltro).length} estudiantes</span>
               </div>
 
               <div style={card}>
@@ -806,22 +807,22 @@ export default function Admisiones() {
                         const abiertos = e.pagos.filter((p) => p.estado !== 'pagado');
                         return (
                           <tr key={e.id}>
-                            <td style={td}><code style={{ fontSize: 12, color: '#475569' }}>{e.id}</code></td>
-                            <td style={td}><strong>{e.nombre}</strong><br /><span style={{ fontSize: 11, color: '#94a3b8' }}>{e.documento}</span></td>
+                            <td style={td}><code style={{ fontSize: 12, color: '#4e4a43' }}>{e.id}</code></td>
+                            <td style={td}><strong>{e.nombre}</strong><br /><span style={{ fontSize: 11, color: '#9c988e' }}>{e.documento}</span></td>
                             <td style={td}>{nombreProg(e.programaId)}</td>
                             <td style={td}><Badge tone={ESTADO_ESTUDIANTE[e.estado].tone}>{ESTADO_ESTUDIANTE[e.estado].label}</Badge></td>
-                            <td style={td}><strong style={{ color: saldo(e) > 0 ? '#b91c1c' : '#15803d' }}>{formatCurrency(saldo(e))}</strong></td>
+                            <td style={td}><strong style={{ color: saldo(e) > 0 ? '#c1122c' : '#0a6e4b' }}>{formatCurrency(saldo(e))}</strong></td>
                             <td style={td}>{formatCurrency(vencidos.reduce((a, p) => a + p.valor, 0))}</td>
                             <td style={td}><Badge tone={cuenta.tone}>{cuenta.label}</Badge></td>
                             <td style={td}>
                               {abiertos.length === 0 ? (
-                                <span style={{ fontSize: 11, color: '#94a3b8' }}>Sin saldos abiertos</span>
+                                <span style={{ fontSize: 11, color: '#9c988e' }}>Sin saldos abiertos</span>
                               ) : (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                                   {abiertos.map((p) => (
                                     <div key={p.id} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 11.5 }}>
-                                      <span style={{ color: '#475569' }}>{p.concepto}</span>
-                                      <span style={{ color: '#94a3b8' }}>{formatCurrency(p.valor)}</span>
+                                      <span style={{ color: '#4e4a43' }}>{p.concepto}</span>
+                                      <span style={{ color: '#9c988e' }}>{formatCurrency(p.valor)}</span>
                                       <button
                                         className="btn"
                                         style={{ padding: '2px 6px', fontSize: 10 }}
@@ -857,7 +858,7 @@ export default function Admisiones() {
               <div style={card}>
                 <Encabezado titulo="Emitir certificado" sub="Los certificados que exigen paz y salvo se bloquean si hay saldo." />
 
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 5 }}>Estudiante</label>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#4e4a43', marginBottom: 5 }}>Estudiante</label>
                 <select value={selEstudiante} onChange={(e) => setSelEstudiante(e.target.value)} style={{ ...input, width: '100%', marginBottom: 14 }}>
                   <option value="">Selecciona un estudiante…</option>
                   {estudiantes.map((e) => (
@@ -865,7 +866,7 @@ export default function Admisiones() {
                   ))}
                 </select>
 
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 5 }}>Tipo de certificado</label>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#4e4a43', marginBottom: 5 }}>Tipo de certificado</label>
                 <select value={selTipo} onChange={(e) => setSelTipo(e.target.value)} style={{ ...input, width: '100%', marginBottom: 14 }}>
                   {TIPOS_CERTIFICADO.map((t) => (
                     <option key={t.id} value={t.id}>{t.nombre}</option>
@@ -873,9 +874,9 @@ export default function Admisiones() {
                 </select>
 
                 {estSel && (
-                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 12, marginBottom: 14 }}>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: '#1e293b' }}>{estSel.nombre}</div>
-                    <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8 }}>
+                  <div style={{ background: '#f7f6f3', border: '1px solid #e5e2da', borderRadius: 10, padding: 12, marginBottom: 14 }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: '#211d17' }}>{estSel.nombre}</div>
+                    <div style={{ fontSize: 12, color: '#6f6b62', marginBottom: 8 }}>
                       {nombreProg(estSel.programaId)} · Semestre {estSel.semestre} · Promedio {estSel.promedio.toFixed(2)}
                     </div>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -887,24 +888,24 @@ export default function Admisiones() {
                 )}
 
                 {chequeo && !chequeo.ok && (
-                  <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: 10, marginBottom: 12, fontSize: 12.5, color: '#b91c1c' }}>
-                    ⛔ {chequeo.motivo}
+                  <div style={{ background: '#fff1f3', border: '1px solid #f4c2ca', borderRadius: 8, padding: 10, marginBottom: 12, fontSize: 12.5, color: '#c1122c' }}>
+                    <Icon name="bloqueado" size={14} /> {chequeo.motivo}
                   </div>
                 )}
                 {chequeo && chequeo.ok && (
-                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 10, marginBottom: 12, fontSize: 12.5, color: '#15803d' }}>
-                    ✓ Listo para emitir.
+                  <div style={{ background: '#e9f7f1', border: '1px solid #b6e3cf', borderRadius: 8, padding: 10, marginBottom: 12, fontSize: 12.5, color: '#0a6e4b' }}>
+                    <Icon name="check" size={14} /> Listo para emitir.
                   </div>
                 )}
 
                 {aviso && (
-                  <div style={{ background: aviso.ok ? '#f0fdf4' : '#fef2f2', border: '1px solid ' + (aviso.ok ? '#bbf7d0' : '#fecaca'), borderRadius: 8, padding: 10, marginBottom: 12, fontSize: 12.5, color: aviso.ok ? '#15803d' : '#b91c1c' }}>
+                  <div style={{ background: aviso.ok ? '#e9f7f1' : '#fff1f3', border: '1px solid ' + (aviso.ok ? '#b6e3cf' : '#f4c2ca'), borderRadius: 8, padding: 10, marginBottom: 12, fontSize: 12.5, color: aviso.ok ? '#0a6e4b' : '#c1122c' }}>
                     {aviso.text}
                   </div>
                 )}
 
                 <button className="btn b-primary" onClick={emitirCertificado} disabled={!estSel || (chequeo && !chequeo.ok)} style={{ opacity: !estSel || (chequeo && !chequeo.ok) ? 0.5 : 1 }}>
-                  📜 Emitir certificado
+                  <Icon name="certificado" size={16} /> Emitir certificado
                 </button>
               </div>
 
@@ -931,17 +932,17 @@ export default function Admisiones() {
                         const emitido = certificadoDescargable(c);
                         return (
                           <tr key={c.id}>
-                            <td style={td}><code style={{ fontSize: 11.5, color: '#475569' }}>{c.codigo || c.id}</code></td>
+                            <td style={td}><code style={{ fontSize: 11.5, color: '#4e4a43' }}>{c.codigo || c.id}</code></td>
                             <td style={td}>
                               <strong>{e?.nombre || c.estudianteId}</strong><br />
-                              <span style={{ fontSize: 11, color: '#94a3b8' }}>{c.estudianteId}</span>
+                              <span style={{ fontSize: 11, color: '#9c988e' }}>{c.estudianteId}</span>
                             </td>
                             <td style={td}>
                               {c.tipo}
                               {c.solicitado && (
                                 <>
                                   <br />
-                                  <span style={{ fontSize: 11, color: '#94a3b8' }}>
+                                  <span style={{ fontSize: 11, color: '#9c988e' }}>
                                     Solicitado el {formatDate(c.solicitado)}
                                   </span>
                                 </>
@@ -957,10 +958,10 @@ export default function Admisiones() {
                                   data-testid={`descargar-cert-${c.id}`}
                                   onClick={() => descargarDesdeRegistro(c)}
                                 >
-                                  ⬇️ Descargar
+                                  <Icon name="descargar" size={16} /> Descargar
                                 </button>
                               ) : (
-                                <span style={{ fontSize: 11, color: '#94a3b8' }}>Sin emitir</span>
+                                <span style={{ fontSize: 11, color: '#9c988e' }}>Sin emitir</span>
                               )}
                             </td>
                           </tr>
@@ -995,27 +996,27 @@ export default function Admisiones() {
           return (
             <div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12, marginBottom: 18 }}>
-                <Kpi icon="📊" bg="#dbeafe" value={`${conversion}%`} label="Tasa de admisión" />
-                <Kpi icon="🎯" bg="#dcfce7" value={admitted} label="Admitidos" color="#15803d" />
-                <Kpi icon="📉" bg="#fee2e2" value={porEstado('rechazado')} label="No admitidos" color="#b91c1c" />
-                <Kpi icon="💰" bg="#fef3c7" value={formatCurrency(totales.pagado + totales.pendiente + totales.vencido)} label="Cartera total" />
+                <Kpi icon={<Icon name="grafica-barras" size={16} />} bg="#e3f1ff" value={`${conversion}%`} label="Tasa de admisión" />
+                <Kpi icon={<Icon name="objetivo" size={16} />} bg="#d8f0e5" value={admitted} label="Admitidos" color="#0a6e4b" />
+                <Kpi icon={<Icon name="tendencia-abajo" size={16} />} bg="#ffe0e5" value={porEstado('rechazado')} label="No admitidos" color="#c1122c" />
+                <Kpi icon={<Icon name="billete" size={16} />} bg="#fbefd6" value={formatCurrency(totales.pagado + totales.pendiente + totales.vencido)} label="Cartera total" />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start' }}>
                 <div style={card}>
                   <Encabezado titulo="Embudo de admisión" sub={`Proceso ${adm.periodos[0].nombre}`} />
                   {[
-                    { l: 'Inscritos', v: total, c: '#3b82f6' },
-                    { l: 'Con decisión de admisión', v: admitted + porEstado('rechazado'), c: '#8b5cf6' },
-                    { l: 'Admitidos', v: admitted, c: '#22c55e' },
-                    { l: 'Con matrícula registrada', v: estudiantes.filter((e) => e.estado === 'activo').length, c: '#0d9488' },
+                    { l: 'Inscritos', v: total, c: '#0a84ff' },
+                    { l: 'Con decisión de admisión', v: admitted + porEstado('rechazado'), c: '#8a5cf0' },
+                    { l: 'Admitidos', v: admitted, c: '#17a06d' },
+                    { l: 'Con matrícula registrada', v: estudiantes.filter((e) => e.estado === 'activo').length, c: '#0e7c86' },
                   ].map((x) => (
                     <div key={x.l} style={{ marginBottom: 12 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 4 }}>
-                        <span style={{ color: '#475569' }}>{x.l}</span>
+                        <span style={{ color: '#4e4a43' }}>{x.l}</span>
                         <strong>{x.v}</strong>
                       </div>
-                      <div style={{ height: 8, background: '#f1f5f9', borderRadius: 4, overflow: 'hidden' }}>
+                      <div style={{ height: 8, background: '#f0eee9', borderRadius: 4, overflow: 'hidden' }}>
                         <div style={{ width: `${total ? (x.v / total) * 100 : 0}%`, height: '100%', background: x.c }} />
                       </div>
                     </div>
@@ -1027,12 +1028,12 @@ export default function Admisiones() {
                   {porPrograma.map((x) => (
                     <div key={x.prog.id} style={{ marginBottom: 12 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 4, gap: 10 }}>
-                        <span style={{ color: '#475569' }}>{x.prog.nombre}</span>
+                        <span style={{ color: '#4e4a43' }}>{x.prog.nombre}</span>
                         <strong style={{ whiteSpace: 'nowrap' }}>{x.adm}/{x.total} admitidos</strong>
                       </div>
-                      <div style={{ height: 8, background: '#f1f5f9', borderRadius: 4, overflow: 'hidden', display: 'flex' }}>
-                        <div style={{ width: `${(x.adm / x.total) * 100}%`, background: '#22c55e' }} />
-                        <div style={{ width: `${((x.total - x.adm) / x.total) * 100}%`, background: '#fecaca' }} />
+                      <div style={{ height: 8, background: '#f0eee9', borderRadius: 4, overflow: 'hidden', display: 'flex' }}>
+                        <div style={{ width: `${(x.adm / x.total) * 100}%`, background: '#17a06d' }} />
+                        <div style={{ width: `${((x.total - x.adm) / x.total) * 100}%`, background: '#f4c2ca' }} />
                       </div>
                     </div>
                   ))}

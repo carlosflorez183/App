@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import Icon from '../components/Icon';
 
 export default function Login() {
   const [username, setUsername] = useState('EST001');
@@ -34,13 +35,13 @@ export default function Login() {
   };
 
   const demos = [
-    { key: 'EST001', label: 'Estudiante', badge: 'EST001 / 123456', color: '#3b82f6' },
-    { key: 'PROF001', label: 'Docente', badge: 'PROF001 / 123456', color: '#8b5cf6' },
-    { key: 'ADMIN', label: 'Administrador', badge: 'ADMIN / admin123', color: '#10b981' },
-    { key: 'RECTOR', label: 'Rectoría', badge: 'RECTOR / rector123', color: '#ef4444' },
-    { key: 'TALENTO', label: 'Talento Humano', badge: 'TALENTO / 123456', color: '#f59e0b' },
-    { key: 'CONTA', label: 'Contabilidad', badge: 'CONTA / 123456', color: '#06b6d4' },
-    { key: 'ADMI', label: 'Admisiones', badge: 'ADMI / 123456', color: '#a855f7' },
+    { key: 'EST001', label: 'Estudiante', badge: 'EST001 / 123456', color: '#0a84ff' },
+    { key: 'PROF001', label: 'Docente', badge: 'PROF001 / 123456', color: '#8a5cf0' },
+    { key: 'ADMIN', label: 'Administrador', badge: 'ADMIN / admin123', color: '#17a06d' },
+    { key: 'RECTOR', label: 'Rectoría', badge: 'RECTOR / rector123', color: '#ff314d' },
+    { key: 'TALENTO', label: 'Talento Humano', badge: 'TALENTO / 123456', color: '#e0a52e' },
+    { key: 'CONTA', label: 'Contabilidad', badge: 'CONTA / 123456', color: '#0e8a9c' },
+    { key: 'ADMI', label: 'Admisiones', badge: 'ADMI / 123456', color: '#8a5cf0' },
   ];
 
   return (
@@ -49,16 +50,16 @@ export default function Login() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      background: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #312e81 100%)',
+      background: 'radial-gradient(120% 120% at 82% -10%, rgba(0,169,255,.4) 0%, rgba(0,169,255,0) 55%), radial-gradient(90% 90% at -10% 110%, rgba(255,49,77,.32) 0%, rgba(255,49,77,0) 55%), linear-gradient(135deg, #00116f 0%, #04295f 48%, #000b47 100%)',
       position: 'relative',
       overflow: 'hidden',
       padding: '24px'
     }}>
       {/* Partículas decorativas */}
-      <div className="particle p1" style={{ position: 'absolute', width: 300, height: 300, background: '#60a5fa', top: -80, left: -80, opacity: 0.12, borderRadius: '50%' }} />
-      <div className="particle p2" style={{ position: 'absolute', width: 200, height: 200, background: '#818cf8', bottom: 40, right: -60, opacity: 0.12, borderRadius: '50%' }} />
-      <div className="particle p3" style={{ position: 'absolute', width: 140, height: 140, background: '#34d399', top: '42%', left: '64%', opacity: 0.12, borderRadius: '50%' }} />
-      <div className="particle p4" style={{ position: 'absolute', width: 100, height: 100, background: '#f472b6', top: '63%', left: '6%', opacity: 0.12, borderRadius: '50%' }} />
+      <div className="particle p1" style={{ position: 'absolute', width: 300, height: 300, background: '#4da3ff', top: -80, left: -80, opacity: 0.12, borderRadius: '50%' }} />
+      <div className="particle p2" style={{ position: 'absolute', width: 200, height: 200, background: '#6f8fe8', bottom: 40, right: -60, opacity: 0.12, borderRadius: '50%' }} />
+      <div className="particle p3" style={{ position: 'absolute', width: 140, height: 140, background: '#00a9ff', top: '42%', left: '64%', opacity: 0.14, borderRadius: '50%' }} />
+      <div className="particle p4" style={{ position: 'absolute', width: 100, height: 100, background: '#ff314d', top: '63%', left: '6%', opacity: 0.14, borderRadius: '50%' }} />
 
       <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 440 }}>
         {/* Encabezado */}
@@ -66,18 +67,18 @@ export default function Login() {
           <div style={{
             width: 76,
             height: 76,
-            background: 'white',
-            borderRadius: '50%',
+            background: 'linear-gradient(140deg,#ff314d,#e01936)',
+            borderRadius: 24,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             margin: '0 auto 12px',
-            boxShadow: '0 8px 24px rgba(0,0,0,.25)',
+            boxShadow: '0 14px 30px -10px rgba(255,49,77,.75)',
             fontSize: 34
           }}>
-            🏛️
+            <Icon name="logo" size={26} color="#ffffff" />
           </div>
-          <h1 style={{ color: 'white', fontSize: 26, fontWeight: 900, letterSpacing: -0.5 }}>UniPlataforma</h1>
+          <h1 style={{ color: 'white', fontSize: 27, fontWeight: 900, letterSpacing: -0.5, fontFamily: "'Iowan Old Style','Palatino Linotype','Book Antiqua',Georgia,serif" }}>UniPlataforma</h1>
           <p style={{ color: 'rgba(255,255,255,.75)', fontSize: 13, marginTop: 4 }}>Sistema Integral Académico y Administrativo</p>
         </div>
 
@@ -88,14 +89,14 @@ export default function Login() {
           padding: '32px 28px',
           boxShadow: '0 20px 48px rgba(0,0,0,.25)'
         }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#1e293b', marginBottom: 6 }}>Iniciar Sesión</h2>
-          <p style={{ fontSize: 12, color: '#64748b', marginBottom: 20 }}>Ingresa tus credenciales para acceder al portal</p>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#211d17', marginBottom: 6 }}>Iniciar Sesión</h2>
+          <p style={{ fontSize: 12, color: '#6f6b62', marginBottom: 20 }}>Ingresa tus credenciales para acceder al portal</p>
 
           {error && (
             <div style={{
-              background: '#fee2e2',
-              color: '#dc2626',
-              border: '1px solid #fca5a5',
+              background: '#ffe0e5',
+              color: '#d2233c',
+              border: '1px solid #f4b6bf',
               padding: '10px 14px',
               borderRadius: 10,
               fontSize: 13,
@@ -104,14 +105,14 @@ export default function Login() {
               alignItems: 'center',
               gap: 8
             }}>
-              <span>⚠️</span>
+              <Icon name="alerta" size={16} color="#d2233c" />
               <span>{error}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 6 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#4e4a43', marginBottom: 6 }}>
                 Usuario / Código Institucional
               </label>
               <input
@@ -124,7 +125,7 @@ export default function Login() {
                   width: '100%',
                   padding: '11px 14px',
                   borderRadius: 10,
-                  border: '1.5px solid #cbd5e1',
+                  border: '1.5px solid #cdc9bf',
                   outline: 'none',
                   fontSize: 14,
                   boxSizing: 'border-box',
@@ -135,7 +136,7 @@ export default function Login() {
             </div>
 
             <div style={{ marginBottom: 20 }}>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 6 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#4e4a43', marginBottom: 6 }}>
                 Contraseña
               </label>
               <input
@@ -148,7 +149,7 @@ export default function Login() {
                   width: '100%',
                   padding: '11px 14px',
                   borderRadius: 10,
-                  border: '1.5px solid #cbd5e1',
+                  border: '1.5px solid #cdc9bf',
                   outline: 'none',
                   fontSize: 14,
                   boxSizing: 'border-box'
@@ -162,14 +163,14 @@ export default function Login() {
               style={{
                 width: '100%',
                 padding: '12px',
-                background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
+                background: 'linear-gradient(135deg, #00116f 0%, #06468c 60%, #0a5cae 100%)',
                 color: 'white',
                 border: 'none',
                 borderRadius: 10,
                 fontSize: 14,
                 fontWeight: 700,
                 cursor: loading ? 'not-allowed' : 'pointer',
-                boxShadow: '0 4px 12px rgba(37,99,235,.35)',
+                boxShadow: '0 8px 20px -8px rgba(0,17,111,.75)',
                 transition: 'transform 0.15s, opacity 0.15s',
                 opacity: loading ? 0.7 : 1
               }}
@@ -179,8 +180,8 @@ export default function Login() {
           </form>
 
           {/* Selector de perfiles demo rápido */}
-          <div style={{ marginTop: 24, paddingTop: 18, borderTop: '1px solid #e2e8f0' }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>
+          <div style={{ marginTop: 24, paddingTop: 18, borderTop: '1px solid #e5e2da' }}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: '#9c988e', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>
               Acceso rápido de demostración:
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
@@ -190,8 +191,8 @@ export default function Login() {
                   type="button"
                   onClick={() => handleSelectDemo(d.key)}
                   style={{
-                    background: username === d.key ? '#eff6ff' : '#f8fafc',
-                    border: `1.5px solid ${username === d.key ? '#3b82f6' : '#e2e8f0'}`,
+                    background: username === d.key ? '#eef7ff' : '#f7f6f3',
+                    border: `1.5px solid ${username === d.key ? '#0a84ff' : '#e5e2da'}`,
                     borderRadius: 8,
                     padding: '8px 10px',
                     textAlign: 'left',
@@ -199,8 +200,8 @@ export default function Login() {
                     transition: 'all 0.15s'
                   }}
                 >
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#1e293b' }}>{d.label}</div>
-                  <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>{d.key}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#211d17' }}>{d.label}</div>
+                  <div style={{ fontSize: 10, color: '#6f6b62', marginTop: 2 }}>{d.key}</div>
                 </button>
               ))}
             </div>

@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Icon from './Icon';
 import { guardarNotaCorte, listarEstudiantesCurso } from '../api/client';
 
-const th = { textAlign: 'left', padding: '10px 12px', fontSize: 12, fontWeight: 700, color: '#64748b', borderBottom: '1px solid #e2e8f0' };
-const td = { padding: '10px 12px', fontSize: 13, borderBottom: '1px solid #f1f5f9' };
-const card = { background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 18 };
-const input = { padding: '8px 10px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13, background: '#fff' };
+const th = { textAlign: 'left', padding: '10px 12px', fontSize: 12, fontWeight: 700, color: '#6f6b62', borderBottom: '1px solid #e5e2da' };
+const td = { padding: '10px 12px', fontSize: 13, borderBottom: '1px solid #f0eee9' };
+const card = { background: '#fff', border: '1px solid #e5e2da', borderRadius: 12, padding: 18 };
+const input = { padding: '8px 10px', borderRadius: 8, border: '1px solid #cdc9bf', fontSize: 13, background: '#fff' };
 
 export function leerNota(texto) {
   const limpio = String(texto).trim().replace(',', '.');
@@ -125,7 +126,7 @@ export default function RegistroNotas({ cursos, cursoId, onCambiarCurso }) {
 
   if (!cursoId) {
     return (
-      <div style={{ ...card, textAlign: 'center', color: '#94a3b8', padding: 24 }}>
+      <div style={{ ...card, textAlign: 'center', color: '#9c988e', padding: 24 }}>
         No tiene cursos asignados. Pida a la dirección que le asignen uno para registrar notas.
       </div>
     );
@@ -136,7 +137,7 @@ export default function RegistroNotas({ cursos, cursoId, onCambiarCurso }) {
   return (
     <div>
       <div style={{ ...card, marginBottom: 14, display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b' }}>Curso:</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: '#6f6b62' }}>Curso:</span>
         <select
           value={cursoId}
           onChange={(e) => onCambiarCurso(Number(e.target.value))}
@@ -166,7 +167,7 @@ export default function RegistroNotas({ cursos, cursoId, onCambiarCurso }) {
                 {programas.map((p) => <option key={p} value={p}>{p}</option>)}
               </select>
             )}
-            <span style={{ fontSize: 11, color: '#94a3b8' }}>
+            <span style={{ fontSize: 11, color: '#9c988e' }}>
               {alumnos.length} matriculado{alumnos.length === 1 ? '' : 's'}
               {sinNota1 > 0 ? ` · ${sinNota1} sin nota del corte 1` : ''}
             </span>
@@ -175,19 +176,19 @@ export default function RegistroNotas({ cursos, cursoId, onCambiarCurso }) {
       </div>
 
       {error && (
-        <div style={{ background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca', borderRadius: 10, padding: '9px 12px', fontSize: 12, fontWeight: 600, marginBottom: 12 }}>
+        <div style={{ background: '#ffe0e5', color: '#8f0d22', border: '1px solid #f4c2ca', borderRadius: 10, padding: '9px 12px', fontSize: 12, fontWeight: 600, marginBottom: 12 }}>
           {error}
         </div>
       )}
 
       {cargando && !roster && (
-        <div style={{ ...card, textAlign: 'center', color: '#94a3b8', padding: 24 }}>
+        <div style={{ ...card, textAlign: 'center', color: '#9c988e', padding: 24 }}>
           Cargando alumnos del curso...
         </div>
       )}
 
       {!cargando && !error && alumnos.length === 0 && (
-        <div style={{ ...card, textAlign: 'center', color: '#94a3b8', padding: 24 }}>
+        <div style={{ ...card, textAlign: 'center', color: '#9c988e', padding: 24 }}>
           Nadie está matriculado en este curso todavía. Use la pestaña
           <strong> Estudiantes</strong> del curso, o el botón <strong>Inscribir estudiantes</strong>,
           para añadir alumnos.
@@ -197,7 +198,7 @@ export default function RegistroNotas({ cursos, cursoId, onCambiarCurso }) {
       {alumnos.length > 0 && (
         <div style={card}>
           {filtrados.length === 0 && (
-            <div style={{ fontSize: 12, color: '#94a3b8', paddingBottom: 10 }}>
+            <div style={{ fontSize: 12, color: '#9c988e', paddingBottom: 10 }}>
               Ningún alumno coincide con la búsqueda.
             </div>
           )}
@@ -218,11 +219,11 @@ export default function RegistroNotas({ cursos, cursoId, onCambiarCurso }) {
                 <tr key={a.estudianteId}>
                   <td style={td}>
                     <div style={{ fontWeight: 700 }}>{a.nombre}</div>
-                    <div style={{ fontSize: 11, color: '#94a3b8' }}>
+                    <div style={{ fontSize: 11, color: '#9c988e' }}>
                       {a.documento}{a.semestre ? ` · semestre ${a.semestre}` : ''}
                     </div>
                   </td>
-                  <td style={{ ...td, fontSize: 12, color: '#64748b' }}>{a.programa || '—'}</td>
+                  <td style={{ ...td, fontSize: 12, color: '#6f6b62' }}>{a.programa || '—'}</td>
                   {['nota1', 'nota2', 'nota3'].map((k, i) => {
                     const manual = listaCortes(a.cortesManuales).includes(i + 1);
                     const desde = a.desdeEntregas?.[i + 1] || { valor: null, total: 0, calificadas: 0, sinEntregar: 0, sinCalificar: 0, actividades: 0 };
@@ -241,23 +242,23 @@ export default function RegistroNotas({ cursos, cursoId, onCambiarCurso }) {
                         />
                         <div style={{ fontSize: 10, marginTop: 4, lineHeight: 1.3 }}>
                           {manual ? (
-                            <span style={{ color: '#7c3aed', fontWeight: 700 }}>✍ escrita a mano</span>
+                            <span style={{ color: '#6d4ac4', fontWeight: 700 }}>escrita a mano</span>
                           ) : desde.actividades ? (
                             <>
-                              <span style={{ color: '#0f766e' }}>
-                                📄 {desde.calificadas} de {desde.actividades} actividad{desde.actividades === 1 ? '' : 'es'}
+                              <span style={{ color: '#0b6169' }}>
+                                <Icon name="archivo" size={16} /> {desde.calificadas} de {desde.actividades} actividad{desde.actividades === 1 ? '' : 'es'}
                               </span>
                               {desde.sinEntregar > 0 && (
-                                <div style={{ color: '#b91c1c', fontWeight: 700 }}>
+                                <div style={{ color: '#c1122c', fontWeight: 700 }}>
                                   {desde.sinEntregar} sin entregar = 0
                                 </div>
                               )}
                               {desde.sinCalificar > 0 && (
-                                <div style={{ color: '#b45309' }}>{desde.sinCalificar} sin calificar</div>
+                                <div style={{ color: '#99610e' }}>{desde.sinCalificar} sin calificar</div>
                               )}
                             </>
                           ) : (
-                            <span style={{ color: '#94a3b8' }}>sin actividades</span>
+                            <span style={{ color: '#9c988e' }}>sin actividades</span>
                           )}
                           {manual && (
                             <button
@@ -267,7 +268,7 @@ export default function RegistroNotas({ cursos, cursoId, onCambiarCurso }) {
                               title={`Volver a calcular el corte ${i + 1} con las entregas calificadas (${desde.calificadas || 0} de ${desde.actividades || 0})`}
                               style={{
                                 display: 'block', marginTop: 2, background: 'none', border: 0, padding: 0,
-                                fontSize: 10, color: '#1d4ed8', fontWeight: 700, cursor: 'pointer', textAlign: 'left',
+                                fontSize: 10, color: '#06468c', fontWeight: 700, cursor: 'pointer', textAlign: 'left',
                               }}
                             >
                               ↻ recalcular desde entregas
@@ -279,7 +280,7 @@ export default function RegistroNotas({ cursos, cursoId, onCambiarCurso }) {
                   })}
                   <td style={{ ...td, textAlign: 'right', fontWeight: 700 }}>
                     {a.definitiva ?? (
-                      <span style={{ fontSize: 11, fontWeight: 600, color: '#b45309' }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: '#99610e' }}>
                         Falta {[a.nota1, a.nota2, a.nota3].findIndex((n) => n === null || n === undefined) + 1} corte
                         {[a.nota1, a.nota2, a.nota3].filter((n) => n === null || n === undefined).length === 1 ? '' : 's'}
                       </span>

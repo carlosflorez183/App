@@ -11,17 +11,17 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { asignarDocenteCurso, listarAsignacionDocentes } from '../api/client';
 
-const th = { textAlign: 'left', padding: '10px 12px', fontSize: 12, fontWeight: 700, color: '#64748b', borderBottom: '1px solid #e2e8f0' };
-const td = { padding: '10px 12px', fontSize: 13, borderBottom: '1px solid #f1f5f9' };
-const card = { background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 18 };
-const input = { padding: '7px 9px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13, background: '#fff' };
+const th = { textAlign: 'left', padding: '10px 12px', fontSize: 12, fontWeight: 700, color: '#6f6b62', borderBottom: '1px solid #e5e2da' };
+const td = { padding: '10px 12px', fontSize: 13, borderBottom: '1px solid #f0eee9' };
+const card = { background: '#fff', border: '1px solid #e5e2da', borderRadius: 12, padding: 18 };
+const input = { padding: '7px 9px', borderRadius: 8, border: '1px solid #cdc9bf', fontSize: 13, background: '#fff' };
 
 const Badge = ({ children, tone = 'slate' }) => {
   const tones = {
-    slate: ['#f1f5f9', '#475569'],
-    green: ['#dcfce7', '#15803d'],
-    amber: ['#fef3c7', '#b45309'],
-    red: ['#fee2e2', '#b91c1c'],
+    slate: ['#f0eee9', '#4e4a43'],
+    green: ['#d8f0e5', '#0a6e4b'],
+    amber: ['#fbefd6', '#99610e'],
+    red: ['#ffe0e5', '#c1122c'],
   };
   const [bg, fg] = tones[tone] || tones.slate;
   return (
@@ -77,27 +77,27 @@ export default function AsignacionDocentes() {
   return (
     <div style={card}>
       <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 4 }}>Asignación de docentes a cursos</div>
-      <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 14 }}>
+      <div style={{ fontSize: 12, color: '#9c988e', marginBottom: 14 }}>
         El docente que aparece en el curso es el mismo que puede abrirlo, poner notas y calificar
         entregas. Un curso sin docente queda en manos de nadie: aparece marcado en rojo.
         {sinDocente > 0 ? ` Hay ${sinDocente} curso${sinDocente === 1 ? '' : 's'} sin asignar.` : ''}
       </div>
 
       {error && (
-        <div style={{ background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca', borderRadius: 10, padding: '9px 12px', fontSize: 12, fontWeight: 600, marginBottom: 12 }}>
+        <div style={{ background: '#ffe0e5', color: '#8f0d22', border: '1px solid #f4c2ca', borderRadius: 10, padding: '9px 12px', fontSize: 12, fontWeight: 600, marginBottom: 12 }}>
           {error}
         </div>
       )}
       {exito && (
-        <div style={{ background: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0', borderRadius: 10, padding: '9px 12px', fontSize: 12, fontWeight: 600, marginBottom: 12 }}>
+        <div style={{ background: '#d8f0e5', color: '#0a5c40', border: '1px solid #b6e3cf', borderRadius: 10, padding: '9px 12px', fontSize: 12, fontWeight: 600, marginBottom: 12 }}>
           {exito}
         </div>
       )}
 
-      {!cursos && !error && <div style={{ fontSize: 12, color: '#94a3b8' }}>Cargando cursos...</div>}
+      {!cursos && !error && <div style={{ fontSize: 12, color: '#9c988e' }}>Cargando cursos...</div>}
 
       {cursos && cursos.length === 0 && (
-        <div style={{ fontSize: 12, color: '#94a3b8' }}>No hay cursos creados en este periodo.</div>
+        <div style={{ fontSize: 12, color: '#9c988e' }}>No hay cursos creados en este periodo.</div>
       )}
 
       {cursos && cursos.length > 0 && (

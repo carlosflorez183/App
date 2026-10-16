@@ -1344,7 +1344,7 @@ async function paginaCurso() {
           } else {
             ok('Curso:entrega-aislada', 'al pulsar el nombre se abre solo la hoja de ese estudiante');
           }
-          if (!/📎 Archivo entregado/.test(raiz.innerText)) {
+          if (!/Archivo entregado/.test(raiz.innerText)) {
             falla('Curso:hoja-archivo', 'la hoja no muestra el archivo que entregó');
           } else {
             ok('Curso:hoja-archivo', 'la hoja del estudiante muestra su archivo');

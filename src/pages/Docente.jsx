@@ -6,6 +6,7 @@
    actividades o parciales, y moderar el foro.
    ============================================= */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import Icon, { Ico } from '../components/Icon';
 import { useSearchParams } from 'react-router-dom';
 import ModuleLayout from '../components/ModuleLayout';
 import RegistroNotas from '../components/RegistroNotas';
@@ -22,23 +23,23 @@ import {
 import { formatDate } from '../data/mockData';
 
 const TABS = [
-  { key: 'cursos', label: 'Mis cursos', icon: '📚' },
-  { key: 'notas', label: 'Registro de notas', icon: '📝' },
-  { key: 'actividades', label: 'Actividades', icon: '✅' },
-  { key: 'asistencia', label: 'Asistencia', icon: '🗓️' },
-  { key: 'foro', label: 'Foro', icon: '💬' },
+  { key: 'cursos', label: 'Mis cursos', icon: 'libro' },
+  { key: 'notas', label: 'Registro de notas', icon: 'cuaderno' },
+  { key: 'actividades', label: 'Actividades', icon: 'check' },
+  { key: 'asistencia', label: 'Asistencia', icon: 'calendario-dias' },
+  { key: 'foro', label: 'Foro', icon: 'mensaje' },
 ];
 
-const th = { textAlign: 'left', padding: '10px 12px', fontSize: 12, fontWeight: 700, color: '#64748b', borderBottom: '1px solid #e2e8f0' };
-const td = { padding: '10px 12px', fontSize: 13, borderBottom: '1px solid #f1f5f9' };
-const card = { background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 18 };
-const input = { padding: '8px 10px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13, background: '#fff' };
-const label = { fontSize: 11, fontWeight: 700, color: '#64748b', display: 'block', marginBottom: 4 };
+const th = { textAlign: 'left', padding: '10px 12px', fontSize: 12, fontWeight: 700, color: '#6f6b62', borderBottom: '1px solid #e5e2da' };
+const td = { padding: '10px 12px', fontSize: 13, borderBottom: '1px solid #f0eee9' };
+const card = { background: '#fff', border: '1px solid #e5e2da', borderRadius: 12, padding: 18 };
+const input = { padding: '8px 10px', borderRadius: 8, border: '1px solid #cdc9bf', fontSize: 13, background: '#fff' };
+const label = { fontSize: 11, fontWeight: 700, color: '#6f6b62', display: 'block', marginBottom: 4 };
 
 const ESTADOS = [
-  ['presente', 'Presente', '#15803d', '#dcfce7'],
-  ['tardanza', 'Tardanza', '#b45309', '#fef3c7'],
-  ['ausente', 'Ausente', '#b91c1c', '#fee2e2'],
+  ['presente', 'Presente', '#0a6e4b', '#d8f0e5'],
+  ['tardanza', 'Tardanza', '#99610e', '#fbefd6'],
+  ['ausente', 'Ausente', '#c1122c', '#ffe0e5'],
 ];
 
 /* Aviso único para errores de validación y de conexión: el docente siempre
@@ -46,8 +47,8 @@ const ESTADOS = [
 const Aviso = ({ children, tone = 'red' }) => {
   if (!children) return null;
   const estilo = tone === 'red'
-    ? { background: '#fee2e2', color: '#991b1b', borderColor: '#fecaca' }
-    : { background: '#dcfce7', color: '#166534', borderColor: '#bbf7d0' };
+    ? { background: '#ffe0e5', color: '#8f0d22', borderColor: '#f4c2ca' }
+    : { background: '#d8f0e5', color: '#0a5c40', borderColor: '#b6e3cf' };
   return (
     <div style={{ ...estilo, border: '1px solid', borderRadius: 10, padding: '9px 12px', fontSize: 12, fontWeight: 600, marginBottom: 12 }}>
       {children}
@@ -57,7 +58,7 @@ const Aviso = ({ children, tone = 'red' }) => {
 
 const SelectorCurso = ({ cursos, sel, onChange, permitirTodos = true }) => (
   <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-    <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b' }}>Curso:</span>
+    <span style={{ fontSize: 12, fontWeight: 700, color: '#6f6b62' }}>Curso:</span>
     <select value={sel ?? ''} onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))} style={input}>
       {permitirTodos && <option value="">Todos</option>}
       {cursos.map((c) => (
@@ -319,15 +320,15 @@ export default function Docente() {
           return (
             <div>
               {sinAsignacion && (
-                <div style={{ ...card, background: '#eff6ff', borderColor: '#bfdbfe', marginBottom: 16, fontSize: 12, color: '#1e40af' }}>
+                <div style={{ ...card, background: '#eef7ff', borderColor: '#cfe8ff', marginBottom: 16, fontSize: 12, color: '#04295f' }}>
                   Este docente no tiene cursos asignados en el periodo 2026-1. Apenas se le asigne uno, la lista se
                   completa automaticamente.
                 </div>
               )}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 18 }}>
-                <div style={card}><div style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>Cursos asignados</div><div style={{ fontSize: 26, fontWeight: 800 }}>{cursosVisibles.length}</div></div>
-                <div style={card}><div style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>Estudiantes</div><div style={{ fontSize: 26, fontWeight: 800 }}>{cursosVisibles.reduce((a, c) => a + c.estudiantes, 0)}</div></div>
-                <div style={card}><div style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>Actividades pendientes</div><div style={{ fontSize: 26, fontWeight: 800 }}>{data.actividades.filter((a) => a.estado_est === 'pendiente').length}</div></div>
+                <div style={card}><div style={{ fontSize: 12, color: '#6f6b62', fontWeight: 600 }}>Cursos asignados</div><div style={{ fontSize: 26, fontWeight: 800 }}>{cursosVisibles.length}</div></div>
+                <div style={card}><div style={{ fontSize: 12, color: '#6f6b62', fontWeight: 600 }}>Estudiantes</div><div style={{ fontSize: 26, fontWeight: 800 }}>{cursosVisibles.reduce((a, c) => a + c.estudiantes, 0)}</div></div>
+                <div style={card}><div style={{ fontSize: 12, color: '#6f6b62', fontWeight: 600 }}>Actividades pendientes</div><div style={{ fontSize: 26, fontWeight: 800 }}>{data.actividades.filter((a) => a.estado_est === 'pendiente').length}</div></div>
               </div>
               <div style={card}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -340,7 +341,7 @@ export default function Docente() {
                   <tbody>
                     {cursosVisibles.map((c) => (
                       <tr key={c.id}>
-                        <td style={td}><strong>{c.icon} {c.nombre}</strong></td>
+                        <td style={td}><strong><Ico name={c.icon} size={14} /> {c.nombre}</strong></td>
                         <td style={td}>{c.codigo}</td>
                         <td style={td}>{c.grupo}</td>
                         <td style={td}>{c.estudiantes}</td>
@@ -348,13 +349,13 @@ export default function Docente() {
                         <td style={td}>
                           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                             <button className="btn" style={{ padding: '5px 10px', fontSize: 12 }} onClick={() => irA(c.id, 'asistencia')}>
-                              🗓️ Asistencia
+                              <Icon name="calendario-dias" size={16} /> Asistencia
                             </button>
                             <button className="btn" style={{ padding: '5px 10px', fontSize: 12 }} onClick={() => irA(c.id, 'actividades')}>
-                              ✅ Actividades
+                              <Icon name="check" size={16} /> Actividades
                             </button>
                             <button className="btn" style={{ padding: '5px 10px', fontSize: 12 }} onClick={() => irA(c.id, 'foro')}>
-                              💬 Foro
+                              <Icon name="mensaje" size={16} /> Foro
                             </button>
                           </div>
                         </td>
@@ -397,7 +398,7 @@ export default function Docente() {
               </div>
 
               {!sel && (
-                <div style={{ ...card, marginBottom: 14, background: '#f8fafc', fontSize: 12, color: '#64748b' }}>
+                <div style={{ ...card, marginBottom: 14, background: '#f7f6f3', fontSize: 12, color: '#6f6b62' }}>
                   Elija un curso para crear o eliminar actividades.
                 </div>
               )}
@@ -451,7 +452,7 @@ export default function Docente() {
 
                   <form style={card} onSubmit={enviarParcial}>
                     <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 4 }}>Nuevo parcial</div>
-                    <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 12 }}>
+                    <div style={{ fontSize: 11, color: '#9c988e', marginBottom: 12 }}>
                       Un parcial exige al menos una pregunta; cada una lleva sus opciones y la respuesta correcta.
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
@@ -472,9 +473,9 @@ export default function Docente() {
                     </div>
 
                     {formParcial.preguntas.map((p, i) => (
-                      <div key={i} style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 12, marginBottom: 10, background: '#f8fafc' }}>
+                      <div key={i} style={{ border: '1px solid #e5e2da', borderRadius: 10, padding: 12, marginBottom: 10, background: '#f7f6f3' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                          <span style={{ fontSize: 11, fontWeight: 800, color: '#1e3a8a' }}>Pregunta {i + 1}</span>
+                          <span style={{ fontSize: 11, fontWeight: 800, color: '#00116f' }}>Pregunta {i + 1}</span>
                           {formParcial.preguntas.length > 1 && (
                             <button type="button" className="btn" style={{ padding: '3px 8px', fontSize: 11 }} onClick={() => quitarPregunta(i)}>
                               Quitar
@@ -499,7 +500,7 @@ export default function Docente() {
                             />
                           </div>
                         ))}
-                        <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
+                        <div style={{ fontSize: 11, color: '#6f6b62', marginTop: 4 }}>
                           La opción marcada con el círculo es la correcta. Puntos:{' '}
                           <input
                             type="number" min="1" value={p.puntos} style={{ ...input, width: 60, padding: '2px 6px' }}
@@ -538,7 +539,7 @@ export default function Docente() {
                         <td style={td}>
                           {a.titulo}
                           {preguntas(a) > 0 && (
-                            <span style={{ fontSize: 11, color: '#6d28d9', fontWeight: 700 }}> · {preguntas(a)} preguntas</span>
+                            <span style={{ fontSize: 11, color: '#5a37ad', fontWeight: 700 }}> · {preguntas(a)} preguntas</span>
                           )}
                         </td>
                         <td style={td}>{data.cursos.find((x) => x.id === a.cursoId)?.nombre}</td>
@@ -573,7 +574,7 @@ export default function Docente() {
               </div>
 
               {!sel ? (
-                <div style={{ ...card, textAlign: 'center', color: '#94a3b8', padding: 28 }}>
+                <div style={{ ...card, textAlign: 'center', color: '#9c988e', padding: 28 }}>
                   Elija un curso para abrir y editar la asistencia.
                 </div>
               ) : (
@@ -597,7 +598,7 @@ export default function Docente() {
                         />
                       </div>
                       <button className="btn" type="submit" disabled={guardando}>Abrir y marcar</button>
-                      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 8 }}>
+                      <div style={{ fontSize: 11, color: '#9c988e', marginTop: 8 }}>
                         La sesión nace con todos los estudiantes en estado Presente.
                       </div>
                     </form>
@@ -605,21 +606,21 @@ export default function Docente() {
                     <div style={card}>
                       <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 10 }}>Sesiones de clase</div>
                       {sesiones.length === 0 && (
-                        <div style={{ fontSize: 12, color: '#94a3b8' }}>Todavía no hay sesiones registradas.</div>
+                        <div style={{ fontSize: 12, color: '#9c988e' }}>Todavía no hay sesiones registradas.</div>
                       )}
                       {sesiones.map((s) => (
                         <div
                           key={s.id}
                           style={{
                             padding: 10, borderRadius: 10, marginBottom: 8, cursor: 'pointer',
-                            border: `1px solid ${sesionActiva === s.id ? '#1d4ed8' : '#e2e8f0'}`,
-                            background: sesionActiva === s.id ? '#eff6ff' : '#fff',
+                            border: `1px solid ${sesionActiva === s.id ? '#06468c' : '#e5e2da'}`,
+                            background: sesionActiva === s.id ? '#eef7ff' : '#fff',
                           }}
                           onClick={() => editarSesion(s)}
                         >
                           <div style={{ fontSize: 13, fontWeight: 700 }}>{s.tema}</div>
-                          <div style={{ fontSize: 11, color: '#64748b' }}>{formatDate(s.fecha)}</div>
-                          <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                          <div style={{ fontSize: 11, color: '#6f6b62' }}>{formatDate(s.fecha)}</div>
+                          <div style={{ fontSize: 11, color: '#9c988e', marginTop: 4 }}>
                             {s.registros.length} estudiantes
                             {sesionActiva !== s.id && (
                               <button
@@ -637,7 +638,7 @@ export default function Docente() {
 
                   <div style={card}>
                     {!borrador ? (
-                      <div style={{ textAlign: 'center', color: '#94a3b8', padding: 28 }}>
+                      <div style={{ textAlign: 'center', color: '#9c988e', padding: 28 }}>
                         Seleccione una sesión para marcar la asistencia, o abra una nueva.
                       </div>
                     ) : (
@@ -645,7 +646,7 @@ export default function Docente() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
                           <div>
                             <div style={{ fontSize: 15, fontWeight: 800 }}>{borrador.tema}</div>
-                            <div style={{ fontSize: 11, color: '#94a3b8' }}>{formatDate(borrador.fecha)}</div>
+                            <div style={{ fontSize: 11, color: '#9c988e' }}>{formatDate(borrador.fecha)}</div>
                           </div>
                           <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                             {ESTADOS.map(([valor, texto]) => (
@@ -676,7 +677,7 @@ export default function Docente() {
                               <tr key={r.estudianteId}>
                                 <td style={td}>
                                   <strong>{r.estudiante?.nombre}</strong>
-                                  <span style={{ fontSize: 11, color: '#94a3b8', marginLeft: 8 }}>{r.estudiante?.documento}</span>
+                                  <span style={{ fontSize: 11, color: '#9c988e', marginLeft: 8 }}>{r.estudiante?.documento}</span>
                                 </td>
                                 <td style={td}>
                                   <div style={{ display: 'flex', gap: 6 }}>
@@ -686,9 +687,9 @@ export default function Docente() {
                                         onClick={() => marcar(r.estudianteId, valor)}
                                         style={{
                                           padding: '4px 10px', borderRadius: 7, fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                                          border: `1px solid ${r.estado === valor ? fg : '#cbd5e1'}`,
+                                          border: `1px solid ${r.estado === valor ? fg : '#cdc9bf'}`,
                                           background: r.estado === valor ? bg : '#fff',
-                                          color: r.estado === valor ? fg : '#64748b',
+                                          color: r.estado === valor ? fg : '#6f6b62',
                                         }}
                                       >
                                         {texto}
@@ -726,7 +727,7 @@ export default function Docente() {
               </div>
 
               {!sel ? (
-                <div style={{ ...card, textAlign: 'center', color: '#94a3b8', padding: 28 }}>
+                <div style={{ ...card, textAlign: 'center', color: '#9c988e', padding: 28 }}>
                   Elija un curso para ver su foro.
                 </div>
               ) : (
@@ -734,15 +735,15 @@ export default function Docente() {
                   <div style={card}>
                     <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 12 }}>Mensajes del foro</div>
                     {mensajes.length === 0 && (
-                      <div style={{ fontSize: 12, color: '#94a3b8' }}>Todavía no hay mensajes. Sea el primero.</div>
+                      <div style={{ fontSize: 12, color: '#9c988e' }}>Todavía no hay mensajes. Sea el primero.</div>
                     )}
                     {mensajes.map((m) => (
-                      <div key={m.id} style={{ borderLeft: '3px solid #dbeafe', paddingLeft: 12, marginBottom: 14 }}>
+                      <div key={m.id} style={{ borderLeft: '3px solid #e3f1ff', paddingLeft: 12, marginBottom: 14 }}>
                         <div style={{ fontSize: 13, fontWeight: 700 }}>{m.autor}</div>
-                        <div style={{ fontSize: 11, color: '#94a3b8' }}>
+                        <div style={{ fontSize: 11, color: '#9c988e' }}>
                           {m.tema} · {formatDate(m.fecha)}
                         </div>
-                        <div style={{ fontSize: 13, color: '#334155', marginTop: 4 }}>{m.mensaje}</div>
+                        <div style={{ fontSize: 13, color: '#3a3630', marginTop: 4 }}>{m.mensaje}</div>
                       </div>
                     ))}
                   </div>

@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { menuForRole, NAV_SEC_STYLE, TAB_POR_DEFECTO } from '../config/navMenu';
+import Icon from './Icon';
 
 export default function Sidebar({ currentView, currentTab, onNavigate, isOpen, onClose }) {
   const { user, logout, roleLabels } = useAuth();
@@ -42,8 +43,9 @@ export default function Sidebar({ currentView, currentTab, onNavigate, isOpen, o
       )}
 
       <aside className={`sidebar ${isOpen ? 'open' : ''}`} style={{
-        width: 260,
-        background: 'linear-gradient(180deg, #1e3a8a 0%, #1e1b4b 100%)',
+        width: 268,
+        background: 'radial-gradient(120% 60% at 100% 100%, rgba(0,169,255,.22) 0%, rgba(0,169,255,0) 55%), radial-gradient(90% 50% at 0% 0%, rgba(255,49,77,.14) 0%, rgba(255,49,77,0) 50%), linear-gradient(180deg,#00116f 0%,#000b47 60%,#00072e 100%)',
+        borderRight: '1px solid rgba(255,255,255,.06)',
         height: '100vh',
         position: 'fixed',
         left: 0,
@@ -62,18 +64,19 @@ export default function Sidebar({ currentView, currentTab, onNavigate, isOpen, o
           gap: 12
         }}>
           <div className="logo-ic" style={{
-            width: 42,
-            height: 42,
-            background: 'rgba(255,255,255,.15)',
-            borderRadius: 10,
+            width: 44,
+            height: 44,
+            background: 'linear-gradient(140deg,#ff314d,#e01936)',
+            borderRadius: 13,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             fontSize: 20,
             color: '#fff',
-            flexShrink: 0
+            flexShrink: 0,
+            boxShadow: '0 6px 16px -6px rgba(255,49,77,.8)'
           }}>
-            🏛️
+            <Icon name="logo" size={22} />
           </div>
           <div>
             <div className="logo-txt" style={{ color: '#fff', fontWeight: 700, fontSize: 15, lineHeight: 1.2 }}>
@@ -94,9 +97,9 @@ export default function Sidebar({ currentView, currentTab, onNavigate, isOpen, o
           gap: 10
         }}>
           <div className={`s-avatar ${user.avatarClass || 'av-blue'}`} style={{
-            width: 36,
-            height: 36,
-            borderRadius: '50%',
+            width: 38,
+            height: 38,
+            borderRadius: 12,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -138,7 +141,7 @@ export default function Sidebar({ currentView, currentTab, onNavigate, isOpen, o
                       onClose();
                     }}
                   >
-                    <span className="ni">{item.icon}</span>
+                    <span className="ni"><Icon name={item.icon} size={16} /></span>
                     <span>{item.label}</span>
                     {item.badge ? <span className="nb">{item.badge}</span> : null}
                   </div>
@@ -157,7 +160,7 @@ export default function Sidebar({ currentView, currentTab, onNavigate, isOpen, o
               navigate('/login');
             }}
           >
-            <span>🚪</span>
+            <Icon name="salir" size={16} />
             <span>Cerrar Sesión</span>
           </button>
         </div>

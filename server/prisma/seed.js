@@ -45,6 +45,7 @@ const TABLAS = [
   'certificados_emitidos', 'notas', 'pagos', 'actividades', 'anuncios',
   'cursos', 'estudiantes', 'aspirantes', 'procesos_admision', 'docentes',
   'usuarios', 'materias', 'programas', 'modalidades',
+  'nominas', 'liquidaciones', 'conceptos', 'novedades',
 ];
 
 /* Un PDF minimo pero valido (lo abren Chrome, Acrobat y el visor de Windows).
@@ -844,6 +845,98 @@ async function main() {
   });
 
   console.log(`  ${postulados.length} postulados, ${convocatorias.count} convocatorias`);
+
+  /* ── Nómina de demostración y novedades ────────────────────────────────
+     Una corrida del mes pasado para que Contabilidad muestre cifras, y las
+     novedades que Talento Humano deja "reportadas" para el mes en curso: son
+     las que Contabilidad revisa y que entran al generar la corrida del periodo.
+     El cálculo es el mismo del servidor (`liquidar`/`calcularNovedad`), no una
+     copia: así lo sembrado coincide con lo que produciría la API. */
+  console.log('→ Nómina de demostración y novedades');
+  const { liquidar, totalizar, salarioDocentePorCategoria, calcularNovedad } =
+    await import('../src/nomina.js');
+
+  const PERIODO_NOMINA = '2026-09';
+  const PERIODO_NOVEDADES = '2026-10';
+  const FECHA_PAGO = new Date('2026-09-28T00:00:00Z');
+  const UVT = 42950;
+  const SMLMV = 1300000;
+
+  const [planEmpleados, planDocentes] = await Promise.all([
+    prisma.empleado.findMany({ where: { estado: { not: 'retirado' } }, orderBy: { nombre: 'asc' } }),
+    prisma.docente.findMany({ where: { estado: { not: 'retirado' } }, orderBy: { nombre: 'asc' } }),
+  ]);
+
+  const liquidaciones = [
+    ...planEmpleados.map((emp) => {
+      const c = liquidar(emp, { uvt: UVT, smlmv: SMLMV, fechaPago: FECHA_PAGO });
+      return {
+        empleadoId: emp.id, tipoPersona: 'empleado', nombre: emp.nombre,
+        cargo: emp.cargo, dependencia: emp.dependencia, salarioBase: c.salarioBase,
+        devengado: c.devengado, deducciones: c.deducciones, neto: c.neto,
+        baseRetencion: c.baseRetencion, rentaExenta: c.rentaExenta,
+        baseGravable: c.baseGravable, retencion: c.retencion,
+        conceptos: { create: c.conceptos },
+      };
+    }),
+    ...planDocentes.map((doc) => {
+      const salario = salarioDocentePorCategoria(doc.categoria);
+      const c = liquidar({ id: doc.id, baseSalarial: salario }, { uvt: UVT, smlmv: SMLMV, fechaPago: FECHA_PAGO });
+      return {
+        docenteId: doc.id, tipoPersona: 'docente', nombre: doc.nombre,
+        cargo: doc.categoria || 'Docente', dependencia: doc.area || 'Docencia',
+        salarioBase: c.salarioBase, devengado: c.devengado, deducciones: c.deducciones,
+        neto: c.neto, baseRetencion: c.baseRetencion, rentaExenta: c.rentaExenta,
+        baseGravable: c.baseGravable, retencion: c.retencion,
+        conceptos: { create: c.conceptos },
+      };
+    }),
+  ];
+  const totalesNomina = totalizar(liquidaciones);
+  await prisma.nomina.create({
+    data: {
+      periodo: PERIODO_NOMINA, fechaPago: FECHA_PAGO, estado: 'pagada',
+      uvt: UVT, smlmv: SMLMV,
+      totalDevengado: totalesNomina.devengado,
+      totalDeducciones: totalesNomina.deducciones,
+      totalNeto: totalesNomina.neto,
+      liquidaciones: { create: liquidaciones },
+    },
+  });
+
+  const porNombre = (n) => planEmpleados.find((e) => e.nombre === n);
+  const porDocente = (id) => planDocentes.find((d) => d.id === id);
+  const fuentes = [
+    { tipo: 'incapacidad', dias: 3, descripcion: 'Incapacidad médica (EPS)', emp: porNombre('Dra. Laura Sánchez') },
+    { tipo: 'licencia', dias: 2, modalidad: 'no_remunerada', descripcion: 'Permiso no remunerado', emp: porNombre('Luis Fernando Mora') },
+    { tipo: 'bonificacion', valor: 500000, descripcion: 'Bono por desempeño', emp: porNombre('Ana Cristina Vega') },
+    { tipo: 'horas_extra', horas: 10, descripcion: 'Horas extra de laboratorio', doc: porDocente('DOC-0047') },
+    { tipo: 'descuento', valor: 300000, descripcion: 'Libranza', emp: porNombre('Jorge Alberto Ríos') },
+  ];
+  let novedadesCreadas = 0;
+  for (const f of fuentes) {
+    if (!f.emp && !f.doc) continue;
+    const persona = f.emp
+      ? { empleadoId: f.emp.id, docenteId: null, nombre: f.emp.nombre, tipoPersona: 'empleado', salario: Number(f.emp.salario || 0) }
+      : { empleadoId: null, docenteId: f.doc.id, nombre: f.doc.nombre, tipoPersona: 'docente', salario: salarioDocentePorCategoria(f.doc.categoria) };
+    const calculo = calcularNovedad(
+      { tipo: f.tipo, dias: f.dias, horas: f.horas, valor: f.valor, modalidad: f.modalidad },
+      persona.salario,
+    );
+    await prisma.novedad.create({
+      data: {
+        empleadoId: persona.empleadoId, docenteId: persona.docenteId,
+        nombre: persona.nombre, tipoPersona: persona.tipoPersona,
+        tipo: f.tipo, descripcion: f.descripcion, modalidad: f.modalidad || null,
+        periodo: PERIODO_NOVEDADES, dias: f.dias ?? null, horas: f.horas ?? null,
+        valorSugerido: calculo.valor, valor: calculo.valor, tipoAjuste: calculo.tipoAjuste,
+        estado: 'reportada',
+      },
+    });
+    novedadesCreadas += 1;
+  }
+  console.log(`  corrida ${PERIODO_NOMINA} (${liquidaciones.length} personas), ${novedadesCreadas} novedades para ${PERIODO_NOVEDADES}`);
+
   console.log('\n✔ Seed completo');
 }
 

@@ -336,9 +336,9 @@ export const INITIAL_DATA = {
     { id:4, concepto:'Seguro Estudiantil 2026', valor:45000, fecha_limite:'2026-03-01', fecha_pago:'2026-02-28', estado:'pagado', referencia:'PAG-20260228-003' },
   ],
   cursos: [
-    { id:1, nombre:'Ingeniería de Software',       codigo:'IS-602', profesor:'Dra. Laura Sánchez', grupo:'A', estudiantes:32, icon:'💻', color:'linear-gradient(135deg,#6d28d9,#8b5cf6)', progreso:50 },
-    { id:2, nombre:'Redes Computacionales I',     codigo:'IS-603', profesor:'Ing. Suárez',   grupo:'B', estudiantes:28, icon:'🌐', color:'linear-gradient(135deg,#0369a1,#0ea5e9)', progreso:65 },
-    { id:3, nombre:'Arquitectura del Computador',  codigo:'IS-601', profesor:'Dr. Ramírez',   grupo:'A', estudiantes:30, icon:'🔌', color:'linear-gradient(135deg,#065f46,#10b981)', progreso:100 },
+    { id:1, nombre:'Ingeniería de Software',       codigo:'IS-602', profesor:'Dra. Laura Sánchez', grupo:'A', estudiantes:32, icon:'cohete', color:'linear-gradient(135deg,#6d28d9,#8b5cf6)', progreso:50 },
+    { id:2, nombre:'Redes Computacionales I',     codigo:'IS-603', profesor:'Ing. Suárez',   grupo:'B', estudiantes:28, icon:'globo', color:'linear-gradient(135deg,#0369a1,#0ea5e9)', progreso:65 },
+    { id:3, nombre:'Arquitectura del Computador',  codigo:'IS-601', profesor:'Dr. Ramírez',   grupo:'A', estudiantes:30, icon:'portatil', color:'linear-gradient(135deg,#065f46,#10b981)', progreso:100 },
   ],
   actividades: [
     { id:1,  cursoId:1, corte:2, titulo:'Diagramas UML — Casos de Uso',    tipo:'taller',   fechaEntrega:'2026-08-22', descripcion:'Modelar los casos de uso y sus diagramas para el sistema propuesto.',            puntos:40,  estado_est:'pendiente',  nota:null },
@@ -480,21 +480,21 @@ export const INITIAL_DATA = {
 
   matricula: {
     modalidades: [
-      { id:1, nombre:'Pregrado', icon:'🎓', bgClass:'bg-blue-100', descripcion:'Programas de formación universitaria de nivel profesional', programas:6 },
-      { id:2, nombre:'Posgrado', icon:'🏛️', bgClass:'bg-purple-100', descripcion:'Especializaciones, maestrías y doctorados', programas:4 },
-      { id:3, nombre:'Tecnología', icon:'⚙️', bgClass:'bg-green-100', descripcion:'Programas tecnológicos de nivel profesional técnico', programas:3 },
+      { id:1, nombre:'Pregrado', icon:'graduacion', bgClass:'bg-blue-100', descripcion:'Programas de formación universitaria de nivel profesional', programas:6 },
+      { id:2, nombre:'Posgrado', icon:'premio', bgClass:'bg-purple-100', descripcion:'Especializaciones, maestrías y doctorados', programas:4 },
+      { id:3, nombre:'Tecnología', icon:'cajas', bgClass:'bg-green-100', descripcion:'Programas tecnológicos de nivel profesional técnico', programas:3 },
     ],
     programas: [
-      { id:1, modalidadId:1, nombre:'Ingeniería de Sistemas y Computación', facultad:'Fac. Ingeniería', semestres:10, creditos:198, cupo:1150, matriculados:1040, icon:'💻', bgClass:'bg-blue-100', snies:'53010135', jornada:'Diurno' },
-      { id:2, modalidadId:1, nombre:'Ingeniería Civil', facultad:'Fac. Ingeniería', semestres:10, creditos:167, cupo:900, matriculados:812, icon:'🏗️', bgClass:'bg-yellow-100', snies:'53010146', jornada:'Diurno' },
-      { id:3, modalidadId:1, nombre:'Administración de Empresas', facultad:'Fac. Ciencias Económicas', semestres:9, creditos:130, cupo:1300, matriculados:1186, icon:'📊', bgClass:'bg-green-100', snies:'53010123', jornada:'Nocturno' },
-      { id:4, modalidadId:1, nombre:'Contaduría Pública', facultad:'Fac. Ciencias Económicas', semestres:8, creditos:145, cupo:1080, matriculados:974, icon:'📒', bgClass:'bg-teal-100', snies:'53010157', jornada:'Nocturno' },
-      { id:5, modalidadId:1, nombre:'Psicología', facultad:'Fac. Ciencias Sociales', semestres:10, creditos:125, cupo:1160, matriculados:1052, icon:'🧠', bgClass:'bg-purple-100', snies:'53010201', jornada:'Diurno' },
-      { id:6, modalidadId:1, nombre:'Derecho', facultad:'Fac. Ciencias Jurídicas', semestres:8, creditos:198, cupo:860, matriculados:768, icon:'⚖️', bgClass:'bg-red-100', snies:'53010088', jornada:'Nocturno' },
-      { id:7, modalidadId:2, nombre:'Esp. en Gerencia de Proyectos', facultad:'Fac. Posgrados', semestres:2, creditos:25, cupo:220, matriculados:186, icon:'📋', bgClass:'bg-indigo-100', snies:'91010001', jornada:'Sabatino' },
-      { id:8, modalidadId:2, nombre:'Maestría en Educación', facultad:'Fac. Posgrados', semestres:4, creditos:40, cupo:180, matriculados:148, icon:'📚', bgClass:'bg-pink-100', snies:'91010010', jornada:'Sabatino' },
-      { id:9, modalidadId:3, nombre:'Tecnología en Sistemas', facultad:'Fac. Ingeniería', semestres:6, creditos:117, cupo:800, matriculados:694, icon:'🖥️', bgClass:'bg-cyan-100', snies:'73010001', jornada:'Diurno' },
-      { id:10, modalidadId:3, nombre:'Tecnología en Contabilidad', facultad:'Fac. Económicas', semestres:6, creditos:100, cupo:820, matriculados:712, icon:'🧮', bgClass:'bg-orange-100', snies:'73010009', jornada:'Nocturno' },
+      { id:1, modalidadId:1, nombre:'Ingeniería de Sistemas y Computación', facultad:'Fac. Ingeniería', semestres:10, creditos:198, cupo:1150, matriculados:1040, icon:'libro', bgClass:'bg-blue-100', snies:'53010135', jornada:'Diurno' },
+      { id:2, modalidadId:1, nombre:'Ingeniería Civil', facultad:'Fac. Ingeniería', semestres:10, creditos:167, cupo:900, matriculados:812, icon:'libro', bgClass:'bg-yellow-100', snies:'53010146', jornada:'Diurno' },
+      { id:3, modalidadId:1, nombre:'Administración de Empresas', facultad:'Fac. Ciencias Económicas', semestres:9, creditos:130, cupo:1300, matriculados:1186, icon:'libro', bgClass:'bg-green-100', snies:'53010123', jornada:'Nocturno' },
+      { id:4, modalidadId:1, nombre:'Contaduría Pública', facultad:'Fac. Ciencias Económicas', semestres:8, creditos:145, cupo:1080, matriculados:974, icon:'libro', bgClass:'bg-teal-100', snies:'53010157', jornada:'Nocturno' },
+      { id:5, modalidadId:1, nombre:'Psicología', facultad:'Fac. Ciencias Sociales', semestres:10, creditos:125, cupo:1160, matriculados:1052, icon:'libro', bgClass:'bg-purple-100', snies:'53010201', jornada:'Diurno' },
+      { id:6, modalidadId:1, nombre:'Derecho', facultad:'Fac. Ciencias Jurídicas', semestres:8, creditos:198, cupo:860, matriculados:768, icon:'libro', bgClass:'bg-red-100', snies:'53010088', jornada:'Nocturno' },
+      { id:7, modalidadId:2, nombre:'Esp. en Gerencia de Proyectos', facultad:'Fac. Posgrados', semestres:2, creditos:25, cupo:220, matriculados:186, icon:'libro', bgClass:'bg-indigo-100', snies:'91010001', jornada:'Sabatino' },
+      { id:8, modalidadId:2, nombre:'Maestría en Educación', facultad:'Fac. Posgrados', semestres:4, creditos:40, cupo:180, matriculados:148, icon:'libro', bgClass:'bg-pink-100', snies:'91010010', jornada:'Sabatino' },
+      { id:9, modalidadId:3, nombre:'Tecnología en Sistemas', facultad:'Fac. Ingeniería', semestres:6, creditos:117, cupo:800, matriculados:694, icon:'libro', bgClass:'bg-cyan-100', snies:'73010001', jornada:'Diurno' },
+      { id:10, modalidadId:3, nombre:'Tecnología en Contabilidad', facultad:'Fac. Económicas', semestres:6, creditos:100, cupo:820, matriculados:712, icon:'libro', bgClass:'bg-orange-100', snies:'73010009', jornada:'Nocturno' },
     ],
     // Plan de estudios de Ingeniería de Sistemas y Computación — CUL.
     // Los créditos son estimados (el documento oficial no era legible); el
