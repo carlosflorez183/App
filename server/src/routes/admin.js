@@ -153,6 +153,41 @@ export default async function rutasAdmin(app) {
     return { ok: true, mensaje: `Contraseña actualizada para ${u.usuario}` };
   });
 
+  /* Elimina una cuenta de acceso. No se toca a quien tiene ficha de estudiante,
+     docente o empleado: esa cuenta se gestiona desde su propio módulo y
+     borrarla dejaría a la persona sin historial. Tampoco se permite borrarse a
+     uno mismo ni dejar el sistema sin administración. Es irreversible, así que
+     el portal pide confirmación antes de llamar aquí. */
+  app.delete('/admin/usuarios/:id', soloAdmin, async (req, reply) => {
+    const id = Number(req.params.id);
+    const u = await prisma.usuario.findUnique({
+      where: { id },
+      include: { estudiante: true, docente: true, empleado: true },
+    });
+    if (!u) return reply.code(404).send({ error: 'Usuario no encontrado' });
+    if (u.id === req.usuario.id) {
+      return reply.code(400).send({ error: 'No puede eliminar su propia cuenta' });
+    }
+    if (u.estudiante || u.docente || u.empleado) {
+      return reply.code(409).send({
+        error: 'La cuenta está ligada a un estudiante, docente o empleado. Elimine esa ficha primero o deshabilite la cuenta.',
+      });
+    }
+    if (u.role === 'admin') {
+      const admins = await prisma.usuario.count({ where: { role: 'admin' } });
+      if (admins <= 1) {
+        return reply.code(400).send({ error: 'No puede eliminar la última cuenta de administración' });
+      }
+    }
+    await prisma.$transaction(async (tx) => {
+      // Los certificados que expidió se conservan: solo se suelta al emisor
+      // para no perder el rastro documental.
+      await tx.certificadoEmpleado.updateMany({ where: { emitidoPor: id }, data: { emitidoPor: null } });
+      await tx.usuario.delete({ where: { id } });
+    });
+    return { ok: true, mensaje: `${u.nombre} fue eliminado` };
+  });
+
   /* ── Estudiantes: bloqueo y edición administrativa ───────────────────── */
   app.get('/admin/estudiantes', soloAdmin, async () => {
     const estudiantes = await prisma.estudiante.findMany({

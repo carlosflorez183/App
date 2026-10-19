@@ -1965,6 +1965,48 @@ async function admin() {
   } else {
     falla('Admin:estudiantes-tab', 'no aparece la pestaña Estudiantes');
   }
+
+  /* Usuarios: mismo patrón que estudiantes (editor en vista y confirmación
+     antes de eliminar). Tampoco se guarda ni se borra nada. */
+  const pestanaUsuarios = [...document.querySelectorAll('button')].find((b) => b.innerText.trim() === 'Usuarios');
+  if (pestanaUsuarios) {
+    pestanaUsuarios.click();
+    await dormir(1200);
+
+    const editarU = [...document.querySelectorAll('button')].find((b) => b.innerText.trim() === 'Editar');
+    if (editarU) {
+      editarU.click();
+      await dormir(400);
+      const editorU = document.querySelector('[role="dialog"][aria-label="Editar usuario"]');
+      if (editorU) {
+        ok('Admin:editor-usuario', 'abre la vista de edición de la cuenta');
+        [...editorU.querySelectorAll('button')].find((b) => b.innerText.trim() === 'Cancelar')?.click();
+        await dormir(200);
+      } else {
+        falla('Admin:editor-usuario', 'no abrió la vista de edición de la cuenta');
+      }
+    } else {
+      falla('Admin:editor-usuario', 'no aparece el botón Editar en usuarios');
+    }
+
+    const borrarU = [...document.querySelectorAll('button')].find((b) => b.innerText.trim() === 'Eliminar');
+    if (borrarU) {
+      borrarU.click();
+      await dormir(300);
+      const dialogoU = document.querySelector('[role="dialog"][aria-label="Eliminar usuario"]');
+      if (dialogoU) {
+        ok('Admin:confirmar-eliminar-usuario', 'pide confirmación antes de borrar la cuenta');
+        [...dialogoU.querySelectorAll('button')].find((b) => b.innerText.trim() === 'Cancelar')?.click();
+        await dormir(200);
+      } else {
+        falla('Admin:confirmar-eliminar-usuario', 'no pidió confirmación');
+      }
+    } else {
+      falla('Admin:confirmar-eliminar-usuario', 'no aparece el botón Eliminar en usuarios');
+    }
+  } else {
+    falla('Admin:usuarios-tab', 'no aparece la pestaña Usuarios');
+  }
 }
 
 async function correr() {

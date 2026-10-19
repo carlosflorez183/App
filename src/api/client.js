@@ -178,6 +178,9 @@ export const actualizarUsuario = (id, cambios) =>
 export const cambiarPassword = (id, password) =>
   api(`/admin/usuarios/${id}/password`, { method: 'POST', body: { password } });
 
+export const eliminarUsuarioAdmin = (id) =>
+  api(`/admin/usuarios/${id}`, { method: 'DELETE' });
+
 export const listarEstudiantesAdmin = () => api('/admin/estudiantes');
 
 export const actualizarEstudianteAdmin = (id, cambios) =>

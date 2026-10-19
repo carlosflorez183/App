@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import ModuleLayout from '../components/ModuleLayout';
 import AsignacionDocentes from '../components/AsignacionDocentes';
 import EditorEstudiante from '../components/EditorEstudiante';
+import EditorUsuario from '../components/EditorUsuario';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { EstadoVacio } from '../components/Estado';
 import {
@@ -18,6 +19,7 @@ import {
   actualizarUsuario,
   cambiarPassword,
   eliminarEstudianteAdmin,
+  eliminarUsuarioAdmin,
   listarEstudiantesAdmin,
   listarUsuarios,
 } from '../api/client';
@@ -96,6 +98,10 @@ export default function Admin() {
   const [guardandoEst, setGuardandoEst] = useState(false);
   const [porEliminar, setPorEliminar] = useState(null);
   const [eliminando, setEliminando] = useState(false);
+  const [editorUsuario, setEditorUsuario] = useState(null);
+  const [guardandoUsuario, setGuardandoUsuario] = useState(false);
+  const [usuarioPorEliminar, setUsuarioPorEliminar] = useState(null);
+  const [eliminandoUsuario, setEliminandoUsuario] = useState(false);
 
   const cargarAdmin = useCallback(async () => {
     setCargandoAdmin(true);
@@ -216,8 +222,6 @@ export default function Admin() {
             const q = busqueda.toLowerCase();
             return [u.nombre, u.usuario, u.email].some((x) => (x || '').toLowerCase().includes(q));
           });
-          const edit = editando === `u-${form._id}` ? form : null;
-
           const alternarAcceso = async (u) => {
             const activo = !u.activo;
             try {
@@ -228,31 +232,44 @@ export default function Admin() {
             }
           };
 
-          const guardarUsuario = async () => {
+          /* Guarda los datos de la cuenta y, si se escribió, su contraseña.
+             Devuelve { error } para que el editor lo muestre. */
+          const guardarUsuario = async (datos) => {
+            setGuardandoUsuario(true);
             try {
-              await guardar(
-                { id: form._id },
-                { nombre: form.nombre, email: form.email, telefono: form.telefono, role: form.role },
-                () =>
-                  actualizarUsuario(form._id, {
-                    nombre: form.nombre,
-                    email: form.email,
-                    telefono: form.telefono,
-                    role: form.role,
-                  })
-              );
+              await actualizarUsuario(editorUsuario.id, {
+                nombre: datos.nombre,
+                email: datos.email,
+                telefono: datos.telefono,
+                direccion: datos.direccion,
+                role: datos.role,
+                activo: datos.activo,
+                usuario: datos.usuario,
+              });
+              if (datos.password) await cambiarPassword(editorUsuario.id, datos.password);
+              setEditorUsuario(null);
               await cargarAdmin();
-            } catch {
-              /* handled */
+              return {};
+            } catch (err) {
+              return { error: err.message };
+            } finally {
+              setGuardandoUsuario(false);
             }
           };
 
-          const guardarPassword = async () => {
+          /* Eliminar borra la cuenta de acceso. Es irreversible, así que primero
+             se abre el diálogo de confirmación. */
+          const eliminarUsuario = async () => {
+            if (!usuarioPorEliminar) return;
+            setEliminandoUsuario(true);
             try {
-              await guardar({ id: form._id }, {}, () => cambiarPassword(form._id, password));
-              setPassword('');
-            } catch {
-              /* handled */
+              await eliminarUsuarioAdmin(usuarioPorEliminar.id);
+              setUsuarioPorEliminar(null);
+              await cargarAdmin();
+            } catch (err) {
+              alert(`No se pudo eliminar: ${err.message}`);
+            } finally {
+              setEliminandoUsuario(false);
             }
           };
 
@@ -309,7 +326,7 @@ export default function Admin() {
                               <button
                                 className="btn"
                                 style={{ padding: '4px 9px', fontSize: 12 }}
-                                onClick={() => abrirEdicion(`u-${u.id}`, { _id: u.id, _fila: u.id, nombre: u.nombre, email: u.email || '', telefono: u.telefono || '', role: u.role })}
+                                onClick={() => setEditorUsuario(u)}
                               >
                                 <Icon name="editar" size={16} /> Editar
                               </button>
@@ -320,56 +337,16 @@ export default function Admin() {
                               >
                                 {u.activo ? <><Icon name="bloqueado" size={16} /> Bloquear</> : <><Icon name="check" size={16} /> Habilitar</>}
                               </button>
+                              <button
+                                className="btn"
+                                style={{ padding: '4px 9px', fontSize: 12, background: '#c1122c', color: '#fff', border: 'none' }}
+                                onClick={() => setUsuarioPorEliminar(u)}
+                              >
+                                <Icon name="borrar" size={16} /> Eliminar
+                              </button>
                             </div>
                           </td>
                         </tr>
-                        {edit && edit._fila === u.id && (
-                          <tr key={`${u.id}-edit`}>
-                            <td style={td} colSpan={6}>
-                              <div style={{ background: '#f7f6f3', borderRadius: 10, padding: 14, display: 'grid', gap: 12 }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 10 }}>
-                                  <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
-                                    Nombre completo
-                                    <input value={edit.nombre} onChange={(e) => setForm({ ...edit, nombre: e.target.value })} style={{ ...input, width: '100%', marginTop: 4 }} />
-                                  </label>
-                                  <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
-                                    Correo
-                                    <input value={edit.email} onChange={(e) => setForm({ ...edit, email: e.target.value })} style={{ ...input, width: '100%', marginTop: 4 }} />
-                                  </label>
-                                  <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
-                                    Teléfono
-                                    <input value={edit.telefono} onChange={(e) => setForm({ ...edit, telefono: e.target.value })} style={{ ...input, width: '100%', marginTop: 4 }} />
-                                  </label>
-                                  <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
-                                    Rol
-                                    <select value={edit.role} onChange={(e) => setForm({ ...edit, role: e.target.value })} style={{ ...input, width: '100%', marginTop: 4 }}>
-                                      {ROLES.map(([v, l]) => (
-                                        <option key={v} value={v}>{l}</option>
-                                      ))}
-                                    </select>
-                                  </label>
-                                </div>
-                                <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                                  <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
-                                    Nueva contraseña
-                                    <input
-                                      type="password"
-                                      placeholder="Mínimo 6 caracteres"
-                                      value={password}
-                                      onChange={(e) => setPassword(e.target.value)}
-                                      style={{ ...input, width: 220, marginTop: 4 }}
-                                    />
-                                  </label>
-                                  <button className="btn" onClick={guardarPassword} disabled={password.length < 6}>llave Cambiar contraseña</button>
-                                  <button className="btn" onClick={guardarUsuario}><Icon name="guardar" size={16} /> Guardar datos</button>
-                                  <button className="btn" onClick={cerrarEdicion} style={{ background: '#f0eee9' }}>Cancelar</button>
-                                </div>
-                                {edit._error && <div style={{ fontSize: 12, color: '#c1122c' }}><Icon name="alerta" size={14} /> {edit._error}</div>}
-                                {edit._mensaje && <div style={{ fontSize: 12, color: '#0a6e4b' }}><Icon name="check" size={16} /> {edit._mensaje}</div>}
-                              </div>
-                            </td>
-                          </tr>
-                        )}
                       </React.Fragment>
                     ))}
                   </tbody>
@@ -378,6 +355,27 @@ export default function Admin() {
                   <EstadoVacio mensaje="Sin resultados." />
                 )}
               </div>
+
+              <EditorUsuario
+                abierto={!!editorUsuario}
+                usuario={editorUsuario}
+                roles={ROLES}
+                guardando={guardandoUsuario}
+                onGuardar={guardarUsuario}
+                onCerrar={() => setEditorUsuario(null)}
+              />
+
+              <ConfirmDialog
+                abierto={!!usuarioPorEliminar}
+                titulo="Eliminar usuario"
+                mensaje={usuarioPorEliminar
+                  ? `¿Seguro que deseas eliminar la cuenta de ${usuarioPorEliminar.nombre} (${usuarioPorEliminar.usuario})? No podrá volver a iniciar sesión y esta acción no se puede deshacer.`
+                  : ''}
+                confirmar="Eliminar"
+                procesando={eliminandoUsuario}
+                onConfirmar={eliminarUsuario}
+                onCancelar={() => setUsuarioPorEliminar(null)}
+              />
             </div>
           );
         }
