@@ -106,7 +106,7 @@ export default async function rutasAdmin(app) {
     const u = await prisma.usuario.findUnique({ where: { id } });
     if (!u) return reply.code(404).send({ error: 'Usuario no encontrado' });
 
-    const { nombre, email, telefono, direccion, role, activo } = req.body || {};
+    const { nombre, email, telefono, direccion, role, activo, usuario: login } = req.body || {};
     if (role && !ROLES.includes(role)) {
       return reply.code(400).send({ error: `Rol no válido. Use uno de: ${ROLES.join(', ')}` });
     }
@@ -115,6 +115,16 @@ export default async function rutasAdmin(app) {
       return reply.code(400).send({ error: 'No puede desactivar su propia cuenta' });
     }
     const data = {};
+    if (login !== undefined) {
+      const limpio = String(login).trim().toUpperCase();
+      if (!limpio) return reply.code(400).send({ error: 'El usuario no puede quedar vacío' });
+      const repetido = await prisma.usuario.findFirst({
+        where: { usuario: limpio, NOT: { id } },
+        select: { id: true },
+      });
+      if (repetido) return reply.code(409).send({ error: `Ya existe una cuenta con el usuario ${limpio}` });
+      data.usuario = limpio;
+    }
     if (nombre !== undefined) data.nombre = String(nombre).trim();
     if (email !== undefined) data.email = email ? String(email).trim() : null;
     if (telefono !== undefined) data.telefono = telefono ? String(telefono).trim() : null;
@@ -159,6 +169,7 @@ export default async function rutasAdmin(app) {
       documento: e.documento,
       correo: e.correo,
       telefono: e.telefono,
+      direccion: e.direccion,
       programa: e.programa.nombre,
       programaId: e.programaId,
       semestre: e.semestre,
@@ -174,11 +185,14 @@ export default async function rutasAdmin(app) {
   });
 
   app.patch('/admin/estudiantes/:id', soloAdmin, async (req, reply) => {
-    const { estado, programaId, semestre, jornada, telefono, correo } = req.body || {};
+    const {
+      estado, programaId, semestre, jornada, telefono, correo,
+      nombre, documento, direccion, fechaIngreso,
+    } = req.body || {};
     const e = await prisma.estudiante.findUnique({ where: { id: req.params.id } });
     if (!e) return reply.code(404).send({ error: 'Estudiante no encontrado' });
 
-    const ESTADOS = ['matriculado', 'en_inscripcion', 'retirado', 'graduado', 'bloqueado'];
+    const ESTADOS = ['activo', 'matriculado', 'en_inscripcion', 'retirado', 'graduado', 'bloqueado'];
     if (estado && !ESTADOS.includes(estado)) {
       return reply.code(400).send({ error: `Estado no válido. Use uno de: ${ESTADOS.join(', ')}` });
     }
@@ -194,15 +208,42 @@ export default async function rutasAdmin(app) {
     if (jornada !== undefined) data.jornada = jornada || null;
     if (telefono !== undefined) data.telefono = telefono || null;
     if (correo !== undefined) data.correo = correo || null;
+    if (direccion !== undefined) data.direccion = direccion || null;
+    if (nombre !== undefined) {
+      const limpio = String(nombre).trim();
+      if (!limpio) return reply.code(400).send({ error: 'El nombre es obligatorio' });
+      data.nombre = limpio;
+    }
+    if (documento !== undefined) {
+      const doc = String(documento).trim();
+      if (!doc) return reply.code(400).send({ error: 'El documento es obligatorio' });
+      const repetido = await prisma.estudiante.findFirst({
+        where: { documento: doc, NOT: { id: e.id } },
+        select: { id: true },
+      });
+      if (repetido) return reply.code(409).send({ error: `Ya existe un estudiante con el documento ${doc}` });
+      data.documento = doc;
+    }
+    if (fechaIngreso !== undefined) {
+      const f = fechaIngreso ? new Date(fechaIngreso) : null;
+      if (f && Number.isNaN(f.getTime())) {
+        return reply.code(400).send({ error: 'La fecha de ingreso no es válida' });
+      }
+      data.fechaIngreso = f || e.fechaIngreso;
+    }
     if (!Object.keys(data).length) return reply.code(400).send({ error: 'No hay cambios que aplicar' });
 
     // El estado del estudiante y su acceso van de la mano: bloquear lo deja
-    // sin poder entrar al campus y desbloquear le devuelve el acceso.
-    if (data.estado && e.usuarioId) {
-      await prisma.usuario.update({
-        where: { id: e.usuarioId },
-        data: { activo: data.estado !== 'bloqueado' },
-      });
+    // sin poder entrar al campus y desbloquear le devuelve el acceso. El nombre
+    // y el correo también se reflejan en la cuenta para no quedar desfasados.
+    if (e.usuarioId) {
+      const cuenta = {};
+      if (data.estado) cuenta.activo = data.estado !== 'bloqueado';
+      if (data.nombre !== undefined) cuenta.nombre = data.nombre;
+      if (data.correo !== undefined) cuenta.email = data.correo;
+      if (Object.keys(cuenta).length) {
+        await prisma.usuario.update({ where: { id: e.usuarioId }, data: cuenta });
+      }
     }
 
     const actualizado = await prisma.estudiante.update({
@@ -211,6 +252,28 @@ export default async function rutasAdmin(app) {
       include: { programa: { select: { nombre: true } } },
     });
     return { ...actualizado, programa: actualizado.programa.nombre };
+  });
+
+  /* Elimina a un estudiante y su cuenta de acceso. Sus datos académicos
+     (notas, pagos, matrículas, entregas, asistencias y certificados) cuelgan de
+     él con ON DELETE CASCADE, así que se van con él; por eso es irreversible y
+     el portal pide confirmación antes de llamar aquí. La cuenta de acceso solo
+     se borra si no quedó ligada a otra persona (docente o empleado). */
+  app.delete('/admin/estudiantes/:id', soloAdmin, async (req, reply) => {
+    const e = await prisma.estudiante.findUnique({ where: { id: req.params.id } });
+    if (!e) return reply.code(404).send({ error: 'Estudiante no encontrado' });
+
+    await prisma.$transaction(async (tx) => {
+      await tx.estudiante.delete({ where: { id: e.id } });
+      if (e.usuarioId) {
+        const u = await tx.usuario.findUnique({
+          where: { id: e.usuarioId },
+          include: { docente: true, empleado: true },
+        });
+        if (u && !u.docente && !u.empleado) await tx.usuario.delete({ where: { id: u.id } });
+      }
+    });
+    return { ok: true, mensaje: `${e.nombre} fue eliminado` };
   });
 
   /* ── Edición de docentes y programas ────────────────────────────────── */

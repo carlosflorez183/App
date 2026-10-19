@@ -9,12 +9,15 @@ import Icon, { Ico } from '../components/Icon';
 import { useNavigate } from 'react-router-dom';
 import ModuleLayout from '../components/ModuleLayout';
 import AsignacionDocentes from '../components/AsignacionDocentes';
+import EditorEstudiante from '../components/EditorEstudiante';
+import ConfirmDialog from '../components/ConfirmDialog';
 import { EstadoVacio } from '../components/Estado';
 import {
   actualizarDocente,
   actualizarEstudianteAdmin,
   actualizarUsuario,
   cambiarPassword,
+  eliminarEstudianteAdmin,
   listarEstudiantesAdmin,
   listarUsuarios,
 } from '../api/client';
@@ -76,8 +79,6 @@ const ROLES = [
   ['estudiante', 'Estudiante'],
 ];
 
-const ESTADOS_ESTUDIANTE = ['matriculado', 'en_inscripcion', 'retirado', 'graduado', 'bloqueado'];
-
 export default function Admin() {
   const navigate = useNavigate();
   const [progSel, setProgSel] = useState(1);
@@ -91,6 +92,10 @@ export default function Admin() {
   const [editando, setEditando] = useState(null);
   const [form, setForm] = useState({});
   const [password, setPassword] = useState('');
+  const [editorEst, setEditorEst] = useState(null);
+  const [guardandoEst, setGuardandoEst] = useState(false);
+  const [porEliminar, setPorEliminar] = useState(null);
+  const [eliminando, setEliminando] = useState(false);
 
   const cargarAdmin = useCallback(async () => {
     setCargandoAdmin(true);
@@ -383,11 +388,10 @@ export default function Admin() {
             const q = busqueda.toLowerCase();
             return [e.nombre, e.id, e.documento, e.programa].some((x) => (x || '').toLowerCase().includes(q));
           });
-          const edit = editando === `e-${form._id}` ? form : null;
           const bloqueados = estudiantes.filter((e) => e.estado === 'bloqueado').length;
 
           const alternarBloqueo = async (e) => {
-            const estado = e.estado === 'bloqueado' ? 'matriculado' : 'bloqueado';
+            const estado = e.estado === 'bloqueado' ? 'activo' : 'bloqueado';
             try {
               await actualizarEstudianteAdmin(e.id, { estado });
               await cargarAdmin();
@@ -396,20 +400,57 @@ export default function Admin() {
             }
           };
 
-          const guardarEstudiante = async () => {
+          /* Cuenta de acceso del estudiante (usuario + contraseña). */
+          const cuentaDe = (e) => usuarios.find((u) => u.estudianteId === e.id) || null;
+
+          /* Guarda la ficha completa: datos del estudiante y, si cambió, su
+             cuenta de acceso. Devuelve { error } para que el editor lo muestre. */
+          const guardarEstudiante = async (datos) => {
+            setGuardandoEst(true);
             try {
-              await actualizarEstudianteAdmin(form._id, {
-                estado: form.estado,
-                programaId: Number(form.programaId),
-                semestre: Number(form.semestre),
-                jornada: form.jornada,
-                telefono: form.telefono,
-                correo: form.correo,
+              await actualizarEstudianteAdmin(editorEst.id, {
+                nombre: datos.nombre,
+                documento: datos.documento,
+                correo: datos.correo,
+                telefono: datos.telefono,
+                direccion: datos.direccion,
+                programaId: datos.programaId,
+                semestre: datos.semestre,
+                jornada: datos.jornada,
+                estado: datos.estado,
+                fechaIngreso: datos.fechaIngreso,
               });
+              const cuenta = cuentaDe(editorEst);
+              if (cuenta) {
+                const nuevoUsuario = (datos.usuario || '').trim().toUpperCase();
+                if (nuevoUsuario && nuevoUsuario !== cuenta.usuario) {
+                  await actualizarUsuario(cuenta.id, { usuario: nuevoUsuario });
+                }
+                if (datos.password) await cambiarPassword(cuenta.id, datos.password);
+              }
+              setEditorEst(null);
               await cargarAdmin();
-              cerrarEdicion();
+              return {};
             } catch (err) {
-              alert(`No se pudo guardar: ${err.message}`);
+              return { error: err.message };
+            } finally {
+              setGuardandoEst(false);
+            }
+          };
+
+          /* Eliminar borra al estudiante y sus datos (notas, pagos, matrículas,
+             entregas…). Es irreversible, así que primero se abre el diálogo. */
+          const eliminarEstudiante = async () => {
+            if (!porEliminar) return;
+            setEliminando(true);
+            try {
+              await eliminarEstudianteAdmin(porEliminar.id);
+              setPorEliminar(null);
+              await cargarAdmin();
+            } catch (err) {
+              alert(`No se pudo eliminar: ${err.message}`);
+            } finally {
+              setEliminando(false);
             }
           };
 
@@ -454,7 +495,7 @@ export default function Admin() {
                           <td style={td}>{e.promedio}</td>
                           <td style={td}>{e.usuario ? <Badge tone={e.usuarioActivo ? 'blue' : 'red'}>{e.usuario}</Badge> : <span style={{ color: '#9c988e' }}>sin cuenta</span>}</td>
                           <td style={td}>
-                            <Badge tone={e.estado === 'bloqueado' ? 'red' : e.estado === 'matriculado' ? 'green' : 'amber'}>
+                            <Badge tone={e.estado === 'bloqueado' ? 'red' : (e.estado === 'activo' || e.estado === 'matriculado') ? 'green' : 'amber'}>
                               {e.estado.replace('_', ' ')}
                             </Badge>
                           </td>
@@ -463,10 +504,7 @@ export default function Admin() {
                               <button
                                 className="btn"
                                 style={{ padding: '4px 9px', fontSize: 12 }}
-                                onClick={() => abrirEdicion(`e-${e.id}`, {
-                                  _id: e.id, _fila: e.id, estado: e.estado, programaId: e.programaId,
-                                  semestre: e.semestre, jornada: e.jornada || 'diurna', telefono: e.telefono || '', correo: e.correo || '',
-                                })}
+                                onClick={() => setEditorEst(e)}
                               >
                                 <Icon name="editar" size={16} /> Editar
                               </button>
@@ -477,57 +515,16 @@ export default function Admin() {
                               >
                                 {e.estado === 'bloqueado' ? <><Icon name="check" size={16} /> Desbloquear</> : <><Icon name="bloqueado" size={16} /> Bloquear</>}
                               </button>
+                              <button
+                                className="btn"
+                                style={{ padding: '4px 9px', fontSize: 12, background: '#c1122c', color: '#fff', border: 'none' }}
+                                onClick={() => setPorEliminar(e)}
+                              >
+                                <Icon name="borrar" size={16} /> Eliminar
+                              </button>
                             </div>
                           </td>
                         </tr>
-                        {edit && edit._fila === e.id && (
-                          <tr key={`${e.id}-edit`}>
-                            <td style={td} colSpan={7}>
-                              <div style={{ background: '#f7f6f3', borderRadius: 10, padding: 14, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
-                                <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
-                                  Estado
-                                  <select value={edit.estado} onChange={(ev) => setForm({ ...edit, estado: ev.target.value })} style={{ ...input, width: '100%', marginTop: 4 }}>
-                                    {ESTADOS_ESTUDIANTE.map((s) => (
-                                      <option key={s} value={s}>{s.replace('_', ' ')}</option>
-                                    ))}
-                                  </select>
-                                </label>
-                                <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
-                                  Programa
-                                  <select value={edit.programaId} onChange={(ev) => setForm({ ...edit, programaId: ev.target.value })} style={{ ...input, width: '100%', marginTop: 4 }}>
-                                    {programas.map((p) => (
-                                      <option key={p.id} value={p.id}>{p.nombre}</option>
-                                    ))}
-                                  </select>
-                                </label>
-                                <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
-                                  Semestre
-                                  <input type="number" min={1} max={12} value={edit.semestre} onChange={(ev) => setForm({ ...edit, semestre: ev.target.value })} style={{ ...input, width: '100%', marginTop: 4 }} />
-                                </label>
-                                <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
-                                  Jornada
-                                  <select value={edit.jornada} onChange={(ev) => setForm({ ...edit, jornada: ev.target.value })} style={{ ...input, width: '100%', marginTop: 4 }}>
-                                    {['diurna', 'nocturna', 'sabado-matutina'].map((j) => (
-                                      <option key={j} value={j}>{j}</option>
-                                    ))}
-                                  </select>
-                                </label>
-                                <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
-                                  Teléfono
-                                  <input value={edit.telefono} onChange={(ev) => setForm({ ...edit, telefono: ev.target.value })} style={{ ...input, width: '100%', marginTop: 4 }} />
-                                </label>
-                                <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
-                                  Correo
-                                  <input value={edit.correo} onChange={(ev) => setForm({ ...edit, correo: ev.target.value })} style={{ ...input, width: '100%', marginTop: 4 }} />
-                                </label>
-                                <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 10 }}>
-                                  <button className="btn" onClick={guardarEstudiante}><Icon name="guardar" size={16} /> Guardar cambios</button>
-                                  <button className="btn" onClick={cerrarEdicion} style={{ background: '#f0eee9' }}>Cancelar</button>
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                        )}
                       </React.Fragment>
                     ))}
                   </tbody>
@@ -536,6 +533,28 @@ export default function Admin() {
                   <EstadoVacio mensaje="Sin resultados." />
                 )}
               </div>
+
+              <EditorEstudiante
+                abierto={!!editorEst}
+                estudiante={editorEst}
+                cuenta={editorEst ? cuentaDe(editorEst) : null}
+                programas={programas}
+                guardando={guardandoEst}
+                onGuardar={guardarEstudiante}
+                onCerrar={() => setEditorEst(null)}
+              />
+
+              <ConfirmDialog
+                abierto={!!porEliminar}
+                titulo="Eliminar estudiante"
+                mensaje={porEliminar
+                  ? `¿Seguro que deseas eliminar a ${porEliminar.nombre} (${porEliminar.id})? Se borran también sus notas, pagos, matrículas, entregas y su cuenta de acceso. Esta acción no se puede deshacer.`
+                  : ''}
+                confirmar="Eliminar"
+                procesando={eliminando}
+                onConfirmar={eliminarEstudiante}
+                onCancelar={() => setPorEliminar(null)}
+              />
             </div>
           );
         }

@@ -183,6 +183,9 @@ export const listarEstudiantesAdmin = () => api('/admin/estudiantes');
 export const actualizarEstudianteAdmin = (id, cambios) =>
   api(`/admin/estudiantes/${encodeURIComponent(id)}`, { method: 'PATCH', body: cambios });
 
+export const eliminarEstudianteAdmin = (id) =>
+  api(`/admin/estudiantes/${encodeURIComponent(id)}`, { method: 'DELETE' });
+
 export const actualizarDocente = (id, cambios) =>
   api(`/admin/docentes/${encodeURIComponent(id)}`, { method: 'PATCH', body: cambios });
 

@@ -1923,6 +1923,48 @@ async function admin() {
   } else {
     falla('Admin:asignar-docente', `la API devolvió docenteId=${cambiado ? cambiado.docenteId : '?'} y se pidió ${docenteNuevo.value}`);
   }
+
+  /* Estudiantes: el editor abre como vista y el borrado pide confirmación.
+     No se guarda ni se borra nada: solo se comprueba que los diálogos salen. */
+  const pestanaEst = [...document.querySelectorAll('button')].find((b) => b.innerText.trim() === 'Estudiantes');
+  if (pestanaEst) {
+    pestanaEst.click();
+    await dormir(1200);
+
+    const editar = [...document.querySelectorAll('button')].find((b) => b.innerText.trim() === 'Editar');
+    if (editar) {
+      editar.click();
+      await dormir(400);
+      const editor = document.querySelector('[role="dialog"][aria-label="Editar estudiante"]');
+      if (editor) {
+        ok('Admin:editor-estudiante', 'abre la vista de edición con datos y cuenta');
+        [...editor.querySelectorAll('button')].find((b) => b.innerText.trim() === 'Cancelar')?.click();
+        await dormir(200);
+      } else {
+        falla('Admin:editor-estudiante', 'no abrió la vista de edición');
+      }
+    } else {
+      falla('Admin:editor-estudiante', 'no aparece el botón Editar');
+    }
+
+    const borrar = [...document.querySelectorAll('button')].find((b) => b.innerText.trim() === 'Eliminar');
+    if (borrar) {
+      borrar.click();
+      await dormir(300);
+      const dialogo = document.querySelector('[role="dialog"][aria-label="Eliminar estudiante"]');
+      if (dialogo) {
+        ok('Admin:confirmar-eliminar', 'pide confirmación antes de borrar');
+        [...dialogo.querySelectorAll('button')].find((b) => b.innerText.trim() === 'Cancelar')?.click();
+        await dormir(200);
+      } else {
+        falla('Admin:confirmar-eliminar', 'no pidió confirmación');
+      }
+    } else {
+      falla('Admin:confirmar-eliminar', 'no aparece el botón Eliminar');
+    }
+  } else {
+    falla('Admin:estudiantes-tab', 'no aparece la pestaña Estudiantes');
+  }
 }
 
 async function correr() {
