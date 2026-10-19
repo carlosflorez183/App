@@ -4,21 +4,12 @@ import { useAuth } from '../context/AuthContext';
 import Icon from '../components/Icon';
 
 export default function Login() {
-  const [username, setUsername] = useState('EST001');
-  const [password, setPassword] = useState('123456');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login, demoUsers } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
-
-  const handleSelectDemo = (uKey) => {
-    const user = demoUsers[uKey];
-    if (user) {
-      setUsername(uKey);
-      setPassword(user.password);
-      setError('');
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -33,16 +24,6 @@ export default function Login() {
       setError(res.error || 'Credenciales inválidas');
     }
   };
-
-  const demos = [
-    { key: 'EST001', label: 'Estudiante', badge: 'EST001 / 123456', color: '#0a84ff' },
-    { key: 'PROF001', label: 'Docente', badge: 'PROF001 / 123456', color: '#8a5cf0' },
-    { key: 'ADMIN', label: 'Administrador', badge: 'ADMIN / admin123', color: '#17a06d' },
-    { key: 'RECTOR', label: 'Rectoría', badge: 'RECTOR / rector123', color: '#ff314d' },
-    { key: 'TALENTO', label: 'Talento Humano', badge: 'TALENTO / 123456', color: '#e0a52e' },
-    { key: 'CONTA', label: 'Contabilidad', badge: 'CONTA / 123456', color: '#0e8a9c' },
-    { key: 'ADMI', label: 'Admisiones', badge: 'ADMI / 123456', color: '#8a5cf0' },
-  ];
 
   return (
     <div style={{
@@ -178,34 +159,6 @@ export default function Login() {
               {loading ? 'Ingresando...' : 'Acceder al Sistema →'}
             </button>
           </form>
-
-          {/* Selector de perfiles demo rápido */}
-          <div style={{ marginTop: 24, paddingTop: 18, borderTop: '1px solid #e5e2da' }}>
-            <p style={{ fontSize: 11, fontWeight: 700, color: '#9c988e', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>
-              Acceso rápido de demostración:
-            </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
-              {demos.map((d) => (
-                <button
-                  key={d.key}
-                  type="button"
-                  onClick={() => handleSelectDemo(d.key)}
-                  style={{
-                    background: username === d.key ? '#eef7ff' : '#f7f6f3',
-                    border: `1.5px solid ${username === d.key ? '#0a84ff' : '#e5e2da'}`,
-                    borderRadius: 8,
-                    padding: '8px 10px',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s'
-                  }}
-                >
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#211d17' }}>{d.label}</div>
-                  <div style={{ fontSize: 10, color: '#6f6b62', marginTop: 2 }}>{d.key}</div>
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
 
         <p style={{ textAlign: 'center', color: 'rgba(255,255,255,.5)', fontSize: 11, marginTop: 20 }}>

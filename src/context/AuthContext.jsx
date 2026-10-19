@@ -7,18 +7,6 @@ import {
   ApiError,
 } from '../api/client';
 
-/* Usuarios de respaldo. Se usan cuando la API no está disponible (demostración
-   sin Docker) y para el selector de acceso rápido del login. */
-const USERS = {
-  'EST001': { password:'123456', role:'estudiante', name:'Carlos Andrés Martínez', code:'20231001', email:'c.martinez@uni.edu.co', phone:'310 456 7890', address:'Cra. 12 #45-67, Bogotá', program:'Ingeniería de Sistemas', semester:'6', avatar:'CA', avatarClass:'av-blue' },
-  'PROF001': { password:'123456', role:'profesor', name:'Dra. Laura Sánchez', code:'DOC-0045', email:'l.sanchez@uni.edu.co', phone:'311 222 3344', address:'Cra. 7 #89-10, Bogotá', department:'Facultad de Ingeniería', avatar:'LS', avatarClass:'av-purple' },
-  'ADMIN': { password:'admin123', role:'admin', name:'Administrador General', code:'ADM-001', email:'admin@uni.edu.co', phone:'318 555 1122', address:'Cra. 1 #2-3, Bogotá', avatar:'AG', avatarClass:'av-green' },
-  'RECTOR': { password:'rector123', role:'rectoria', name:'Rector Juan Pablo Gómez', code:'REC-001', email:'rector@uni.edu.co', phone:'300 111 2233', address:'Cra. 5 #6-7, Bogotá', avatar:'JG', avatarClass:'av-red' },
-  'TALENTO': { password:'123456', role:'talento_humano', name:'María Fernanda López', code:'TH-002', email:'m.lopez@uni.edu.co', phone:'315 909 1212', address:'Cra. 9 #30-25, Bogotá', avatar:'ML', avatarClass:'av-yellow' },
-  'CONTA': { password:'123456', role:'contabilidad', name:'Jorge Alberto Ríos', code:'CONT-003', email:'j.rios@uni.edu.co', phone:'316 404 5050', address:'Cra. 3 #14-8, Bogotá', avatar:'JR', avatarClass:'av-blue' },
-  'ADMI': { password:'123456', role:'admisiones', name:'Ana Camila Restrepo', code:'ADM-004', email:'a.restrepo@uni.edu.co', phone:'317 222 9911', address:'Cra. 11 #22-33, Bogotá', department:'Coordinación de Admisiones', avatar:'AR', avatarClass:'av-purple' },
-};
-
 export const ROLE_LABELS = {
   estudiante: 'Estudiante',
   profesor: 'Docente',
@@ -42,20 +30,6 @@ const initialsOf = (name) =>
     .slice(0, 2)
     .map((w) => w[0].toUpperCase())
     .join('');
-
-/* Sesión de respaldo a partir de la tabla local (sin API). */
-const buildSession = (key, overrides) => {
-  const { password: _pw, ...rest } = USERS[key];
-  const session = {
-    ...rest,
-    username: key,
-    loginTime: new Date().toISOString(),
-    offline: true,
-    ...overrides,
-  };
-  if (session.name) session.avatar = initialsOf(session.name);
-  return session;
-};
 
 /* Sesión a partir del usuario que devuelve la API (`publico`). */
 const sesionDeServidor = (u) => {
@@ -142,18 +116,8 @@ export const AuthProvider = ({ children }) => {
       setOffline(false);
       return { success: true, user: session };
     } catch (err) {
-      /* Sin servidor: se cae al respaldo local para no dejar la demo inservible. */
-      const sinServidor = err instanceof TypeError;
-      const local = USERS[key];
-      if (sinServidor && local && local.password === password) {
-        const session = buildSession(key);
-        guardarToken(null);
-        setToken(null);
-        guardarSesion(session);
-        setUser(session);
-        setOffline(true);
-        return { success: true, user: session, offline: true };
-      }
+      /* La sesión SOLO se valida contra la base de datos, vía la API: sin
+         servidor no hay ingreso (no hay credenciales de respaldo en el código). */
       const error =
         err instanceof ApiError
           ? err.status === 401
@@ -239,7 +203,7 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider
-      value={{ user, token, offline, login, logout, updateProfile, roleLabels: ROLE_LABELS, demoUsers: USERS }}
+      value={{ user, token, offline, login, logout, updateProfile, roleLabels: ROLE_LABELS }}
     >
       {children}
     </AuthContext.Provider>

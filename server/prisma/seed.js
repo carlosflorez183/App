@@ -105,6 +105,17 @@ function horarioDesdeTexto(texto) {
    lo activa en docker-compose porque su base es desechable. */
 const FORZAR = process.env.SEED_FORCE === '1' || process.env.SEED_FORCE === 'true';
 
+/* Las cuentas y sus claves vienen del ENTORNO, no del código: así el repo no
+   guarda credenciales y solo la base de datos las tiene.
+   - SEED_DEMO=1 + DEMO_PASSWORD  → crea las cuentas de demostración.
+   - ADMIN_USUARIO/ADMIN_PASSWORD → garantiza un administrador (bootstrap de una
+     base nueva) incluso con SEED_DEMO apagado. */
+const esVerdadero = (v) => v === '1' || v === 'true';
+const SEED_DEMO = esVerdadero(process.env.SEED_DEMO);
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD || '';
+const ADMIN_USUARIO = (process.env.ADMIN_USUARIO || 'ADMIN').trim().toUpperCase();
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
+
 async function main() {
   console.log(`→ Leyendo datos de ${RUTA_MOCK}`);
 
@@ -551,13 +562,40 @@ async function main() {
     })),
   });
 
-  /* ── Usuarios de demostración ────────────────────────────────────────── */
+  /* ── Usuarios ──────────────────────────────────────────────────────────
+     Las contraseñas NO están en el código: llegan por variables de entorno. */
   console.log('→ Usuarios');
-  for (const u of USUARIOS_DEMO) {
+  const usuarios = [];
+  if (SEED_DEMO) {
+    if (!DEMO_PASSWORD) {
+      console.error('✖ SEED_DEMO=1 requiere DEMO_PASSWORD para crear las cuentas de demostración.');
+      process.exit(1);
+    }
+    usuarios.push(...USUARIOS_DEMO.map((u) => ({ ...u, password: DEMO_PASSWORD })));
+  }
+  if (ADMIN_PASSWORD) {
+    const admin = usuarios.find((u) => u.usuario === ADMIN_USUARIO);
+    if (admin) {
+      admin.password = ADMIN_PASSWORD;
+    } else {
+      usuarios.push({
+        usuario: ADMIN_USUARIO, role: 'admin', nombre: 'Administrador General',
+        codigo: 'ADM-001', password: ADMIN_PASSWORD,
+      });
+    }
+  }
+  if (!usuarios.length) {
+    console.error(
+      '✖ No se creó ninguna cuenta. Define SEED_DEMO=1 con DEMO_PASSWORD, ' +
+      'o ADMIN_USUARIO y ADMIN_PASSWORD.'
+    );
+    process.exit(1);
+  }
+  for (const u of usuarios) {
     await prisma.usuario.create({
       data: {
         usuario: u.usuario,
-        password: bcrypt.hashSync(u.password || '123456', 10),
+        password: bcrypt.hashSync(u.password, 10),
         nombre: u.nombre,
         role: u.role,
         codigo: u.codigo,
@@ -571,7 +609,7 @@ async function main() {
       },
     });
   }
-  console.log(`  ${USUARIOS_DEMO.length} usuarios`);
+  console.log(`  ${usuarios.length} usuarios`);
 
   /* ── Enlaces Usuario <-> Estudiante / Docente ────────────────────────── */
   for (const u of USUARIOS_DEMO.filter((x) => CLAVES_ROL[x.role] === 'estudiante')) {

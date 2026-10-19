@@ -52,17 +52,26 @@ docker compose down            # detener (conserva el volumen de datos)
 docker compose down -v         # detener y borrar la base
 ```
 
-## Cuentas de demostración
+## Cuentas
 
-| Rol             | Usuario   | Contraseña  |
-| --------------- | --------- | ----------- |
-| Estudiante      | `EST001`  | `123456`    |
-| Docente         | `PROF001` | `123456`    |
-| Admisiones      | `ADMI`    | `123456`    |
-| Administración  | `ADMIN`   | `admin123`  |
-| Rectoría        | `RECTOR`  | `rector123` |
-| Talento Humano  | `TALENTO` | `123456`    |
-| Contabilidad    | `CONTA`   | `123456`    |
+Las credenciales **no viven en el código**: solo en la base de datos y en el
+`.env` (que está fuera del control de versiones). El login se valida siempre
+contra la base.
+
+| Rol             | Usuario   |
+| --------------- | --------- |
+| Estudiante      | `EST001`  |
+| Docente         | `PROF001` |
+| Admisiones      | `ADMI`    |
+| Administración  | `ADMIN`   |
+| Rectoría        | `RECTOR`  |
+| Talento Humano  | `TALENTO` |
+| Contabilidad    | `CONTA`   |
+
+- Con `SEED_DEMO=1`, todas las cuentas anteriores toman la clave de
+  `DEMO_PASSWORD`.
+- `ADMIN_USUARIO` / `ADMIN_PASSWORD` garantizan un administrador aunque
+  `SEED_DEMO=0` (bootstrap de una base nueva).
 
 ## Desarrollo local (sin Docker)
 
@@ -77,7 +86,7 @@ npm install
 #     DATABASE_URL=postgresql://uni:uni_dev_password@localhost:5432/uni_plataforma
 #     JWT_SECRET=cambiar-en-produccion
 npm run prisma:migrate         # aplica migraciones  (o prisma:push)
-npm run prisma:seed            # datos de demostración
+SEED_DEMO=1 DEMO_PASSWORD=tu-clave npm run prisma:seed   # datos de demostración
 npm run dev                    # API en http://localhost:3000
 
 # 3. Frontend (otra terminal, en la raíz)
@@ -93,6 +102,10 @@ npm run dev                    # http://localhost:5173 (proxy /api hacia :3000)
 | `JWT_SECRET`           | Firma de los tokens de sesión                    | (dev; **cambiar en producción**) |
 | `RATE_LIMIT_LOGIN_MAX` | Intentos de login por cuenta antes del 429       | `30` en demo, `5` en producción |
 | `CORS_ORIGIN`          | Orígenes permitidos                              | `http://localhost:8080,http://localhost:5173` |
+| `SEED_DEMO`            | `1` crea las cuentas de demostración            | `0` (ponlo en `1` para el demo) |
+| `DEMO_PASSWORD`        | Clave común de las cuentas de demostración      | (sin valor)        |
+| `ADMIN_USUARIO`        | Usuario del administrador de arranque           | `ADMIN`            |
+| `ADMIN_PASSWORD`       | Clave del administrador de arranque             | (sin valor)        |
 | `VITE_API_URL`         | API a la que apunta el frontend                  | `/api` (relativo)  |
 
 ## Scripts
@@ -117,6 +130,8 @@ encabezados de `scripts/smoke.mjs` y `scripts/acciones.mjs` para las variables
 
 - **Migraciones** en `server/prisma/migrations/`; se aplican con `npx prisma migrate deploy`.
 - **Seed** en `server/prisma/seed.js`; reemplaza los datos solo con `SEED_FORCE=1`.
+  Las cuentas salen del entorno: `SEED_DEMO=1` + `DEMO_PASSWORD` crean las de
+  demostración, y `ADMIN_USUARIO`/`ADMIN_PASSWORD` aseguran un administrador.
 - **Respaldo**:
 
   ```bash

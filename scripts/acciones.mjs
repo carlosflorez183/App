@@ -13,6 +13,9 @@
 
    Uso:  npm run acciones
 
+   Requiere las credenciales de la demo en el entorno o en `.env`
+   (DEMO_PASSWORD y ADMIN_PASSWORD): viven en la base de datos, no en el código.
+
    Variables opcionales:
      ACCIONES_BROWSER     ruta a Chrome/Edge (si no, se busca solo)
      ACCIONES_HEADFUL     1 para abrir una ventana visible y no cerrarla
@@ -20,7 +23,7 @@
                           (por defecto el directorio temporal del sistema)
    ============================================= */
 import { spawn, execFile, execFileSync } from 'node:child_process';
-import { existsSync, rmSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import os from 'node:os';
 import path from 'node:path';
@@ -29,6 +32,25 @@ import net from 'node:net';
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PUERTO = Number(process.env.ACCIONES_PUERTO || 5198);
 const API = process.env.ACCIONES_API || 'http://localhost:3000';
+
+/* Carga .env sin dependencias: las credenciales de la demo viven en el entorno
+   (o en la base de datos), nunca en el código. */
+const cargarEnv = () => {
+  const ruta = path.join(RAIZ, '.env');
+  if (!existsSync(ruta)) return;
+  for (const linea of readFileSync(ruta, 'utf8').split('\n')) {
+    const m = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/.exec(linea);
+    if (!m || claveExiste(m[1])) continue;
+    process.env[m[1]] = m[2].replace(/^["']|["']$/g, '');
+  }
+};
+const claveExiste = (clave) => Object.prototype.hasOwnProperty.call(process.env, clave);
+cargarEnv();
+
+/* Credenciales de la demo: se leen del entorno/.env y se pasan a la página por
+   query string. No se escriben en el código. */
+const CLAVE_DEMO = process.env.DEMO_PASSWORD || '';
+const CLAVE_ADMIN = process.env.ADMIN_PASSWORD || '';
 const CANDIDATOS = [
   process.env.ACCIONES_BROWSER,
   'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
@@ -140,6 +162,14 @@ try {
     process.exit(1);
   }
 
+  if (!CLAVE_DEMO || !CLAVE_ADMIN) {
+    console.error(
+      'Faltan DEMO_PASSWORD y/o ADMIN_PASSWORD. Defínelas en .env ' +
+      '(las credenciales viven ahí y en la base, no en el código).'
+    );
+    process.exit(1);
+  }
+
   if (!(await puertoLibre(PUERTO))) {
     console.error(`El puerto ${PUERTO} esta ocupado. Define ACCIONES_PUERTO con otro valor.`);
     process.exit(1);
@@ -159,7 +189,8 @@ try {
   const reportes = [];
 
   for (const rol of ROLES) {
-    const dom = await volcarDom(`http://localhost:${PUERTO}/prueba-acciones.html?rol=${rol}`);
+    const qs = new URLSearchParams({ rol, demoPass: CLAVE_DEMO, adminPass: CLAVE_ADMIN });
+    const dom = await volcarDom(`http://localhost:${PUERTO}/prueba-acciones.html?${qs}`);
     const m = dom.match(/<pre id="smoke-result">([\s\S]*?)<\/pre>/);
     if (!m) {
       console.error(`[${rol}] La pagina no publico el reporte (#smoke-result).`);

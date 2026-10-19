@@ -46,6 +46,11 @@ services:
       DATABASE_URL: postgresql://uni:${DB_PASSWORD:-uni_dev_password}@db:5432/uni_plataforma
       MOCK_DATA_PATH: /app/mock/mockData.js
       SEED_FORCE: "1"
+      # Las credenciales viven en el entorno (.env), nunca en el código.
+      SEED_DEMO: ${SEED_DEMO:-0}
+      DEMO_PASSWORD: ${DEMO_PASSWORD:-}
+      ADMIN_USUARIO: ${ADMIN_USUARIO:-ADMIN}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
     depends_on:
       db:
         condition: service_healthy

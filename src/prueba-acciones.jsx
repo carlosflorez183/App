@@ -23,6 +23,14 @@ const lineas = [];
 const ok = (n, d = '') => lineas.push(`OK ${n}${d ? ` :: ${d}` : ''}`);
 const falla = (n, d) => lineas.push(`FALLA ${n} :: ${d}`);
 
+/* Las credenciales de la demo viven SOLO en la base de datos. Esta prueba las
+   recibe por query string desde `scripts/acciones.mjs`, que a su vez las lee
+   del entorno (`.env`): así no quedan escritas en el código. */
+const _parametros = new URLSearchParams(window.location.search);
+const CLAVE_DEMO = _parametros.get('demoPass') || '';
+const CLAVE_ADMIN = _parametros.get('adminPass') || '';
+const claveDe = (usuario) => (usuario === 'ADMIN' ? CLAVE_ADMIN : CLAVE_DEMO);
+
 /* Cualquier ReferenceError (un import olvidado, un nombre mal escrito) sale
    por consola y no se ve en la pantalla. Aquí se atrapa. */
 const errores = [];
@@ -389,11 +397,11 @@ async function docente() {
 async function notaLlegaAlAlumno() {
   const docente = await (await fetch('/api/auth/login', {
     method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ usuario: 'PROF001', password: '123456' }),
+    body: JSON.stringify({ usuario: 'PROF001', password: claveDe('PROF001') }),
   })).json();
   const alumno = await (await fetch('/api/auth/login', {
     method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ usuario: 'EST001', password: '123456' }),
+    body: JSON.stringify({ usuario: 'EST001', password: claveDe('EST001') }),
   })).json();
   const hd = { 'content-type': 'application/json', authorization: `Bearer ${docente.token}` };
   const ha = { authorization: `Bearer ${alumno.token}` };
@@ -515,7 +523,7 @@ async function corteEsperado(idEstudiante, corte, auth) {
 async function corteManualManda() {
   const docente = await (await fetch('/api/auth/login', {
     method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ usuario: 'PROF001', password: '123456' }),
+    body: JSON.stringify({ usuario: 'PROF001', password: claveDe('PROF001') }),
   })).json();
   const hd = { 'content-type': 'application/json', authorization: `Bearer ${docente.token}` };
   const hdLectura = { authorization: `Bearer ${docente.token}` };
@@ -588,7 +596,7 @@ async function corteManualManda() {
   /* Y el alumno ve SU nota en cada actividad, no la nota única del curso. */
   const alumno = await (await fetch('/api/auth/login', {
     method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ usuario: 'EST001', password: '123456' }),
+    body: JSON.stringify({ usuario: 'EST001', password: claveDe('EST001') }),
   })).json();
   const mis = await (await fetch('/api/cursos/1/mis-notas', {
     headers: { authorization: `Bearer ${alumno.token}` },
@@ -612,7 +620,7 @@ async function corteManualManda() {
 async function loQueNoSeEntregaValeCero() {
   const admin = await (await fetch('/api/auth/login', {
     method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ usuario: 'ADMIN', password: 'admin123' }),
+    body: JSON.stringify({ usuario: 'ADMIN', password: claveDe('ADMIN') }),
   })).json().catch(() => ({}));
   const hd = { authorization: `Bearer ${admin.token}` };
   const roster = (await (await fetch('/api/cursos/2/estudiantes', { headers: hd })).json().catch(() => ({}))).estudiantes || [];
@@ -647,8 +655,8 @@ async function certificadoSeDescargaDelServidor() {
     body: JSON.stringify({ usuario, password }),
   })).json().catch(() => ({}));
 
-  const alumno = await entrar('EST001', '123456');
-  const registro = await entrar('ADMI', '123456');
+  const alumno = await entrar('EST001', claveDe('EST001'));
+  const registro = await entrar('ADMI', claveDe('ADMI'));
   if (!alumno.token || !registro.token) {
     falla('Certificado:pdf-del-servidor', `no se pudo iniciar sesion (alumno=${!!alumno.token}, registro=${!!registro.token})`);
     return;
@@ -724,8 +732,8 @@ async function loQueEmiteRegistroLeApareceAlAlumno() {
     body: JSON.stringify({ usuario, password }),
   })).json().catch(() => ({}));
 
-  const alumno = await entrar('EST001', '123456');
-  const registro = await entrar('ADMI', '123456');
+  const alumno = await entrar('EST001', claveDe('EST001'));
+  const registro = await entrar('ADMI', claveDe('ADMI'));
   if (!alumno.token || !registro.token) {
     falla('Certificado:emitido-llega-al-alumno', 'no se pudo iniciar sesion con EST001 ni con ADMI');
     return;
@@ -835,7 +843,7 @@ async function paginaCurso() {
   const sesionAlumno = await (await fetch('/api/auth/login', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ usuario: 'EST001', password: '123456' }),
+    body: JSON.stringify({ usuario: 'EST001', password: claveDe('EST001') }),
   })).json().catch(() => null);
   const tokenEst = sesionAlumno?.token || '';
 
@@ -1923,10 +1931,10 @@ async function correr() {
     .map((id) => `<div id="caso-${id}"></div>`).join('');
 
   const CUENTAS = {
-    profesor: { usuario: 'PROF001', password: '123456' },
-    contabilidad: { usuario: 'CONTA', password: '123456' },
-    talento_humano: { usuario: 'TALENTO', password: '123456' },
-    admin: { usuario: 'ADMIN', password: 'admin123' },
+    profesor: { usuario: 'PROF001', password: claveDe('PROF001') },
+    contabilidad: { usuario: 'CONTA', password: claveDe('CONTA') },
+    talento_humano: { usuario: 'TALENTO', password: claveDe('TALENTO') },
+    admin: { usuario: 'ADMIN', password: claveDe('ADMIN') },
   };
   const cuenta = CUENTAS[rol];
   if (!cuenta) throw new Error(`Rol desconocido: ${rol}`);
