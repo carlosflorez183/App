@@ -90,6 +90,17 @@ export const cuentasDemo = () => api('/auth/demo');
 export const loginDemo = (usuario) =>
   api('/auth/demo', { method: 'POST', body: { usuario } });
 
+/* Datos públicos para el formulario de inscripción (programas, proceso). */
+export const datosInscripcion = () => api('/auth/inscripcion');
+
+/* Registro público de aspirantes: no requiere sesión. */
+export const registroInscripcion = (datos) =>
+  api('/auth/registro', { method: 'POST', body: datos });
+
+/* Cambio de contraseña del usuario autenticado (primer ingreso). */
+export const cambiarPasswordPropia = (actual, nueva) =>
+  api('/auth/password', { method: 'POST', body: { actual, nueva } });
+
 /* ── Datos ─────────────────────────────────────────────────────────────── */
 export const bootstrap = () => api('/bootstrap');
 
@@ -104,6 +115,10 @@ export const marcarNotificacionLeida = (id) =>
 
 export const actualizarAspirante = (id, cambios) =>
   api(`/admisiones/aspirantes/${id}`, { method: 'PATCH', body: cambios });
+
+/* Matricula al aspirante: crea la ficha de estudiante y su cuenta de acceso. */
+export const matricularAspirante = (id) =>
+  api(`/admisiones/aspirantes/${id}/matricular`, { method: 'POST' });
 
 export const actualizarEstudiante = (id, cambios) =>
   api(`/admisiones/estudiantes/${id}`, { method: 'PATCH', body: cambios });
@@ -171,6 +186,10 @@ export const actualizarActividad = (cursoId, id, cambios) =>
 
 /* ── Administración ────────────────────────────────────────────────────── */
 export const listarUsuarios = () => api('/admin/usuarios');
+
+/* Alta manual de una cuenta desde el panel de administración. */
+export const crearUsuarioAdmin = (datos) =>
+  api('/admin/usuarios', { method: 'POST', body: datos });
 
 export const actualizarUsuario = (id, cambios) =>
   api(`/admin/usuarios/${id}`, { method: 'PATCH', body: cambios });

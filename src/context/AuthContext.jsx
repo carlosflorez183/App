@@ -4,6 +4,7 @@ import {
   yo as yoApi,
   cuentasDemo as cuentasDemoApi,
   loginDemo as loginDemoApi,
+  cambiarPasswordPropia,
   getToken,
   setToken as guardarToken,
   ApiError,
@@ -47,6 +48,7 @@ const sesionDeServidor = (u) => {
     semester: u.semestre,
     department: u.departamento,
     avatarClass: u.avatarClass,
+    debeCambiarPassword: !!u.debeCambiarPassword,
     inicio: new Date().toISOString(),
   };
   if (session.name) session.avatar = initialsOf(session.name);
@@ -165,6 +167,25 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  /* Cambio de contraseña del propio usuario. Al terminar se limpia la marca de
+     "contraseña temporal" para no volver a exigir el cambio. */
+  const cambiarPassword = async (actual, nueva) => {
+    try {
+      await cambiarPasswordPropia(actual, nueva);
+      setUser((prev) => {
+        if (!prev) return prev;
+        const next = { ...prev, debeCambiarPassword: false };
+        guardarSesion(next);
+        return next;
+      });
+      return { success: true };
+    } catch (err) {
+      const error =
+        err instanceof ApiError ? err.message : 'No se pudo conectar con el servidor.';
+      return { success: false, error };
+    }
+  };
+
   const logout = () => {
     guardarToken(null);
     setToken(null);
@@ -242,7 +263,7 @@ export const AuthProvider = ({ children }) => {
     <AuthContext.Provider
       value={{
         user, token, offline, login, loginDemo, demoUsers, logout, updateProfile,
-        roleLabels: ROLE_LABELS,
+        cambiarPassword, roleLabels: ROLE_LABELS,
       }}
     >
       {children}

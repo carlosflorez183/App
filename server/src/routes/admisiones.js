@@ -7,6 +7,7 @@
    y reportes.
    ============================================= */
 import { prisma } from '../config.js';
+import { asegurarCuentaEstudiante, siguienteCodigoEstudiante } from '../cuentas.js';
 
 /* Suma los contadores de un groupBy de Prisma. */
 const sumar = (rows) => rows.reduce((a, r) => a + r._count._all, 0);
@@ -74,7 +75,10 @@ export default async function rutasAdmisiones(app) {
           : {}),
       },
       orderBy: { fecha: 'desc' },
-      include: { programa: { select: { id: true, nombre: true } } },
+      include: {
+        programa: { select: { id: true, nombre: true } },
+        estudiante: { select: { id: true } },
+      },
     });
   });
 
@@ -106,6 +110,64 @@ export default async function rutasAdmisiones(app) {
       include: { programa: { select: { id: true, nombre: true } } },
     });
     return a;
+  });
+
+  /* Matricula a un aspirante: crea su ficha de estudiante y su cuenta de
+     acceso. Devuelve las credenciales (usuario y contraseña temporal) una sola
+     vez para que Admisiones las entregue. */
+  app.post('/admisiones/aspirantes/:id/matricular', guard, async (req, reply) => {
+    const aspirante = await prisma.aspirante.findUnique({
+      where: { id: Number(req.params.id) },
+      include: { estudiante: true },
+    });
+    if (!aspirante) return reply.code(404).send({ error: 'Aspirante no encontrado' });
+    if (aspirante.estudiante) {
+      return reply
+        .code(409)
+        .send({ error: `${aspirante.nombre} ya tiene ficha de estudiante (${aspirante.estudiante.id})` });
+    }
+
+    const resultado = await prisma.$transaction(async (tx) => {
+      const codigo = await siguienteCodigoEstudiante(tx);
+      const { cuenta, usuario, password } = await asegurarCuentaEstudiante(tx, {
+        nombre: aspirante.nombre,
+        documento: aspirante.documento,
+        programaId: aspirante.programaId,
+        semestre: 1,
+      });
+      const estudiante = await tx.estudiante.create({
+        data: {
+          id: codigo,
+          nombre: aspirante.nombre,
+          documento: aspirante.documento,
+          correo: cuenta.email,
+          telefono: cuenta.telefono,
+          direccion: cuenta.direccion,
+          programaId: aspirante.programaId,
+          semestre: 1,
+          jornada: 'diurna',
+          promedio: 0,
+          estado: 'matriculado',
+          documentos: 'completo',
+          fechaIngreso: new Date(),
+          aspiranteId: aspirante.id,
+          usuarioId: cuenta.id,
+        },
+        include: { programa: { select: { id: true, nombre: true } } },
+      });
+      return { estudiante, usuario, password };
+    });
+
+    return {
+      ok: true,
+      mensaje: `${aspirante.nombre} matriculado con código ${resultado.estudiante.id}`,
+      estudiante: {
+        id: resultado.estudiante.id,
+        nombre: resultado.estudiante.nombre,
+        estado: resultado.estudiante.estado,
+      },
+      credenciales: { usuario: resultado.usuario, password: resultado.password },
+    };
   });
 
   /* ── Procesos ───────────────────────────────────────────────────────── */
@@ -281,6 +343,32 @@ export default async function rutasAdmisiones(app) {
     if (documentos !== undefined) data.documentos = documentos;
     if (promedio !== undefined) data.promedio = promedio;
     if (semestre !== undefined) data.semestre = semestre;
+
+    /* Al pasar un estudiante sin cuenta a matriculado/activo se le genera la
+       cuenta de acceso y se devuelven las credenciales temporales una vez. */
+    const activa = estado === 'matriculado' || estado === 'activo';
+    if (activa && !existe.usuarioId) {
+      const resultado = await prisma.$transaction(async (tx) => {
+        const { cuenta, usuario, password } = await asegurarCuentaEstudiante(tx, {
+          nombre: existe.nombre,
+          documento: existe.documento,
+          email: existe.correo ?? undefined,
+          telefono: existe.telefono ?? undefined,
+          direccion: existe.direccion ?? undefined,
+          programaId: existe.programaId,
+          semestre: existe.semestre,
+        });
+        const actualizado = await tx.estudiante.update({
+          where: { id: req.params.id },
+          data: { ...data, usuarioId: cuenta.id },
+        });
+        return { estudiante: actualizado, usuario, password };
+      });
+      return {
+        ...resultado.estudiante,
+        credenciales: { usuario: resultado.usuario, password: resultado.password },
+      };
+    }
     return prisma.estudiante.update({ where: { id: req.params.id }, data });
   });
 

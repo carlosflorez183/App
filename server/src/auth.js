@@ -23,6 +23,7 @@ export const publico = (u) => ({
   avatar: u.avatar,
   avatarClass: u.avatarClass,
   activo: u.activo,
+  debeCambiarPassword: !!u.debeCambiarPassword,
 });
 
 /* Verifica el Bearer token y adjunta `req.usuario`. */

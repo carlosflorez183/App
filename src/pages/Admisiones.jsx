@@ -16,6 +16,7 @@ import {
   alternarRequisito,
   descargarCertificado,
   emitirCertificado as emitirCertificadoApi,
+  matricularAspirante as matricularAspiranteApi,
   registrarPago as registrarPagoApi,
 } from '../api/client';
 import { formatCurrency, formatDate } from '../data/mockData';
@@ -186,14 +187,6 @@ export default function Admisiones() {
         };
 
         /* ---------- mutaciones ---------- */
-        const setEstudiante = (id, cambios) => {
-          setData((d) => ({
-            ...d,
-            estudiantes: d.estudiantes.map((e) => (e.id === id ? { ...e, ...cambios } : e)),
-          }));
-          actualizarEstudiante(id, cambios).catch(() => {}).finally(recargar);
-        };
-
         const setAspirante = (id, cambios) => {
           setData((d) => ({
             ...d,
@@ -203,6 +196,23 @@ export default function Admisiones() {
             },
           }));
           actualizarAspirante(id, cambios).catch(() => {}).finally(recargar);
+        };
+
+        /* Matricula a un aspirante admitido: crea su ficha de estudiante y su
+           cuenta de acceso. Las credenciales temporales se muestran una vez. */
+        const matricular = async (a) => {
+          try {
+            const res = await matricularAspiranteApi(a.id);
+            const c = res?.credenciales;
+            alert(
+              `${res?.mensaje || 'Aspirante matriculado'}.\n\n` +
+              (c ? `Usuario: ${c.usuario}\nContraseña temporal: ${c.password}\n\nDeberá cambiarla al primer ingreso.` : '')
+            );
+          } catch (err) {
+            alert(`No se pudo matricular: ${err.message}`);
+          } finally {
+            recargar();
+          }
         };
 
         const toggleDocumento = (doc) => {
@@ -219,9 +229,21 @@ export default function Admisiones() {
           alternarRequisito(doc.id, vigente).catch(() => {}).finally(recargar);
         };
 
-        const completarInscripcion = (e) => {
-          setEstudiante(e.id, { estado: 'activo' });
-          setAviso({ ok: true, text: `Inscripción completada para ${e.nombre} (${e.id}). Ya aparece como activo.` });
+        const completarInscripcion = async (est) => {
+          try {
+            const res = await actualizarEstudiante(est.id, { estado: 'activo' });
+            const c = res?.credenciales;
+            setAviso({
+              ok: true,
+              text: c
+                ? `Inscripción completada para ${est.nombre} (${est.id}). Cuenta creada — usuario: ${c.usuario} · contraseña temporal: ${c.password} (debe cambiarla al primer ingreso).`
+                : `Inscripción completada para ${est.nombre} (${est.id}). Ya aparece como activo.`,
+            });
+          } catch (err) {
+            setAviso({ ok: false, text: `No se pudo completar la inscripción: ${err.message}` });
+          } finally {
+            recargar();
+          }
         };
 
         const registrarPago = (estId, pagoId) => {
@@ -427,6 +449,15 @@ export default function Admisiones() {
                             </td>
                             <td style={td}>
                               <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                                {a.estado === 'admitido' && !est && (
+                                  <button
+                                    className="btn"
+                                    style={{ padding: '5px 9px', fontSize: 11, background: '#d8f0e5', color: '#0a6e4b', border: 'none' }}
+                                    onClick={() => matricular(a)}
+                                  >
+                                    <Icon name="graduacion" size={14} /> Matricular
+                                  </button>
+                                )}
                                 <button className="btn" style={{ padding: '5px 9px', fontSize: 11 }} onClick={() => setAspirante(a.id, { estado: 'admitido' })}>Admitir</button>
                                 <button className="btn" style={{ padding: '5px 9px', fontSize: 11 }} onClick={() => setAspirante(a.id, { estado: 'en_proceso' })}>Proceso</button>
                                 <button className="btn" style={{ padding: '5px 9px', fontSize: 11 }} onClick={() => setAspirante(a.id, { estado: 'rechazado' })}>Rechazar</button>

@@ -4,6 +4,7 @@
 import { prisma } from '../config.js';
 import { verificar, publico, hash } from '../auth.js';
 import { USUARIOS_DEMO } from '../demoUsuarios.js';
+import { credencialesDeDocumento, documentoLimpio } from '../cuentas.js';
 
 /* Intentos de login permitidos por cuenta y por minuto. En producción el valor
    seguro es bajo (5); el stack demo lo sube por las corridas de verificación. */
@@ -63,6 +64,112 @@ export default async function rutasAuth(app) {
     return crearSesion(app, u);
   });
 
+  /* Datos públicos del formulario de inscripción: programas activos y si hay
+     un proceso abierto. No requiere sesión. */
+  app.get('/auth/inscripcion', async () => {
+    const [programas, proceso] = await Promise.all([
+      prisma.programa.findMany({
+        where: { activo: true },
+        orderBy: { nombre: 'asc' },
+        select: { id: true, nombre: true, facultad: true },
+      }),
+      prisma.procesoAdmision.findFirst({
+        where: { procesoAbierto: true },
+        select: { id: true, nombre: true },
+      }),
+    ]);
+    return { programas, procesoAbierto: !!proceso, proceso: proceso || null };
+  });
+
+  /* Registro público de aspirantes. Cualquier persona puede inscribirse sin
+     tener cuenta: se crea el aspirante y queda una cuenta PENDIENTE (inactiva)
+     que se activa al formalizar la matrícula. El usuario de ingreso y la
+     contraseña temporal son el número de documento. */
+  app.post(
+    '/auth/registro',
+    {
+      config: { rateLimit: { max: 20, timeWindow: '1 minute' } },
+      schema: {
+        body: {
+          type: 'object',
+          required: ['nombre', 'documento', 'programaId'],
+          properties: {
+            nombre: { type: 'string', minLength: 3, maxLength: 120 },
+            documento: { type: 'string', minLength: 4, maxLength: 30 },
+            programaId: { type: 'integer' },
+            email: { type: 'string', maxLength: 120 },
+            telefono: { type: 'string', maxLength: 40 },
+            direccion: { type: 'string', maxLength: 160 },
+          },
+        },
+      },
+    },
+    async (req, reply) => {
+      const { nombre, documento, programaId, email, telefono, direccion } = req.body || {};
+      const doc = documentoLimpio(documento);
+      if (doc.length < 4) {
+        return reply.code(400).send({ error: 'El documento no es válido' });
+      }
+
+      const programa = await prisma.programa.findUnique({ where: { id: Number(programaId) } });
+      if (!programa || !programa.activo) {
+        return reply.code(400).send({ error: 'El programa seleccionado no está disponible' });
+      }
+      const proceso = await prisma.procesoAdmision.findFirst({ where: { procesoAbierto: true } });
+      if (!proceso) {
+        return reply.code(400).send({ error: 'No hay un proceso de inscripción abierto en este momento' });
+      }
+      if (await prisma.aspirante.findUnique({ where: { documento: doc } })) {
+        return reply.code(409).send({ error: 'Ya existe una inscripción con ese documento' });
+      }
+
+      const limpio = String(nombre).trim();
+      const aspirante = await prisma.aspirante.create({
+        data: {
+          procesoId: proceso.id,
+          programaId: programa.id,
+          nombre: limpio,
+          documento: doc,
+          puntajeIcfes: 0,
+          examen: 0,
+          promedio: 0,
+          fecha: new Date(),
+          estado: 'en_proceso',
+          documentos: 'pendiente',
+        },
+      });
+
+      /* Cuenta pendiente: todavía no puede ingresar; se activa al matricular. */
+      const { usuario } = credencialesDeDocumento(doc);
+      const cuentaExistente = await prisma.usuario.findUnique({ where: { usuario } });
+      if (cuentaExistente && cuentaExistente.role !== 'estudiante') {
+        return reply.code(409).send({ error: 'Ese documento no se puede usar para la inscripción' });
+      }
+      if (!cuentaExistente) {
+        await prisma.usuario.create({
+          data: {
+            usuario,
+            password: hash(usuario),
+            nombre: limpio,
+            role: 'estudiante',
+            email: email || null,
+            telefono: telefono || null,
+            direccion: direccion || null,
+            programaId: programa.id,
+            activo: false,
+            debeCambiarPassword: true,
+          },
+        });
+      }
+
+      return {
+        ok: true,
+        mensaje: `Inscripción registrada para ${aspirante.nombre}. La cuenta se activa al formalizar la matrícula.`,
+        aspirante: { id: aspirante.id, nombre: aspirante.nombre, estado: aspirante.estado },
+      };
+    }
+  );
+
   /* Lista de cuentas para el acceso rápido: solo metadatos (usuario, nombre y
      rol), nunca contraseñas. */
   app.get('/auth/demo', async (req, reply) => {
@@ -115,7 +222,7 @@ export default async function rutasAuth(app) {
     }
     await prisma.usuario.update({
       where: { id: req.usuario.id },
-      data: { password: hash(nueva) },
+      data: { password: hash(nueva), debeCambiarPassword: false },
     });
     return { ok: true };
   });

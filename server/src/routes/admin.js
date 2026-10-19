@@ -101,6 +101,68 @@ export default async function rutasAdmin(app) {
     }));
   });
 
+  /* Alta manual de cuentas. Sin contraseña se usa el propio usuario como
+     contraseña temporal y se obliga a cambiarla al primer ingreso. Admite
+     enlazar la cuenta a un estudiante que aún no tenga acceso. */
+  app.post('/admin/usuarios', soloAdmin, async (req, reply) => {
+    const {
+      nombre, usuario: login, password, role, email, telefono, direccion, activo, estudianteId,
+    } = req.body || {};
+    const limpio = String(login || '').trim().toUpperCase();
+    const nombreLimpio = String(nombre || '').trim();
+    if (!nombreLimpio) return reply.code(400).send({ error: 'El nombre es obligatorio' });
+    if (!limpio) return reply.code(400).send({ error: 'El usuario de ingreso es obligatorio' });
+    if (role && !ROLES.includes(role)) {
+      return reply.code(400).send({ error: `Rol no válido. Use uno de: ${ROLES.join(', ')}` });
+    }
+    const repetido = await prisma.usuario.findFirst({
+      where: { usuario: limpio },
+      select: { id: true },
+    });
+    if (repetido) return reply.code(409).send({ error: `Ya existe una cuenta con el usuario ${limpio}` });
+
+    const temporal = password ? String(password) : limpio;
+    if (temporal.length < 6) {
+      return reply.code(400).send({ error: 'La contraseña debe tener al menos 6 caracteres' });
+    }
+
+    let estudiante = null;
+    if (estudianteId) {
+      estudiante = await prisma.estudiante.findUnique({ where: { id: String(estudianteId) } });
+      if (!estudiante) return reply.code(400).send({ error: 'El estudiante indicado no existe' });
+      if (estudiante.usuarioId) {
+        return reply.code(409).send({ error: 'Ese estudiante ya tiene una cuenta de acceso' });
+      }
+    }
+
+    const cuenta = await prisma.$transaction(async (tx) => {
+      const creada = await tx.usuario.create({
+        data: {
+          usuario: limpio,
+          password: hash(temporal),
+          nombre: nombreLimpio,
+          role: role || 'estudiante',
+          email: email ? String(email).trim() : null,
+          telefono: telefono ? String(telefono).trim() : null,
+          direccion: direccion ? String(direccion).trim() : null,
+          programaId: estudiante ? estudiante.programaId : null,
+          activo: activo === undefined ? true : Boolean(activo),
+          debeCambiarPassword: true,
+        },
+      });
+      if (estudiante) {
+        await tx.estudiante.update({ where: { id: estudiante.id }, data: { usuarioId: creada.id } });
+      }
+      return creada;
+    });
+
+    return reply.code(201).send({
+      ...publico(cuenta),
+      credenciales: password ? null : { usuario: limpio, password: temporal },
+      mensaje: `${nombreLimpio} fue creado como ${ROLES.includes(role) ? role : 'estudiante'}`,
+    });
+  });
+
   app.patch('/admin/usuarios/:id', soloAdmin, async (req, reply) => {
     const id = Number(req.params.id);
     const u = await prisma.usuario.findUnique({ where: { id } });

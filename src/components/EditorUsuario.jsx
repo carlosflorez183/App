@@ -22,11 +22,13 @@ const campo = {
 export default function EditorUsuario({
   abierto,
   usuario,
+  modo = 'editar',
   roles = [],
   guardando = false,
   onGuardar,
   onCerrar,
 }) {
+  const creando = modo === 'crear';
   /* Campos definidos desde el inicio para que los inputs nazcan controlados;
      el efecto los rellena con la cuenta al abrir. */
   const [f, setF] = useState({
@@ -37,7 +39,17 @@ export default function EditorUsuario({
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!abierto || !usuario) return;
+    if (!abierto) return;
+    if (creando) {
+      setF({
+        nombre: '', email: '', telefono: '', direccion: '',
+        role: 'estudiante', usuario: '', activo: true,
+      });
+      setPassword('');
+      setError('');
+      return;
+    }
+    if (!usuario) return;
     setF({
       nombre: usuario.nombre || '',
       email: usuario.email || '',
@@ -49,7 +61,7 @@ export default function EditorUsuario({
     });
     setPassword('');
     setError('');
-  }, [abierto, usuario]);
+  }, [abierto, usuario, creando]);
 
   useEffect(() => {
     if (!abierto) return undefined;
@@ -94,7 +106,7 @@ export default function EditorUsuario({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Editar usuario"
+        aria-label={creando ? 'Nueva cuenta' : 'Editar usuario'}
         onMouseDown={(e) => e.stopPropagation()}
         style={{
           background: '#fff',
@@ -119,9 +131,11 @@ export default function EditorUsuario({
           gap: 12,
         }}>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: '#211d17' }}>Editar usuario</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#211d17' }}>
+              {creando ? 'Nueva cuenta' : 'Editar usuario'}
+            </div>
             <div style={{ fontSize: 12, color: '#9c988e', marginTop: 2 }}>
-              {usuario.nombre} · {usuario.usuario}
+              {creando ? 'Completa los datos de acceso del nuevo usuario' : `${usuario?.nombre || ''} · ${usuario?.usuario || ''}`}
             </div>
           </div>
           <button
@@ -183,12 +197,12 @@ export default function EditorUsuario({
               />
             </label>
             <label style={etiqueta}>
-              Contraseña nueva (opcional)
+              {creando ? 'Contraseña (opcional)' : 'Contraseña nueva (opcional)'}
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Dejar en blanco para no cambiarla"
+                placeholder={creando ? 'En blanco: se usa el usuario como contraseña temporal' : 'Dejar en blanco para no cambiarla'}
                 style={campo}
               />
             </label>
@@ -202,7 +216,9 @@ export default function EditorUsuario({
               Cuenta habilitada (puede iniciar sesión)
             </label>
             <div style={{ gridColumn: '1 / -1', fontSize: 11, color: '#9c988e' }}>
-              La contraseña solo se cambia si escribes una nueva (mínimo 6 caracteres).
+              {creando
+                ? 'Si dejas la contraseña en blanco, el usuario y la contraseña temporal serán el mismo dato y se pedirá cambiarla al primer ingreso.'
+                : 'La contraseña solo se cambia si escribes una nueva (mínimo 6 caracteres).'}
             </div>
           </div>
         </div>
@@ -212,7 +228,7 @@ export default function EditorUsuario({
             Cancelar
           </button>
           <button className="btn" onClick={guardar} disabled={guardando}>
-            <Icon name="guardar" size={16} /> {guardando ? 'Guardando…' : 'Guardar cambios'}
+            <Icon name={creando ? 'check' : 'guardar'} size={16} /> {guardando ? 'Guardando…' : (creando ? 'Crear cuenta' : 'Guardar cambios')}
           </button>
         </div>
       </div>

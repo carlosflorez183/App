@@ -18,6 +18,7 @@ import {
   actualizarEstudianteAdmin,
   actualizarUsuario,
   cambiarPassword,
+  crearUsuarioAdmin,
   eliminarEstudianteAdmin,
   eliminarUsuarioAdmin,
   listarEstudiantesAdmin,
@@ -99,6 +100,7 @@ export default function Admin() {
   const [porEliminar, setPorEliminar] = useState(null);
   const [eliminando, setEliminando] = useState(false);
   const [editorUsuario, setEditorUsuario] = useState(null);
+  const [crearCuenta, setCrearCuenta] = useState(false);
   const [guardandoUsuario, setGuardandoUsuario] = useState(false);
   const [usuarioPorEliminar, setUsuarioPorEliminar] = useState(null);
   const [eliminandoUsuario, setEliminandoUsuario] = useState(false);
@@ -237,6 +239,25 @@ export default function Admin() {
           const guardarUsuario = async (datos) => {
             setGuardandoUsuario(true);
             try {
+              if (crearCuenta) {
+                const res = await crearUsuarioAdmin({
+                  nombre: datos.nombre,
+                  email: datos.email,
+                  telefono: datos.telefono,
+                  direccion: datos.direccion,
+                  role: datos.role,
+                  activo: datos.activo,
+                  usuario: datos.usuario,
+                  password: datos.password || undefined,
+                });
+                setCrearCuenta(false);
+                setEditorUsuario(null);
+                await cargarAdmin();
+                if (res?.credenciales) {
+                  alert(`Cuenta creada.\n\nUsuario: ${res.credenciales.usuario}\nContraseña temporal: ${res.credenciales.password}\n\nDeberá cambiarla al primer ingreso.`);
+                }
+                return {};
+              }
               await actualizarUsuario(editorUsuario.id, {
                 nombre: datos.nombre,
                 email: datos.email,
@@ -291,6 +312,13 @@ export default function Admin() {
                 <Badge tone="blue">{lista.length} cuentas</Badge>
                 <Badge tone="green">{lista.filter((u) => u.activo).length} habilitadas</Badge>
                 <Badge tone="red">{lista.filter((u) => !u.activo).length} bloqueadas</Badge>
+                <button
+                  className="btn"
+                  style={{ marginLeft: 'auto' }}
+                  onClick={() => { setEditorUsuario(null); setCrearCuenta(true); }}
+                >
+                  <Icon name="check" size={16} /> Nueva cuenta
+                </button>
               </div>
 
               {cargandoAdmin && <div style={{ ...card, color: '#9c988e', marginBottom: 14 }}>Cargando cuentas…</div>}
@@ -357,12 +385,13 @@ export default function Admin() {
               </div>
 
               <EditorUsuario
-                abierto={!!editorUsuario}
+                abierto={!!editorUsuario || crearCuenta}
                 usuario={editorUsuario}
+                modo={crearCuenta ? 'crear' : 'editar'}
                 roles={ROLES}
                 guardando={guardandoUsuario}
                 onGuardar={guardarUsuario}
-                onCerrar={() => setEditorUsuario(null)}
+                onCerrar={() => { setEditorUsuario(null); setCrearCuenta(false); }}
               />
 
               <ConfirmDialog

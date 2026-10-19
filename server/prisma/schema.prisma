@@ -34,6 +34,8 @@ model Usuario {
   avatar      String?
   avatarClass String?
   activo      Boolean  @default(true)
+  /// Cuentas generadas (matrícula o alta manual) nacen con contraseña temporal.
+  debeCambiarPassword Boolean @default(false)
   creadoEn    DateTime @default(now())
 
 programa      Programa?  @relation(fields: [programaId], references: [id])

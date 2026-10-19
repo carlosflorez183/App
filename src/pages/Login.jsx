@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Icon from '../components/Icon';
 
@@ -174,6 +174,13 @@ export default function Login() {
               {loading ? 'Ingresando...' : 'Acceder al Sistema →'}
             </button>
           </form>
+
+          <p style={{ textAlign: 'center', fontSize: 12, color: '#6f6b62', marginTop: 16 }}>
+            ¿Aún no estás inscrito?{' '}
+            <Link to="/inscripcion" style={{ color: '#06468c', fontWeight: 700, textDecoration: 'none' }}>
+              Regístrate aquí
+            </Link>
+          </p>
 
           {demoUsers.length > 0 && (
             <div style={{ marginTop: 20, borderTop: '1px solid #e5e2da', paddingTop: 16 }}>

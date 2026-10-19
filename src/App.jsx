@@ -15,6 +15,8 @@ const Docente = lazy(() => import('./pages/Docente'));
 const Rectoria = lazy(() => import('./pages/Rectoria'));
 const TalentoHumano = lazy(() => import('./pages/TalentoHumano'));
 const Contabilidad = lazy(() => import('./pages/Contabilidad'));
+const Inscripcion = lazy(() => import('./pages/Inscripcion'));
+const CambioPassword = lazy(() => import('./pages/CambioPassword'));
 
 function Cargando() {
   return (
@@ -28,6 +30,10 @@ function ProtectedRoute({ children, roles }) {
   const { user } = useAuth();
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+  /* Cuentas con contraseña temporal: no pueden usar la plataforma hasta cambiarla. */
+  if (user.debeCambiarPassword) {
+    return <CambioPassword />;
   }
   if (roles && !roles.includes(user.role)) {
     return <Navigate to="/dashboard" replace />;
@@ -57,6 +63,7 @@ export default function App() {
             <Routes>
               <Route path="/" element={<RootRedirect />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/inscripcion" element={<Inscripcion />} />
 
               <Route
                 path="/dashboard"
