@@ -83,6 +83,13 @@ export const login = (usuario, password) =>
 
 export const yo = () => api('/auth/yo');
 
+/* Acceso rápido de demostración: la lista y el ingreso los sirve el backend
+   desde la base de datos (la contraseña nunca llega al navegador). */
+export const cuentasDemo = () => api('/auth/demo');
+
+export const loginDemo = (usuario) =>
+  api('/auth/demo', { method: 'POST', body: { usuario } });
+
 /* ── Datos ─────────────────────────────────────────────────────────────── */
 export const bootstrap = () => api('/bootstrap');
 

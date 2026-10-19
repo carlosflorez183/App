@@ -72,6 +72,9 @@ contra la base.
   `DEMO_PASSWORD`.
 - `ADMIN_USUARIO` / `ADMIN_PASSWORD` garantizan un administrador aunque
   `SEED_DEMO=0` (bootstrap de una base nueva).
+- Con `DEMO_QUICK_LOGIN=1`, el login muestra botones de **acceso rápido**: la
+  lista y el ingreso los sirve el backend desde la base de datos, así que la
+  contraseña nunca viaja al navegador. Déjalo en `0` en producción.
 
 ## Desarrollo local (sin Docker)
 
@@ -106,6 +109,7 @@ npm run dev                    # http://localhost:5173 (proxy /api hacia :3000)
 | `DEMO_PASSWORD`        | Clave común de las cuentas de demostración      | (sin valor)        |
 | `ADMIN_USUARIO`        | Usuario del administrador de arranque           | `ADMIN`            |
 | `ADMIN_PASSWORD`       | Clave del administrador de arranque             | (sin valor)        |
+| `DEMO_QUICK_LOGIN`     | `1` muestra el acceso rápido en el login         | `0` (ponlo en `1` para el demo) |
 | `VITE_API_URL`         | API a la que apunta el frontend                  | `/api` (relativo)  |
 
 ## Scripts

@@ -2,6 +2,8 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import {
   login as loginApi,
   yo as yoApi,
+  cuentasDemo as cuentasDemoApi,
+  loginDemo as loginDemoApi,
   getToken,
   setToken as guardarToken,
   ApiError,
@@ -73,6 +75,23 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(leerSesion);
   const [token, setToken] = useState(getToken);
   const [offline, setOffline] = useState(false);
+  const [demoUsers, setDemoUsers] = useState([]);
+
+  /* Cuentas del acceso rápido de demostración: las entrega el backend desde la
+     base de datos. Si el endpoint está apagado (producción) no se muestran. */
+  useEffect(() => {
+    let vivo = true;
+    cuentasDemoApi()
+      .then((res) => {
+        if (vivo) setDemoUsers(res?.usuarios || []);
+      })
+      .catch(() => {
+        /* acceso rápido no disponible: la lista queda vacía */
+      });
+    return () => {
+      vivo = false;
+    };
+  }, []);
 
   /* Si hay token guardado, se comprueba contra la API. Un 401 limpia la sesión
      (el token venció); un fallo de red deja la sesión en modo offline. */
@@ -103,18 +122,22 @@ export const AuthProvider = ({ children }) => {
     };
   }, [token]);
 
+  const aplicarSesion = (res) => {
+    guardarToken(res.token);
+    setToken(res.token);
+    const session = sesionDeServidor(res.usuario);
+    guardarSesion(session);
+    setUser(session);
+    setOffline(false);
+    return session;
+  };
+
   const login = async (username, password) => {
     const key = (username || '').trim().toUpperCase();
 
     try {
       const res = await loginApi(key, password);
-      guardarToken(res.token);
-      setToken(res.token);
-      const session = sesionDeServidor(res.usuario);
-      guardarSesion(session);
-      setUser(session);
-      setOffline(false);
-      return { success: true, user: session };
+      return { success: true, user: aplicarSesion(res) };
     } catch (err) {
       /* La sesión SOLO se valida contra la base de datos, vía la API: sin
          servidor no hay ingreso (no hay credenciales de respaldo en el código). */
@@ -124,6 +147,20 @@ export const AuthProvider = ({ children }) => {
             ? 'Credenciales incorrectas'
             : err.message
           : 'No se pudo conectar con el servidor. Intenta de nuevo.';
+      return { success: false, error };
+    }
+  };
+
+  /* Acceso rápido: entra como una cuenta de demostración que valida el backend
+     contra la base de datos, sin que la contraseña toque el navegador. */
+  const loginDemo = async (username) => {
+    const key = (username || '').trim().toUpperCase();
+    try {
+      const res = await loginDemoApi(key);
+      return { success: true, user: aplicarSesion(res) };
+    } catch (err) {
+      const error =
+        err instanceof ApiError ? err.message : 'No se pudo conectar con el servidor.';
       return { success: false, error };
     }
   };
@@ -203,7 +240,10 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider
-      value={{ user, token, offline, login, logout, updateProfile, roleLabels: ROLE_LABELS }}
+      value={{
+        user, token, offline, login, loginDemo, demoUsers, logout, updateProfile,
+        roleLabels: ROLE_LABELS,
+      }}
     >
       {children}
     </AuthContext.Provider>

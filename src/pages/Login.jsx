@@ -8,7 +8,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, loginDemo, demoUsers, roleLabels } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -21,7 +21,22 @@ export default function Login() {
     if (res.success) {
       navigate('/dashboard');
     } else {
-      setError(res.error || 'Credenciales inválidas');
+      setError(res.error);
+    }
+  };
+
+  /* Acceso rápido de demostración: entra con la cuenta elegida. El backend
+     valida contra la base de datos; aquí no hay contraseñas. */
+  const handleSelectDemo = async (usuario) => {
+    setError('');
+    setLoading(true);
+    setUsername(usuario);
+    const res = await loginDemo(usuario);
+    if (res.success) {
+      navigate('/dashboard');
+    } else {
+      setLoading(false);
+      setError(res.error);
     }
   };
 
@@ -159,6 +174,39 @@ export default function Login() {
               {loading ? 'Ingresando...' : 'Acceder al Sistema →'}
             </button>
           </form>
+
+          {demoUsers.length > 0 && (
+            <div style={{ marginTop: 20, borderTop: '1px solid #e5e2da', paddingTop: 16 }}>
+              <p style={{ fontSize: 12, fontWeight: 700, color: '#4e4a43', marginBottom: 10 }}>
+                Acceso rápido de demostración
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
+                {demoUsers.map((d) => (
+                  <button
+                    key={d.usuario}
+                    type="button"
+                    onClick={() => handleSelectDemo(d.usuario)}
+                    disabled={loading}
+                    style={{
+                      background: '#f7f6f3',
+                      border: '1.5px solid #e5e2da',
+                      borderRadius: 8,
+                      padding: '8px 10px',
+                      textAlign: 'left',
+                      cursor: loading ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.15s',
+                      opacity: loading ? 0.6 : 1
+                    }}
+                  >
+                    <div style={{ fontSize: 12, fontWeight: 700, color: '#211d17' }}>
+                      {roleLabels?.[d.role] || d.role}
+                    </div>
+                    <div style={{ fontSize: 10, color: '#6f6b62', marginTop: 2 }}>{d.usuario}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <p style={{ textAlign: 'center', color: 'rgba(255,255,255,.5)', fontSize: 11, marginTop: 20 }}>
