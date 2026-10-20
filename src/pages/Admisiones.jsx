@@ -878,7 +878,7 @@ export default function Admisiones() {
                            rechazar con observación y 'Expediente completo'). No se
                            puede saltar con 'Marcar completo'. */
                         const vinculado = inscritos.find(
-                          (e) => e.aspiranteId === a.id || e.documento === a.documento
+                          (e) => e.documento === a.documento || e.aspiranteId === a.id
                         );
                         return (
                           <tr key={a.id}>
