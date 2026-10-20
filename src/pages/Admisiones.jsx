@@ -876,10 +876,14 @@ export default function Admisiones() {
                         /* Si ya hay ficha en 'en_inscripcion', el expediente DEBE
                            revisarse con el flujo nuevo (archivos subidos, aprobar/
                            rechazar con observación y 'Expediente completo'). No se
-                           puede saltar con 'Marcar completo'. */
-                        const vinculado = inscritos.find(
-                          (e) => e.documento === a.documento || e.aspiranteId === a.id
-                        );
+                           puede saltar con 'Marcar completo'.
+                           Si NO hay ficha de ingreso ligada, no hay archivos que
+                           revisar desde ese flujo: se evita marcar completo desde
+                           esta tabla para no saltarse el control. */
+                        const vinculado =
+                          inscritos.find(
+                            (e) => e.documento === a.documento || e.aspiranteId === a.id
+                          ) || estudiantes.find((e) => e.documento === a.documento && e.estado === 'en_inscripcion');
                         return (
                           <tr key={a.id}>
                             <td style={td}>
@@ -903,9 +907,12 @@ export default function Admisiones() {
                                   <Icon name="ojo" size={14} /> Revisar documentos
                                 </button>
                               ) : (
-                                <button className="btn" style={{ padding: '5px 9px', fontSize: 11 }} onClick={() => setAspirante(a.id, { documentos: 'completo' })}>
-                                  Marcar completo
-                                </button>
+                                <span
+                                  title="Este aspirante aún no tiene ficha de ingreso creada. Debe registrarse por el formulario público para poder subir documentos y revisarlos."
+                                  style={{ fontSize: 11, color: '#9c988e' }}
+                                >
+                                  Sin expediente de ingreso
+                                </span>
                               )}
                             </td>
                           </tr>
