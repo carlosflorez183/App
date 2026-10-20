@@ -1000,7 +1000,7 @@ export default function Admisiones() {
                 )}
               </div>
 
-              <div style={{ ...card, marginTop: 16, opacity: 0.4, pointerEvents: 'none' }}>
+              <div style={{ ...card, marginTop: 16 }}>
                 <Encabezado
                   titulo="Revisión documental por aspirante (flujo antiguo)"
                   sub="Este bloque queda solo para referencia histórica"
