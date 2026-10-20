@@ -872,21 +872,45 @@ export default function Admisiones() {
                       </tr>
                     </thead>
                     <tbody>
-                      {incompletos.map((a) => (
-                        <tr key={a.id}>
-                          <td style={td}>
-                            <strong>{a.nombre}</strong><br />
-                            <span style={{ fontSize: 11, color: '#9c988e' }}>{a.documento}</span>
-                          </td>
-                          <td style={td}>{nombreProg(a.programaId)}</td>
-                          <td style={td}><Badge tone={DOC_TONE[a.documentos]}>{a.documentos}</Badge></td>
-                          <td style={td}>
-                            <button className="btn" style={{ padding: '5px 9px', fontSize: 11 }} onClick={() => setAspirante(a.id, { documentos: 'completo' })}>
-                              Marcar completo
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                      {incompletos.map((a) => {
+                        /* Si ya hay ficha en 'en_inscripcion', el expediente DEBE
+                           revisarse con el flujo nuevo (archivos subidos, aprobar/
+                           rechazar con observación y 'Expediente completo'). No se
+                           puede saltar con 'Marcar completo'. */
+                        const vinculado = inscritos.find(
+                          (e) => e.aspiranteId === a.id || e.documento === a.documento
+                        );
+                        return (
+                          <tr key={a.id}>
+                            <td style={td}>
+                              <strong>{a.nombre}</strong><br />
+                              <span style={{ fontSize: 11, color: '#9c988e' }}>{a.documento}</span>
+                            </td>
+                            <td style={td}>{nombreProg(a.programaId)}</td>
+                            <td style={td}><Badge tone={DOC_TONE[a.documentos]}>{a.documentos}</Badge></td>
+                            <td style={td}>
+                              {vinculado ? (
+                                <button
+                                  className="btn"
+                                  style={{ padding: '5px 9px', fontSize: 11 }}
+                                  data-testid={`revisar-docs-asp-${a.id}`}
+                                  onClick={() => {
+                                    setTab('documentos');
+                                    setExpediente(null);
+                                    abrirExpediente(vinculado);
+                                  }}
+                                >
+                                  <Icon name="ojo" size={14} /> Revisar documentos
+                                </button>
+                              ) : (
+                                <button className="btn" style={{ padding: '5px 9px', fontSize: 11 }} onClick={() => setAspirante(a.id, { documentos: 'completo' })}>
+                                  Marcar completo
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

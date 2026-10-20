@@ -101,6 +101,19 @@ export default async function rutasAdmisiones(app) {
     if (estado && !ESTADOS.includes(estado)) {
       return reply.code(400).send({ error: `Estado inválido. Use uno de: ${ESTADOS.join(', ')}` });
     }
+    /* Cuando el aspirante ya tiene ficha de estudiante (registro público), el
+       expediente de documentos se revisa archivo por archivo desde la pestaña
+       Documentos. No se permite marcarlo como 'completo' directamente aquí para
+       evitar saltarse la validación. */
+    const aspirante = await prisma.aspirante.findUnique({
+      where: { id: Number(req.params.id) },
+      include: { estudiante: true },
+    });
+    if (documentos === 'completo' && aspirante?.estudiante?.estado === 'en_inscripcion') {
+      return reply.code(400).send({
+        error: `El expediente de ${aspirante.nombre} ya tiene documentos subidos: revísalos en la pestaña Documentos antes de validarlos.`,
+      });
+    }
     const a = await prisma.aspirante.update({
       where: { id: Number(req.params.id) },
       data: {
