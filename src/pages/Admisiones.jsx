@@ -999,7 +999,9 @@ export default function Admisiones() {
                   </div>
                 )}
               </div>
-
+            </div>
+          );
+        }
 
         /* =========================================================
            PESTAÑA: REGISTRO (INSCRIPCIÓN DE ADMITIDOS)
