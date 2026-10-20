@@ -24,6 +24,12 @@ export const publico = (u) => ({
   avatarClass: u.avatarClass,
   activo: u.activo,
   debeCambiarPassword: !!u.debeCambiarPassword,
+  /* Ficha del estudiante ligada a la cuenta: el frontend sabe con ella si el
+     alumno está en proceso de ingreso (sin documentos validados) o ya es
+     matriculado, y con eso arma el menú y habilita la matrícula. */
+  estudiante: u.estudiante
+    ? { id: u.estudiante.id, estado: u.estudiante.estado, documentos: u.estudiante.documentos }
+    : null,
 });
 
 /* Verifica el Bearer token y adjunta `req.usuario`. */
@@ -32,7 +38,10 @@ export async function autenticar(req) {
     const payload = await req.jwtVerify();
     const u = await prisma.usuario.findUnique({
       where: { usuario: payload.sub },
-      include: { programa: true },
+      include: {
+        programa: true,
+        estudiante: { select: { id: true, estado: true, documentos: true } },
+      },
     });
     if (!u || !u.activo) throw new Error('Usuario inactivo');
     req.usuario = u;

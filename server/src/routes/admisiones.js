@@ -113,18 +113,50 @@ export default async function rutasAdmisiones(app) {
   });
 
   /* Matricula a un aspirante: crea su ficha de estudiante y su cuenta de
-     acceso. Devuelve las credenciales (usuario y contraseña temporal) una sola
-     vez para que Admisiones las entregue. */
+     acceso (o reutiliza la ficha/cuenta que ya dejó el registro público),
+     y deja el expediente en estado 'matriculado'. Devuelve las credenciales
+     una sola vez para que Admisiones las entregue. Exige que el expediente
+     de documentos esté validado: sin eso el estudiante no está listo. */
   app.post('/admisiones/aspirantes/:id/matricular', guard, async (req, reply) => {
     const aspirante = await prisma.aspirante.findUnique({
       where: { id: Number(req.params.id) },
       include: { estudiante: true },
     });
     if (!aspirante) return reply.code(404).send({ error: 'Aspirante no encontrado' });
+
+    /* Caso más frecuente: el registro público ya dejó la ficha en
+       'en_inscripcion'. Solo se formaliza a 'matriculado'. */
     if (aspirante.estudiante) {
+      const ficha = aspirante.estudiante;
+      if (ficha.documentos !== 'completo') {
+        return reply.code(400).send({
+          error: `${ficha.nombre} tiene el expediente de documentos '${ficha.documentos}': validé los documentos antes de matricular`,
+        });
+      }
+      const { cuenta } = await asegurarCuentaEstudiante(prisma, {
+        nombre: ficha.nombre,
+        documento: ficha.documento,
+        programaId: ficha.programaId,
+        semestre: ficha.semestre,
+      });
+      const estudiante = await prisma.estudiante.update({
+        where: { id: ficha.id },
+        data: { estado: 'matriculado' },
+      });
+      return {
+        ok: true,
+        mensaje: `${estudiante.nombre} matriculado con código ${estudiante.id}`,
+        estudiante: { id: estudiante.id, nombre: estudiante.nombre, estado: estudiante.estado },
+        /* La contraseña no se vuelve a entregar: la tiene el estudiante desde
+           su registro. Solo se devuelve el usuario por si hay que reenviarlo. */
+        credenciales: { usuario: cuenta.usuario, password: null },
+      };
+    }
+
+    if (aspirante.documentos !== 'completo') {
       return reply
-        .code(409)
-        .send({ error: `${aspirante.nombre} ya tiene ficha de estudiante (${aspirante.estudiante.id})` });
+        .code(400)
+        .send({ error: `${aspirante.nombre} tiene los documentos '${aspirante.documentos}': validélos antes de matricular` });
     }
 
     const resultado = await prisma.$transaction(async (tx) => {
@@ -148,7 +180,7 @@ export default async function rutasAdmisiones(app) {
           jornada: 'diurna',
           promedio: 0,
           estado: 'matriculado',
-          documentos: 'completo',
+          documentos: aspirante.documentos,
           fechaIngreso: new Date(),
           aspiranteId: aspirante.id,
           usuarioId: cuenta.id,
@@ -189,6 +221,122 @@ export default async function rutasAdmisiones(app) {
     return {
       requisitos,
       resumen: Object.fromEntries(porEstado.map((r) => [r.documentos, r._count._all])),
+    };
+  });
+
+  /* ── Revisión de lo que subieron los estudiantes inscritos ──────────── */
+  /* Los archivos que el alumno subió a su expediente, con la observación y
+     el veredicto de cada uno. El contenido base64 no viaja aquí: se descarga
+     con el endpoint de archivo. */
+  app.get('/admisiones/estudiantes/:id/documentos', guard, async (req, reply) => {
+    const estudiante = await prisma.estudiante.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, nombre: true, documento: true, estado: true, documentos: true },
+    });
+    if (!estudiante) return reply.code(404).send({ error: 'Estudiante no encontrado' });
+
+    const archivos = await prisma.documentoIngreso.findMany({
+      where: { estudianteId: estudiante.id },
+      orderBy: { requisitoId: 'asc' },
+      select: {
+        id: true,
+        requisitoId: true,
+        nombre: true,
+        mime: true,
+        tamano: true,
+        estado: true,
+        observacion: true,
+        subidoEn: true,
+        revisadoEn: true,
+        revisadoPor: true,
+        requisito: { select: { clave: true, nombre: true, obligatorio: true } },
+      },
+    });
+    return { estudiante, archivos };
+  });
+
+  /* Descarga el archivo que el estudiante subió a su expediente, para que
+     Admisiones lo revise (mismo patrón que el material del campus). */
+  app.get('/admisiones/estudiantes/documentos/:id/archivo', guard, async (req, reply) => {
+    const documento = await prisma.documentoIngreso.findUnique({
+      where: { id: Number(req.params.id) },
+    });
+    if (!documento) {
+      return reply.code(404).send({ error: 'Documento no encontrado' });
+    }
+    return reply
+      .header('content-type', documento.mime || 'application/octet-stream')
+      .header(
+        'content-disposition',
+        `attachment; filename="${encodeURIComponent(documento.nombre || 'documento')}"`
+      )
+      .send(Buffer.from(documento.contenidoB64, 'base64'));
+  });
+
+  /* Veredicto de un archivo: aprobado o rechazado, con la observación que
+     verá el estudiante en su portal (esa observación es la forma de
+     comunicarle lo que falta o lo que quedó mal). */
+  app.patch('/admisiones/estudiantes/documentos/:id', guard, async (req, reply) => {    const { estado, observacion } = req.body || {};
+    if (!['aprobado', 'rechazado'].includes(estado)) {
+      return reply.code(400).send({ error: "El estado debe ser 'aprobado' o 'rechazado'" });
+    }
+    const documento = await prisma.documentoIngreso.findUnique({ where: { id: Number(req.params.id) } });
+    if (!documento) return reply.code(404).send({ error: 'Documento no encontrado' });
+
+    const actualizado = await prisma.documentoIngreso.update({
+      where: { id: documento.id },
+      data: {
+        estado,
+        observacion: observacion ? String(observacion).slice(0, 500) : null,
+        revisadoEn: new Date(),
+        revisadoPor: req.usuario.usuario,
+      },
+    });
+    return { ok: true, documento: actualizado.estado, observacion: actualizado.observacion };
+  });
+
+  /* Marca el expediente del estudiante como completo (o pendiente otra vez):
+     es lo que habilita la matrícula del alumno en su portal. Si hay archivos
+     rechazados o requisitos obligatorios sin subir, se rechaza. */
+  app.post('/admisiones/estudiantes/:id/validar-documentos', guard, async (req, reply) => {
+    const estudiante = await prisma.estudiante.findUnique({
+      where: { id: req.params.id },
+      include: { aspirante: { select: { id: true } } },
+    });
+    if (!estudiante) return reply.code(404).send({ error: 'Estudiante no encontrado' });
+
+    const completo = req.body?.completo !== false;
+    if (completo) {
+      const [requisitos, archivos] = await Promise.all([
+        prisma.requisitoDocumento.findMany({ where: { vigente: true, obligatorio: true } }),
+        prisma.documentoIngreso.findMany({ where: { estudianteId: estudiante.id } }),
+      ]);
+      const porRequisito = new Map(archivos.map((a) => [a.requisitoId, a]));
+      const faltantes = requisitos.filter((r) => {
+        const a = porRequisito.get(r.id);
+        return !a || a.estado !== 'aprobado';
+      });
+      if (faltantes.length) {
+        return reply.code(400).send({
+          error: `No se puede validar: ${faltantes.map((r) => r.nombre).join(', ')} (falta o no está aprobado)`,
+        });
+      }
+    }
+
+    await prisma.$transaction([
+      prisma.estudiante.update({ where: { id: estudiante.id }, data: { documentos: completo ? 'completo' : 'pendiente' } }),
+      ...(estudiante.aspiranteId
+        ? [prisma.aspirante.update({ where: { id: estudiante.aspirante.id }, data: { documentos: completo ? 'completo' : 'pendiente' } })]
+        : []),
+    ]);
+
+    return {
+      ok: true,
+      mensaje: completo
+        ? `Expediente de ${estudiante.nombre} validado: ya puede matricular`
+        : `Expediente de ${estudiante.nombre} marcado como pendiente`,
+      documentos: completo ? 'completo' : 'pendiente',
+      puedeMatricular: completo,
     };
   });
 
@@ -370,6 +518,36 @@ export default async function rutasAdmisiones(app) {
       };
     }
     return prisma.estudiante.update({ where: { id: req.params.id }, data });
+  });
+
+  /* Crea y enlaza la cuenta de acceso de un estudiante que todavía no tiene
+     (p. ej. un estudiante activo previo o que no pasó por registro). */
+  app.post('/admisiones/estudiantes/:id/cuenta', guard, async (req, reply) => {
+    const e = await prisma.estudiante.findUnique({ where: { id: req.params.id } });
+    if (!e) return reply.code(404).send({ error: 'Estudiante no encontrado' });
+    if (e.usuarioId) {
+      return reply.code(409).send({ error: `${e.nombre} ya tiene una cuenta de acceso` });
+    }
+
+    const resultado = await prisma.$transaction(async (tx) => {
+      const { cuenta, usuario, password } = await asegurarCuentaEstudiante(tx, {
+        nombre: e.nombre,
+        documento: e.documento,
+        email: e.correo ?? undefined,
+        telefono: e.telefono ?? undefined,
+        direccion: e.direccion ?? undefined,
+        programaId: e.programaId,
+        semestre: e.semestre,
+      });
+      await tx.estudiante.update({ where: { id: e.id }, data: { usuarioId: cuenta.id } });
+      return { usuario, password };
+    });
+
+    return reply.code(201).send({
+      ok: true,
+      mensaje: `Cuenta creada para ${e.nombre}`,
+      credenciales: { usuario: resultado.usuario, password: resultado.password },
+    });
   });
 
   /* ── Pagos: registrar un cobro (queda pagado) ───────────────────────── */

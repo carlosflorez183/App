@@ -72,7 +72,13 @@ export default async function rutasBootstrap(app) {
       prisma.configPonderacion.findMany({ orderBy: { id: 'asc' } }),
       prisma.requisitoDocumento.findMany({ orderBy: { id: 'asc' } }),
       prisma.aspirante.findMany({ orderBy: { id: 'asc' } }),
-      prisma.estudiante.findMany({ orderBy: { id: 'asc' }, include: { pagos: { orderBy: { id: 'asc' } } } }),
+      prisma.estudiante.findMany({
+        orderBy: { id: 'asc' },
+        include: {
+          pagos: { orderBy: { id: 'asc' } },
+          usuario: { select: { usuario: true, activo: true } },
+        },
+      }),
       prisma.nota.findMany({ where: { estudianteId }, orderBy: { id: 'asc' } }),
       prisma.certificadoEmitido.findMany({ orderBy: { id: 'asc' } }),
       prisma.curso.findMany({ where: filtroCursos, orderBy: { id: 'asc' } }),
@@ -352,6 +358,9 @@ export default async function rutasBootstrap(app) {
         documentos: e.documentos,
         fechaIngreso: soloFecha(e.fechaIngreso),
         admisioId: e.aspiranteId,
+        usuarioId: e.usuarioId || null,
+        usuario: e.usuario?.usuario || null,
+        usuarioActivo: e.usuario?.activo ?? null,
         pagos: e.pagos.map((p) => ({
           id: p.id,
           concepto: p.concepto,

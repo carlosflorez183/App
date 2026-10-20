@@ -94,6 +94,15 @@ export default async function rutasMatricula(app) {
         return reply.code(403).send({ error: 'Solo un estudiante puede matricular materias' });
       }
 
+      /* La matrícula se habilita cuando Admisiones valida el expediente de
+         documentos del estudiante. Hasta entonces el portal no deja matricular
+         (ni la vista ni la API). */
+      if (estudiante.documentos !== 'completo') {
+        return reply.code(403).send({
+          error: 'Tu expediente de documentos aún no está validado por Admisiones: allí podrás ver si falta algo.',
+        });
+      }
+
       const ids = [...new Set(req.body.materiaIds)];
       const materias = await prisma.materia.findMany({ where: { id: { in: ids } } });
       if (materias.length !== ids.length) {
@@ -140,6 +149,15 @@ export default async function rutasMatricula(app) {
           })
         )
       );
+
+      /* Al matricular materias el estudiante deja de estar "en ingreso": con
+         eso se le abren los cursos y el resto del portal. */
+      if (estudiante.estado === 'en_inscripcion') {
+        await prisma.estudiante.update({
+          where: { id: estudiante.id },
+          data: { estado: 'matriculado' },
+        });
+      }
 
       return {
         ok: true,

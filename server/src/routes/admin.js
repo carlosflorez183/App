@@ -5,6 +5,7 @@
    ============================================= */
 import { prisma } from '../config.js';
 import { hash, publico } from '../auth.js';
+import { asegurarCuentaEstudiante } from '../cuentas.js';
 import {
   liquidar,
   totalizar,
@@ -349,6 +350,37 @@ export default async function rutasAdmin(app) {
       include: { programa: { select: { nombre: true } } },
     });
     return { ...actualizado, programa: actualizado.programa.nombre };
+  });
+
+  /* Crea y enlaza la cuenta de acceso de un estudiante que todavía no tiene
+     (p. ej. una ficha ya activa, sin pasar por el registro de Admisiones). El
+     usuario y la contraseña temporal son su documento. */
+  app.post('/admin/estudiantes/:id/cuenta', soloAdmin, async (req, reply) => {
+    const e = await prisma.estudiante.findUnique({ where: { id: req.params.id } });
+    if (!e) return reply.code(404).send({ error: 'Estudiante no encontrado' });
+    if (e.usuarioId) {
+      return reply.code(409).send({ error: `${e.nombre} ya tiene una cuenta de acceso` });
+    }
+
+    const resultado = await prisma.$transaction(async (tx) => {
+      const { cuenta, usuario, password } = await asegurarCuentaEstudiante(tx, {
+        nombre: e.nombre,
+        documento: e.documento,
+        email: e.correo ?? undefined,
+        telefono: e.telefono ?? undefined,
+        direccion: e.direccion ?? undefined,
+        programaId: e.programaId,
+        semestre: e.semestre,
+      });
+      await tx.estudiante.update({ where: { id: e.id }, data: { usuarioId: cuenta.id } });
+      return { usuario, password };
+    });
+
+    return reply.code(201).send({
+      ok: true,
+      mensaje: `Cuenta creada para ${e.nombre}`,
+      credenciales: { usuario: resultado.usuario, password: resultado.password },
+    });
   });
 
   /* Elimina a un estudiante y su cuenta de acceso. Sus datos académicos

@@ -123,8 +123,86 @@ export const matricularAspirante = (id) =>
 export const actualizarEstudiante = (id, cambios) =>
   api(`/admisiones/estudiantes/${id}`, { method: 'PATCH', body: cambios });
 
+export const crearCuentaEstudianteAdmisiones = (id) =>
+  api(`/admisiones/estudiantes/${encodeURIComponent(id)}/cuenta`, { method: 'POST' });
+
 export const emitirCertificado = (estudianteId, tipo) =>
   api('/admisiones/certificados', { method: 'POST', body: { estudianteId, tipo } });
+
+/* ── Documentos de ingreso (estudiante) ───────────────────────────────── */
+export const misDocumentos = () => api('/mis-documentos');
+
+export const subirDocumentoIngreso = (requisitoId, archivo) =>
+  api(`/mis-documentos/${requisitoId}`, { method: 'POST', body: archivo });
+
+export const borrarDocumentoIngreso = (requisitoId) =>
+  api(`/mis-documentos/${requisitoId}`, { method: 'DELETE' });
+
+/* Baja el archivo que el estudiante subió (o que Admisiones revisó) y lo
+   guarda con el nombre que trae el servidor. */
+export async function descargarDocumentoIngreso(requisitoId) {
+  const init = { headers: {} };
+  const t = getToken();
+  if (t) init.headers.Authorization = `Bearer ${t}`;
+  const res = await fetch(`${BASE}/mis-documentos/${requisitoId}/archivo`, init);
+  if (!res.ok) {
+    let mensaje = `HTTP ${res.status}`;
+    try {
+      const cuerpo = await res.json();
+      mensaje = cuerpo?.error || mensaje;
+    } catch { /* la respuesta no era JSON: se deja el HTTP */ }
+    throw new Error(mensaje);
+  }
+  const disposition = res.headers.get('content-disposition') || '';
+  const nombre = /filename="([^"]+)"/.exec(disposition)?.[1] || `documento-${requisitoId}`;
+  const url = URL.createObjectURL(await res.blob());
+  const enlace = document.createElement('a');
+  enlace.href = url;
+  enlace.download = decodeURIComponent(nombre);
+  document.body.appendChild(enlace);
+  enlace.click();
+  enlace.remove();
+  URL.revokeObjectURL(url);
+}
+
+/* ── Revisión de documentos (Admisiones) ──────────────────────────────── */
+export const documentosEstudianteAdmisiones = (id) =>
+  api(`/admisiones/estudiantes/${encodeURIComponent(id)}/documentos`);
+
+export const revisarDocumentoIngreso = (id, cambios) =>
+  api(`/admisiones/estudiantes/documentos/${id}`, { method: 'PATCH', body: cambios });
+
+/* Baja el archivo de un expediente, con el token de Admisiones. */
+export async function descargarDocumentoIngresoAdmisiones(id) {
+  const init = { headers: {} };
+  const t = getToken();
+  if (t) init.headers.Authorization = `Bearer ${t}`;
+  const res = await fetch(`${BASE}/admisiones/estudiantes/documentos/${id}/archivo`, init);
+  if (!res.ok) {
+    let mensaje = `HTTP ${res.status}`;
+    try {
+      const cuerpo = await res.json();
+      mensaje = cuerpo?.error || mensaje;
+    } catch { /* la respuesta no era JSON: se deja el HTTP */ }
+    throw new Error(mensaje);
+  }
+  const disposition = res.headers.get('content-disposition') || '';
+  const nombre = /filename="([^"]+)"/.exec(disposition)?.[1] || `documento-${id}`;
+  const url = URL.createObjectURL(await res.blob());
+  const enlace = document.createElement('a');
+  enlace.href = url;
+  enlace.download = decodeURIComponent(nombre);
+  document.body.appendChild(enlace);
+  enlace.click();
+  enlace.remove();
+  URL.revokeObjectURL(url);
+}
+
+export const validarDocumentosEstudiante = (id, completo) =>
+  api(`/admisiones/estudiantes/${encodeURIComponent(id)}/validar-documentos`, {
+    method: 'POST',
+    body: { completo },
+  });
 
 export const solicitarCertificado = (tipo) =>
   api('/certificados', { method: 'POST', body: { tipo } });
@@ -201,6 +279,10 @@ export const eliminarUsuarioAdmin = (id) =>
   api(`/admin/usuarios/${id}`, { method: 'DELETE' });
 
 export const listarEstudiantesAdmin = () => api('/admin/estudiantes');
+
+/* Crea y enlaza la cuenta de un estudiante que aún no tiene acceso. */
+export const crearCuentaEstudianteAdmin = (id) =>
+  api(`/admin/estudiantes/${encodeURIComponent(id)}/cuenta`, { method: 'POST' });
 
 export const actualizarEstudianteAdmin = (id, cambios) =>
   api(`/admin/estudiantes/${encodeURIComponent(id)}`, { method: 'PATCH', body: cambios });

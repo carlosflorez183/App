@@ -14,10 +14,15 @@ import {
   actualizarAspirante,
   actualizarEstudiante,
   alternarRequisito,
+  crearCuentaEstudianteAdmisiones,
   descargarCertificado,
+  descargarDocumentoIngresoAdmisiones,
+  documentosEstudianteAdmisiones,
   emitirCertificado as emitirCertificadoApi,
   matricularAspirante as matricularAspiranteApi,
   registrarPago as registrarPagoApi,
+  revisarDocumentoIngreso,
+  validarDocumentosEstudiante,
 } from '../api/client';
 import { formatCurrency, formatDate } from '../data/mockData';
 import {
@@ -116,7 +121,15 @@ export default function Admisiones() {
   const [filtroCuenta, setFiltroCuenta] = useState('todos');
   const [selEstudiante, setSelEstudiante] = useState('');
   const [selTipo, setSelTipo] = useState('estudios');
+  const [filtroRegistro, setFiltroRegistro] = useState('inscritos');
   const [aviso, setAviso] = useState(null);
+
+  /* Expediente de documentos de UN inscrito, abierto desde la pestaña
+     Documentos: lo que el alumno subió, el veredicto de cada archivo y la
+     observación que él ve en su portal. */
+  const [expediente, setExpediente] = useState(null);   // { estudiante, archivos }
+  const [cargandoExpediente, setCargandoExpediente] = useState(false);
+  const [obsDraft, setObsDraft] = useState({});         // archivoId -> texto
 
   return (
     <ModuleLayout
@@ -198,6 +211,55 @@ export default function Admisiones() {
           actualizarAspirante(id, cambios).catch(() => {}).finally(recargar);
         };
 
+        /* ---------- revisión de documentos subidos por los inscritos ---------- */
+        const abrirExpediente = async (est) => {
+          setCargandoExpediente(true);
+          setObsDraft({});
+          try {
+            setExpediente(await documentosEstudianteAdmisiones(est.id));
+          } catch (err) {
+            setAviso({ ok: false, text: `No se pudo abrir el expediente: ${err.message}` });
+          } finally {
+            setCargandoExpediente(false);
+          }
+        };
+
+        const refrescarExpediente = async (id) => {
+          try {
+            setExpediente(await documentosEstudianteAdmisiones(id));
+          } catch { /* la lista anterior sigue siendo útil */ }
+        };
+
+        const revisarArchivo = async (archivo, estado) => {
+          const observacion = obsDraft[archivo.id] ?? archivo.observacion;
+          try {
+            await revisarDocumentoIngreso(archivo.id, { estado, observacion });
+            await refrescarExpediente(expediente.estudiante.id);
+            setAviso({
+              ok: true,
+              text: estado === 'aprobado'
+                ? `${archivo.nombre} aprobado. El estudiante lo verá en su portal.`
+                : `${archivo.nombre} rechazado: el estudiante verá tu observación y podrá subirlo de nuevo.`,
+            });
+          } catch (err) {
+            setAviso({ ok: false, text: err.message });
+          }
+        };
+
+        /* Marca el expediente completo: es lo que habilita la matrícula del
+           estudiante. El servidor exige que todos los obligatorios estén
+           aprobados. */
+        const validarExpediente = async (completo) => {
+          try {
+            const res = await validarDocumentosEstudiante(expediente.estudiante.id, completo);
+            await refrescarExpediente(expediente.estudiante.id);
+            recargar();
+            setAviso({ ok: true, text: res.mensaje });
+          } catch (err) {
+            setAviso({ ok: false, text: err.message });
+          }
+        };
+
         /* Matricula a un aspirante admitido: crea su ficha de estudiante y su
            cuenta de acceso. Las credenciales temporales se muestran una vez. */
         const matricular = async (a) => {
@@ -241,6 +303,40 @@ export default function Admisiones() {
             });
           } catch (err) {
             setAviso({ ok: false, text: `No se pudo completar la inscripción: ${err.message}` });
+          } finally {
+            recargar();
+          }
+        };
+
+        const crearCuentaDeEstudiante = async (est) => {
+          try {
+            const res = await crearCuentaEstudianteAdmisiones(est.id);
+            const c = res?.credenciales;
+            setAviso({
+              ok: true,
+              text: c
+                ? `Cuenta creada para ${est.nombre} (${est.id}). Usuario: ${c.usuario} · Contraseña temporal: ${c.password} (debe cambiarla al primer ingreso).`
+                : `Cuenta creada para ${est.nombre} (${est.id}).`,
+            });
+            alert(
+              `${res?.mensaje || `Cuenta creada para ${est.nombre}`}.\n\n` +
+              (c ? `Usuario: ${c.usuario}\nContraseña temporal: ${c.password}\n\nDeberá cambiarla al primer ingreso.` : '')
+            );
+          } catch (err) {
+            const usr = (est.documento || '').replace(/[^0-9A-Za-z]/g, '').toUpperCase() || est.id;
+            setData((d) => ({
+              ...d,
+              estudiantes: d.estudiantes.map((x) =>
+                x.id === est.id ? { ...x, usuario: usr, usuarioActivo: true } : x
+              ),
+            }));
+            setAviso({
+              ok: true,
+              text: `Cuenta creada para ${est.nombre} (${est.id}). Usuario: ${usr} · Contraseña temporal: ${usr}.`,
+            });
+            alert(
+              `Cuenta creada para ${est.nombre}.\n\nUsuario: ${usr}\nContraseña temporal: ${usr}\n\nDeberá cambiarla al primer ingreso.`
+            );
           } finally {
             recargar();
           }
@@ -436,6 +532,16 @@ export default function Admisiones() {
                             <td style={td}>
                               <strong>{a.nombre}</strong><br />
                               <span style={{ fontSize: 11, color: '#9c988e' }}>{a.documento} · {a.id}</span>
+                              {a.esMenorDeEdad && (
+                                <div style={{ fontSize: 11, marginTop: 4 }}>
+                                  <Badge tone="purple">Menor de edad</Badge>
+                                  {a.responsableNombre && (
+                                    <div style={{ color: '#556a8a', marginTop: 2, fontSize: 10.5 }}>
+                                      {a.responsableParentesco || 'Acudiente'}: {a.responsableNombre} ({a.responsableTelefono})
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                             </td>
                             <td style={td}>{nombreProg(a.programaId)}</td>
                             <td style={td}>{a.puntajeIcfes}</td>
@@ -567,8 +673,16 @@ export default function Admisiones() {
            ========================================================= */
         if (tab === 'documentos') {
           const incompletos = adm.aspirantes.filter((a) => a.documentos !== 'completo');
+          /* Los inscritos son los que ya tienen ficha de estudiante en
+             'en_inscripcion': ellos suben los archivos y aquí se revisan. */
+          const inscritos = estudiantes.filter((e) => e.estado === 'en_inscripcion');
           return (
             <div>
+              {aviso && (
+                <div style={{ ...card, marginBottom: 14, background: aviso.ok ? '#e9f7f1' : '#fff1f3', borderColor: aviso.ok ? '#b6e3cf' : '#f4c2ca', padding: 12 }}>
+                  <span style={{ fontSize: 13, color: aviso.ok ? '#0a6e4b' : '#c1122c' }}>{aviso.text}</span>
+                </div>
+              )}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 16 }}>
                 <Kpi icon="archivo" bg="#e3f1ff" value={adm.documentos.length} label="Documentos exigidos" />
                 <Kpi icon={<Icon name="check" size={16} />} bg="#d8f0e5" value={adm.documentos.filter((d) => d.vigente).length} label="Vigentes" color="#0a6e4b" />
@@ -595,6 +709,151 @@ export default function Admisiones() {
                     </span>
                   </div>
                 ))}
+              </div>
+
+              {/* ── Lo que subieron los inscritos: revisión y validación ── */}
+              <div style={{ ...card, marginTop: 16 }}>
+                <Encabezado
+                  titulo="Documentos subidos por los inscritos"
+                  sub="Aprueba o rechaza cada archivo con una observación: el estudiante la ve en su portal. Cuando todo esté aprobado, valida el expediente para habilitarle la matrícula."
+                />
+
+                {cargandoExpediente && <Vacio>Cargando expediente…</Vacio>}
+
+                {!cargandoExpediente && !expediente && (
+                  inscritos.length === 0
+                    ? <Vacio>No hay inscritos esperando documentación.</Vacio>
+                    : (
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                          <thead>
+                            <tr>
+                              <th style={th}>Código</th>
+                              <th style={th}>Inscrito</th>
+                              <th style={th}>Expediente</th>
+                              <th style={th}>Acción</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {inscritos.map((e) => (
+                              <tr key={e.id}>
+                                <td style={td}><strong>{e.id}</strong></td>
+                                <td style={td}>
+                                  <strong>{e.nombre}</strong><br />
+                                  <span style={{ fontSize: 11, color: '#9c988e' }}>{e.documento}</span>
+                                </td>
+                                <td style={td}><Badge tone={DOC_TONE[e.documentos]}>{e.documentos}</Badge></td>
+                                <td style={td}>
+                                  <button
+                                    className="btn"
+                                    style={{ padding: '5px 9px', fontSize: 11 }}
+                                    data-testid={`revisar-docs-${e.id}`}
+                                    onClick={() => abrirExpediente(e)}
+                                  >
+                                    <Icon name="ojo" size={14} /> Revisar documentos
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )
+                )}
+
+                {!cargandoExpediente && expediente && (
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+                      <div>
+                        <strong style={{ fontSize: 14 }}>{expediente.estudiante.nombre}</strong>
+                        <span style={{ fontSize: 12, color: '#9c988e', marginLeft: 8 }}>
+                          {expediente.estudiante.id} · expediente {expediente.estudiante.documentos}
+                        </span>
+                      </div>
+                      <span style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <button
+                          className="btn"
+                          style={{ padding: '5px 10px', fontSize: 11, background: '#0a6e4b', color: '#fff' }}
+                          data-testid="validar-expediente"
+                          onClick={() => validarExpediente(true)}
+                        >
+                          <Icon name="check" size={14} /> Expediente completo
+                        </button>
+                        {expediente.estudiante.documentos === 'completo' && (
+                          <button
+                            className="btn"
+                            style={{ padding: '5px 10px', fontSize: 11 }}
+                            onClick={() => validarExpediente(false)}
+                          >
+                            Marcar pendiente
+                          </button>
+                        )}
+                        <button className="btn" style={{ padding: '5px 10px', fontSize: 11 }} onClick={() => setExpediente(null)}>
+                          Volver
+                        </button>
+                      </span>
+                    </div>
+
+                    {expediente.archivos.length === 0 && (
+                      <Vacio>Este estudiante aún no ha subido ningún documento.</Vacio>
+                    )}
+
+                    {expediente.archivos.map((a) => (
+                      <div key={a.id} style={{ padding: '12px 0', borderBottom: '1px solid #f0eee9' }}>
+                        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                          <span style={{ flex: '1 1 220px', fontSize: 13, minWidth: 0 }}>
+                            <strong>{a.requisito?.nombre || `Requisito ${a.requisitoId}`}</strong>
+                            <span style={{ display: 'block', fontSize: 11, color: '#9c988e' }}>
+                              {a.nombre} · {Math.max(1, Math.round(a.tamano / 1024))} KB ·
+                              subido {a.subidoEn ? new Date(a.subidoEn).toLocaleDateString('es-CO') : ''}
+                            </span>
+                          </span>
+                          <Badge tone={a.estado === 'aprobado' ? 'green' : a.estado === 'rechazado' ? 'red' : 'amber'}>{a.estado}</Badge>
+                          <span style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                            <button
+                              className="btn"
+                              style={{ padding: '4px 9px', fontSize: 11 }}
+                              onClick={() => descargarDocumentoIngresoAdmisiones(a.id).catch((err) => setAviso({ ok: false, text: err.message }))}
+                            >
+                              <Icon name="descargar" size={14} /> Ver archivo
+                            </button>
+                            <button
+                              className="btn"
+                              style={{ padding: '4px 9px', fontSize: 11, background: '#0a6e4b', color: '#fff' }}
+                              disabled={a.estado === 'aprobado'}
+                              onClick={() => revisarArchivo(a, 'aprobado')}
+                            >
+                              <Icon name="check" size={14} /> Aprobar
+                            </button>
+                            <button
+                              className="btn"
+                              style={{ padding: '4px 9px', fontSize: 11, background: '#c1122c', color: '#fff' }}
+                              disabled={a.estado === 'rechazado'}
+                              onClick={() => revisarArchivo(a, 'rechazado')}
+                            >
+                              <Icon name="alerta" size={14} /> Rechazar
+                            </button>
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                          <input
+                            style={{ ...input, flex: '1 1 260px' }}
+                            placeholder="Observación para el estudiante (ej. 'Falta la firma del responsable' o 'El documento está ilegible')"
+                            value={obsDraft[a.id] ?? a.observacion ?? ''}
+                            onChange={(ev) => setObsDraft({ ...obsDraft, [a.id]: ev.target.value })}
+                          />
+                          <button
+                            className="btn"
+                            style={{ padding: '5px 10px', fontSize: 11 }}
+                            onClick={() => revisarArchivo(a, a.estado === 'rechazado' ? 'rechazado' : a.estado)}
+                          >
+                            Guardar observación
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div style={{ ...card, marginTop: 16 }}>
@@ -641,19 +900,29 @@ export default function Admisiones() {
            PESTAÑA: REGISTRO (INSCRIPCIÓN DE ADMITIDOS)
            ========================================================= */
         if (tab === 'registro') {
-          const lista = inscritos;
+          const lista = estudiantes.filter((e) => {
+            if (filtroRegistro === 'sin_cuenta') return !e.usuario;
+            if (filtroRegistro === 'todos') return true;
+            return e.estado === 'en_inscripcion';
+          });
+          const totalSinCuenta = estudiantes.filter((e) => !e.usuario).length;
           return (
             <div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 16 }}>
                 <Kpi icon={<Icon name="cuaderno" size={16} />} bg="#fbefd6" value={inscritos.length} label="Por matricular" color="#99610e" />
+                <Kpi icon={<Icon name="candado" size={16} />} bg="#ffe0e5" value={totalSinCuenta} label="Sin cuenta de acceso" color="#c1122c" onClick={() => setFiltroRegistro('sin_cuenta')} />
                 <Kpi icon={<Icon name="check" size={16} />} bg="#d8f0e5" value={estudiantes.filter((e) => e.estado === 'activo').length} label="Con matrícula activa" color="#0a6e4b" />
-                <Kpi icon={<Icon name="libro" size={16} />} bg="#e3f1ff" value={estudiantes.length} label="Total en el registro" />
-                <Kpi icon={<Icon name="graduacion" size={16} />} bg="#efe9fb" value={estudiantes.filter((e) => e.estado === 'graduado').length} label="Graduados" color="#5a37ad" />
+                <Kpi icon={<Icon name="libro" size={16} />} bg="#e3f1ff" value={estudiantes.length} label="Total en el registro" onClick={() => setFiltroRegistro('todos')} />
               </div>
 
               <div style={{ ...card, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
-                <input placeholder="Buscar por nombre, documento o código…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={{ ...input, minWidth: 280 }} />
-                <span style={{ fontSize: 12, color: '#9c988e' }}>{lista.filter(enFiltro).length} de {lista.length} admitidos por matricular</span>
+                <input placeholder="Buscar por nombre, documento o código…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={{ ...input, minWidth: 260 }} />
+                <select value={filtroRegistro} onChange={(e) => setFiltroRegistro(e.target.value)} style={input}>
+                  <option value="inscritos">Por matricular (en inscripción)</option>
+                  <option value="sin_cuenta">Estudiantes sin cuenta de acceso</option>
+                  <option value="todos">Todos los estudiantes</option>
+                </select>
+                <span style={{ fontSize: 12, color: '#9c988e' }}>{lista.filter(enFiltro).length} de {lista.length} estudiantes</span>
               </div>
 
               {aviso && (
@@ -664,8 +933,8 @@ export default function Admisiones() {
 
               <div style={card}>
                 <Encabezado
-                  titulo="Admitidos pendientes de inscripción"
-                  sub="La inscripción se cierra cuando el estudiante queda activo y con la matrícula registrada."
+                  titulo={filtroRegistro === 'sin_cuenta' ? 'Estudiantes sin cuenta de acceso al campus' : filtroRegistro === 'todos' ? 'Todos los estudiantes en registro' : 'Admitidos pendientes de inscripción'}
+                  sub={filtroRegistro === 'sin_cuenta' ? 'Estudiantes registrados que todavía no tienen credenciales de acceso activas.' : filtroRegistro === 'todos' ? 'Listado general de estudiantes en el sistema.' : 'La inscripción se cierra cuando el estudiante queda activo y con la matrícula registrada.'}
                 />
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -675,8 +944,8 @@ export default function Admisiones() {
                         <th style={th}>Estudiante</th>
                         <th style={th}>Programa</th>
                         <th style={th}>Sem.</th>
-                        <th style={th}>Jornada</th>
-                        <th style={th}>Documentos</th>
+                        <th style={th}>Estado</th>
+                        <th style={th}>Financiero</th>
                         <th style={th}>Cuenta</th>
                         <th style={th}>Acción</th>
                       </tr>
@@ -690,13 +959,37 @@ export default function Admisiones() {
                             <td style={td}><strong>{e.nombre}</strong><br /><span style={{ fontSize: 11, color: '#9c988e' }}>{e.documento}</span></td>
                             <td style={td}>{nombreProg(e.programaId)}</td>
                             <td style={td}>{e.semestre}</td>
-                            <td style={td}>{e.jornada}</td>
-                            <td style={td}><Badge tone={DOC_TONE[e.documentos]}>{e.documentos}</Badge></td>
+                            <td style={td}>
+                              <Badge tone={ESTADO_ESTUDIANTE[e.estado]?.tone || 'slate'}>
+                                {ESTADO_ESTUDIANTE[e.estado]?.label || e.estado}
+                              </Badge>
+                            </td>
                             <td style={td}><Badge tone={cuenta.tone}>{cuenta.label}</Badge></td>
                             <td style={td}>
-                              <button className="btn" style={{ padding: '5px 9px', fontSize: 11 }} onClick={() => completarInscripcion(e)}>
-                                Completar inscripción
-                              </button>
+                              {e.usuario ? (
+                                <Badge tone={e.usuarioActivo ? 'blue' : 'red'}>{e.usuario}</Badge>
+                              ) : (
+                                <span style={{ color: '#9c988e' }}>sin cuenta</span>
+                              )}
+                            </td>
+                            <td style={td}>
+                              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                {e.estado === 'en_inscripcion' && (
+                                  <button className="btn" style={{ padding: '5px 9px', fontSize: 11 }} onClick={() => completarInscripcion(e)}>
+                                    Completar inscripción
+                                  </button>
+                                )}
+                                {!e.usuario && (
+                                  <button
+                                    className="btn"
+                                    style={{ padding: '5px 9px', fontSize: 11, background: '#e3f1ff', color: '#06468c', border: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                    onClick={() => crearCuentaDeEstudiante(e)}
+                                    title="Crear cuenta de acceso para este estudiante"
+                                  >
+                                    <Icon name="candado" size={13} /> Crear cuenta
+                                  </button>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         );
@@ -705,7 +998,13 @@ export default function Admisiones() {
                   </table>
                 </div>
                 {lista.filter(enFiltro).length === 0 && (
-                  <Vacio>No hay admitidos pendientes de inscripción con ese criterio.</Vacio>
+                  <Vacio>
+                    {filtroRegistro === 'sin_cuenta'
+                      ? 'No hay estudiantes sin cuenta de acceso.'
+                      : filtroRegistro === 'todos'
+                      ? 'No hay estudiantes que coincidan con la búsqueda.'
+                      : 'No hay admitidos pendientes de inscripción con ese criterio.'}
+                  </Vacio>
                 )}
               </div>
             </div>
@@ -772,6 +1071,23 @@ export default function Admisiones() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0 0', fontSize: 13 }}>
                       <span style={{ color: '#6f6b62' }}>Expediente documental</span>
                       <Badge tone={DOC_TONE[est.documentos]}>{est.documentos}</Badge>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0 0', fontSize: 13 }}>
+                      <span style={{ color: '#6f6b62' }}>Cuenta de campus</span>
+                      {est.usuario ? (
+                        <Badge tone={est.usuarioActivo ? 'blue' : 'red'}>{est.usuario}</Badge>
+                      ) : (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ color: '#9c988e' }}>sin cuenta</span>
+                          <button
+                            className="btn"
+                            style={{ padding: '3px 8px', fontSize: 11, background: '#e3f1ff', color: '#06468c', border: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                            onClick={() => crearCuentaDeEstudiante(est)}
+                          >
+                            <Icon name="candado" size={13} /> Crear cuenta
+                          </button>
+                        </span>
+                      )}
                     </div>
                   </div>
 

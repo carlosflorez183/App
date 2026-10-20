@@ -4,8 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import Login from './pages/Login';
 
-/* Las páginas se cargan bajo demanda: cada módulo pesado (Curso, Contabilidad,
-   Talento Humano…) queda en su propio chunk y no bloquea el arranque. */
+
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Matricula = lazy(() => import('./pages/Matricula'));
 const Curso = lazy(() => import('./pages/Curso'));
@@ -31,7 +30,6 @@ function ProtectedRoute({ children, roles }) {
   if (!user) {
     return <Navigate to="/login" replace />;
   }
-  /* Cuentas con contraseña temporal: no pueden usar la plataforma hasta cambiarla. */
   if (user.debeCambiarPassword) {
     return <CambioPassword />;
   }

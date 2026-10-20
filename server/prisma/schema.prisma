@@ -197,10 +197,36 @@ model Estudiante {
   asistencias AsistenciaRegistro[]
   entregas  Entrega[]
   inscripciones Inscripcion[]
+  documentosIngreso DocumentoIngreso[]
 
   @@index([programaId])
   @@index([estado])
   @@map("estudiantes")
+}
+
+/// Archivo que el estudiante sube para completar su expediente de ingreso.
+/// `estado`: pendiente, aprobado, rechazado. Admisiones lo revisa y deja la
+/// observación que el alumno ve en su portal.
+model DocumentoIngreso {
+  id           Int      @id @default(autoincrement())
+  estudianteId String
+  requisitoId  Int
+  nombre       String
+  mime         String?
+  tamano       Int      @default(0)
+  contenidoB64 String
+  estado       String   @default("pendiente")
+  observacion  String?
+  subidoEn     DateTime @default(now())
+  revisadoEn   DateTime?
+  revisadoPor  String?
+
+  estudiante Estudiante        @relation(fields: [estudianteId], references: [id], onDelete: Cascade)
+  requisito  RequisitoDocumento @relation(fields: [requisitoId], references: [id])
+
+  @@unique([estudianteId, requisitoId])
+  @@index([estudianteId])
+  @@map("documentos_ingreso")
 }
 
 /// Concepto cobrado al estudiante. `estado`: pagado, pendiente, vencido.
@@ -771,11 +797,13 @@ model ConfigPonderacion {
 
 /// Documento exigido al aspirante.
 model RequisitoDocumento {
-  id         Int     @id @default(autoincrement())
-  clave      String  @unique
+  id         Int      @id @default(autoincrement())
+  clave      String   @unique
   nombre     String
   obligatorio Boolean
   vigente    Boolean
+
+  documentosIngreso DocumentoIngreso[]
 
   @@map("requisitos_documento")
 }

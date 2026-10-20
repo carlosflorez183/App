@@ -16,12 +16,27 @@ const campo = {
 const etiqueta = { display: 'block', fontSize: 12, fontWeight: 700, color: '#4e4a43', marginBottom: 6 };
 
 export default function Inscripcion() {
-  const [datos, setDatos] = useState({ nombre: '', documento: '', programaId: '', email: '', telefono: '', direccion: '' });
+  const [datos, setDatos] = useState({
+    nombre: '',
+    documento: '',
+    programaId: '',
+    email: '',
+    telefono: '',
+    direccion: '',
+    esMenorDeEdad: false,
+    responsableParentesco: 'Madre',
+    responsableNombre: '',
+    responsableTipoDoc: 'CC',
+    responsableDocumento: '',
+    responsableTelefono: '',
+    responsableEmail: '',
+  });
   const [programas, setProgramas] = useState([]);
   const [procesoAbierto, setProcesoAbierto] = useState(true);
   const [error, setError] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [exito, setExito] = useState(null);
+  const [datosDeAcceso, setDatosDeAcceso] = useState(null);
 
   useEffect(() => {
     let vivo = true;
@@ -44,6 +59,20 @@ export default function Inscripcion() {
   const enviar = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (datos.esMenorDeEdad) {
+      if (
+        !datos.responsableNombre.trim() ||
+        !datos.responsableDocumento.trim() ||
+        !datos.responsableTelefono.trim()
+      ) {
+        setError(
+          'Para aspirantes menores de edad, debes completar el nombre, documento y teléfono del padre, madre o persona responsable.'
+        );
+        return;
+      }
+    }
+
     setEnviando(true);
     try {
       const res = await registroInscripcion({
@@ -51,6 +80,7 @@ export default function Inscripcion() {
         programaId: Number(datos.programaId),
       });
       setExito(res?.mensaje || 'Inscripción registrada.');
+      setDatosDeAcceso(res?.credenciales || null);
     } catch (err) {
       setError(err?.message || 'No se pudo registrar la inscripción.');
     } finally {
@@ -90,9 +120,36 @@ export default function Inscripcion() {
                 <Icon name="check" size={26} color="#1f9d55" />
               </div>
               <h2 style={{ fontSize: 17, fontWeight: 700, color: '#211d17', marginBottom: 8 }}>Inscripción registrada</h2>
-              <p style={{ fontSize: 13, color: '#6f6b62', lineHeight: 1.6, marginBottom: 20 }}>{exito}</p>
+              <p style={{ fontSize: 13, color: '#6f6b62', lineHeight: 1.6, marginBottom: 16 }}>{exito}</p>
+              {datos.esMenorDeEdad && datos.responsableNombre && (
+                <div style={{
+                  background: '#f0f5fc',
+                  border: '1px solid #c8dcf6',
+                  borderRadius: 12,
+                  padding: '12px 14px',
+                  marginBottom: 18,
+                  fontSize: 12.5,
+                  color: '#06468c',
+                  textAlign: 'left',
+                }}>
+                  <div style={{ fontWeight: 700, marginBottom: 2 }}>Responsable / Acudiente registrado:</div>
+                  <div>{datos.responsableNombre} ({datos.responsableParentesco}) · {datos.responsableTipoDoc} {datos.responsableDocumento}</div>
+                  <div>Teléfono: {datos.responsableTelefono}{datos.responsableEmail ? ` · ${datos.responsableEmail}` : ''}</div>
+                </div>
+              )}
+              {datosDeAcceso && (
+                <div style={{
+                  background: '#f0f5fc', border: '1px solid #c8dcf6', borderRadius: 12,
+                  padding: '12px 14px', marginBottom: 18, fontSize: 12.5, color: '#06468c', textAlign: 'left',
+                }}>
+                  <div style={{ fontWeight: 700, marginBottom: 2 }}>Tus datos de acceso (guárdalos):</div>
+                  <div>Usuario: <strong>{datosDeAcceso.usuario}</strong></div>
+                  <div>Contraseña temporal: <strong>{datosDeAcceso.password}</strong></div>
+                  <div style={{ marginTop: 4 }}>Entra a la plataforma y sube tus documentos de admisión; el sistema te pedirá cambiar la contraseña.</div>
+                </div>
+              )}
               <p style={{ fontSize: 12, color: '#6f6b62', marginBottom: 20 }}>
-                Tu usuario de ingreso será tu número de documento. La contraseña temporal también es tu documento; el
+                Tu usuario de ingreso es tu número de documento. La contraseña temporal también es tu documento; el
                 sistema te pedirá cambiarla al primer ingreso.
               </p>
               <Link to="/login" style={{ display: 'inline-block', padding: '11px 22px', background: 'linear-gradient(135deg, #00116f 0%, #06468c 60%, #0a5cae 100%)', color: 'white', borderRadius: 10, fontSize: 14, fontWeight: 700, textDecoration: 'none' }}>
@@ -122,7 +179,7 @@ export default function Inscripcion() {
 
               <form onSubmit={enviar}>
                 <div style={{ marginBottom: 14 }}>
-                  <label style={etiqueta}>Nombre completo *</label>
+                  <label style={etiqueta}>Nombre completo del aspirante *</label>
                   <input style={campo} name="nombre" value={datos.nombre} onChange={cambiar} required placeholder="Ej. Ana María Pérez" />
                 </div>
 
@@ -152,10 +209,152 @@ export default function Inscripcion() {
                   </div>
                 </div>
 
-                <div style={{ marginBottom: 20 }}>
-                  <label style={etiqueta}>Dirección</label>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={etiqueta}>Dirección de residencia</label>
                   <input style={campo} name="direccion" value={datos.direccion} onChange={cambiar} placeholder="Ej. Calle 10 #5-30" />
                 </div>
+
+                {/* Sección Menor de edad */}
+                <div
+                  onClick={() => setDatos((d) => ({ ...d, esMenorDeEdad: !d.esMenorDeEdad }))}
+                  style={{
+                    marginBottom: 16,
+                    padding: '12px 14px',
+                    background: datos.esMenorDeEdad ? '#f0f5fc' : '#fbfaf7',
+                    border: `1.5px solid ${datos.esMenorDeEdad ? '#0a84ff' : '#cdc9bf'}`,
+                    borderRadius: 12,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <div style={{ paddingRight: 10 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#211d17' }}>
+                      ¿El aspirante es menor de edad? (menor de 18 años)
+                    </div>
+                    <div style={{ fontSize: 12, color: '#6f6b62', marginTop: 2 }}>
+                      En caso afirmativo, se requerirán los datos del padre, madre o persona responsable.
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    id="esMenorDeEdad"
+                    name="esMenorDeEdad"
+                    checked={datos.esMenorDeEdad}
+                    onChange={(e) => setDatos((d) => ({ ...d, esMenorDeEdad: e.target.checked }))}
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ width: 19, height: 19, cursor: 'pointer', accentColor: '#00116f' }}
+                  />
+                </div>
+
+                {datos.esMenorDeEdad && (
+                  <div style={{
+                    background: '#f8fafd',
+                    border: '1.5px solid #bdd7f5',
+                    borderRadius: 14,
+                    padding: '16px',
+                    marginBottom: 20,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid #dce8f8' }}>
+                      <Icon name="users" size={18} color="#06468c" />
+                      <div>
+                        <div style={{ fontSize: 14, fontWeight: 800, color: '#06468c' }}>
+                          Datos del padre, madre o persona responsable
+                        </div>
+                        <div style={{ fontSize: 11.5, color: '#556a8a' }}>
+                          Información requerida para postulantes menores de edad
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ marginBottom: 14 }}>
+                      <label style={etiqueta}>Parentesco o relación con el aspirante *</label>
+                      <select
+                        style={campo}
+                        name="responsableParentesco"
+                        value={datos.responsableParentesco}
+                        onChange={cambiar}
+                        required={datos.esMenorDeEdad}
+                      >
+                        <option value="Madre">Madre</option>
+                        <option value="Padre">Padre</option>
+                        <option value="Tutor / Acudiente legal">Tutor / Acudiente legal</option>
+                        <option value="Abuelo / Abuela">Abuelo / Abuela</option>
+                        <option value="Hermano(a) mayor de edad">Hermano(a) mayor de edad</option>
+                        <option value="Otro familiar">Otro familiar responsable</option>
+                      </select>
+                    </div>
+
+                    <div style={{ marginBottom: 14 }}>
+                      <label style={etiqueta}>Nombre completo del padre, madre o responsable *</label>
+                      <input
+                        style={campo}
+                        name="responsableNombre"
+                        value={datos.responsableNombre}
+                        onChange={cambiar}
+                        required={datos.esMenorDeEdad}
+                        placeholder="Ej. Carmen Rodríguez de Pérez"
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
+                      <div style={{ flex: 1 }}>
+                        <label style={etiqueta}>Tipo de documento *</label>
+                        <select
+                          style={campo}
+                          name="responsableTipoDoc"
+                          value={datos.responsableTipoDoc}
+                          onChange={cambiar}
+                          required={datos.esMenorDeEdad}
+                        >
+                          <option value="CC">Cédula de Ciudadanía (CC)</option>
+                          <option value="CE">Cédula de Extranjería (CE)</option>
+                          <option value="Pasaporte">Pasaporte</option>
+                          <option value="PPT">Permiso Protección Temporal (PPT)</option>
+                        </select>
+                      </div>
+                      <div style={{ flex: 1.2 }}>
+                        <label style={etiqueta}>Número de documento *</label>
+                        <input
+                          style={campo}
+                          name="responsableDocumento"
+                          value={datos.responsableDocumento}
+                          onChange={cambiar}
+                          required={datos.esMenorDeEdad}
+                          placeholder="Ej. 52345678"
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 12 }}>
+                      <div style={{ flex: 1 }}>
+                        <label style={etiqueta}>Teléfono de contacto *</label>
+                        <input
+                          style={campo}
+                          type="tel"
+                          name="responsableTelefono"
+                          value={datos.responsableTelefono}
+                          onChange={cambiar}
+                          required={datos.esMenorDeEdad}
+                          placeholder="Ej. 3101234567"
+                        />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <label style={etiqueta}>Correo electrónico (opcional)</label>
+                        <input
+                          style={campo}
+                          type="email"
+                          name="responsableEmail"
+                          value={datos.responsableEmail}
+                          onChange={cambiar}
+                          placeholder="acudiente@ejemplo.com"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <button type="submit" disabled={enviando || !procesoAbierto} style={{
                   width: '100%', padding: '12px',

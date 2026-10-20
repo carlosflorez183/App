@@ -6,6 +6,11 @@
 
 // kind: 'view'  -> delega en el onNavigate del módulo actual (Dashboard)
 // kind: 'route' -> navega a otra ruta del SPA
+// restringido:
+//   'ingreso'  -> solo mientras el estudiante está en proceso de ingreso
+//   'matricula'-> visible cuando Admisiones ya validó sus documentos (o ya es
+//                 matriculado); es la entrada a Matricular Materias
+//   'acceso'   -> solo cuando ya terminó el ingreso (notas, cursos, etc.)
 export const NAV_MENU = [
   {
     section: 'Principal',
@@ -14,31 +19,39 @@ export const NAV_MENU = [
     ],
   },
   {
+    section: 'Admisión',
+    items: [
+      /* El estudiante nuevo sube aquí los requisitos del expediente. Admisiones
+         los revisa y, cuando los valida, se habilita Matricular Materias. */
+      { key: 'documentos_ingreso', label: 'Documentos de Admisión', icon: 'adm-documentos', kind: 'view', view: 'ingreso', tab: 'documentos', roles: ['estudiante'], restringido: 'ingreso' },
+    ],
+  },
+  {
     section: 'Académico',
     items: [
-      { key: 'notas', label: 'Mis Notas', icon: 'notas', kind: 'view', view: 'academico', tab: 'notas', roles: ['estudiante'] },
-      { key: 'certificados', label: 'Certificados', icon: 'certificados', kind: 'view', view: 'academico', tab: 'certificados', roles: ['estudiante', 'profesor'] },
+      { key: 'notas', label: 'Mis Notas', icon: 'notas', kind: 'view', view: 'academico', tab: 'notas', roles: ['estudiante'], restringido: 'acceso' },
+      { key: 'certificados', label: 'Certificados', icon: 'certificados', kind: 'view', view: 'academico', tab: 'certificados', roles: ['estudiante', 'profesor'], restringido: 'acceso' },
       { key: 'pagos', label: 'Pagos / Volante', icon: 'pagos', kind: 'view', view: 'academico', tab: 'pagos', roles: ['estudiante'] },
-      { key: 'horario', label: 'Mi Horario', icon: 'horario', kind: 'view', view: 'academico', tab: 'horario', roles: ['estudiante'] },
+      { key: 'horario', label: 'Mi Horario', icon: 'horario', kind: 'view', view: 'academico', tab: 'horario', roles: ['estudiante'], restringido: 'acceso' },
       { key: 'registro_notas', label: 'Registro Notas', icon: 'registro-notas', kind: 'route', to: '/docente', tab: 'notas', roles: ['profesor'] },
     ],
   },
   {
     section: 'Campus Virtual',
     items: [
-      { key: 'cursos', label: 'Mis Cursos', icon: 'cursos', kind: 'view', view: 'lms', tab: 'cursos', roles: ['estudiante', 'profesor'] },
+      { key: 'cursos', label: 'Mis Cursos', icon: 'cursos', kind: 'view', view: 'lms', tab: 'cursos', roles: ['estudiante', 'profesor'], restringido: 'acceso' },
       /* Para el estudiante es la lista de lo que tiene por entregar. Para el
          docente es lo contrario: lo que recibio y tiene que revisar y
          calificar. Son dos trabajos distintos y no pueden llamarse igual. */
-      { key: 'tareas', label: 'Tareas', icon: 'tareas', kind: 'view', view: 'lms', tab: 'tareas', badge: 2, roles: ['estudiante'] },
+      { key: 'tareas', label: 'Tareas', icon: 'tareas', kind: 'view', view: 'lms', tab: 'tareas', badge: 2, roles: ['estudiante'], restringido: 'acceso' },
       { key: 'tareas', label: 'Por Calificar', icon: 'tareas-calificar', kind: 'view', view: 'lms', tab: 'tareas', roles: ['profesor'] },
-      { key: 'recursos', label: 'Recursos', icon: 'recursos', kind: 'view', view: 'lms', tab: 'recursos', roles: ['estudiante', 'profesor'] },
+      { key: 'recursos', label: 'Recursos', icon: 'recursos', kind: 'view', view: 'lms', tab: 'recursos', roles: ['estudiante', 'profesor'], restringido: 'acceso' },
     ],
   },
   {
     section: 'Matrícula',
     items: [
-      { key: 'matricular', label: 'Matricular Materias', icon: 'matricular', kind: 'route', to: '/matricula', roles: ['estudiante'] },
+      { key: 'matricular', label: 'Matricular Materias', icon: 'matricular', kind: 'route', to: '/matricula', roles: ['estudiante'], restringido: 'matricula' },
       { key: 'consultar_pensum', label: 'Consultar Pensum', icon: 'pensum', kind: 'route', to: '/pensum', roles: ['admisiones'] },
     ],
   },
@@ -108,13 +121,28 @@ export const NAV_MENU = [
   },
 ];
 
-export const menuForRole = (role) =>
-  NAV_MENU
-    .map((sec) => ({
-      ...sec,
-      items: sec.items.filter((i) => i.roles === '*' || i.roles.includes(role)),
-    }))
-    .filter((sec) => sec.items.length > 0);
+/* Menú de un rol. Para el estudiante se pasa su ficha (`user.estudiante` del
+   login) y con ella se decide qué ve mientras está en proceso de ingreso:
+   - `enIngreso`: estado 'en_inscripcion' (aún no ha matriculado).
+   - `docsOk`: Admisiones ya validó sus documentos (matrícula habilitada).
+   Sin ficha (otros roles o cuentas sin estudiante) el menú es el completo. */
+export const menuForRole = (role, estudiante = null) => {
+  const enIngreso = !!estudiante && estudiante.estado === 'en_inscripcion';
+  const docsOk = !!estudiante && estudiante.documentos === 'completo';
+
+  const pasa = (item) => {
+    if (!(item.roles === '*' || item.roles.includes(role))) return false;
+    if (item.restringido === 'ingreso') return enIngreso;
+    if (item.restringido === 'matricula') return docsOk || !enIngreso;
+    if (item.restringido === 'acceso') return !enIngreso;
+    return true;
+  };
+
+  return NAV_MENU.map((sec) => ({
+    ...sec,
+    items: sec.items.filter(pasa),
+  })).filter((sec) => sec.items.length > 0);
+};
 
 /* Pestaña que muestra cada módulo cuando se entra sin ?tab=.
    El Sidebar la necesita para resaltar el ítem correcto en /admisiones. */

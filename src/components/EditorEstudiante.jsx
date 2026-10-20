@@ -31,6 +31,7 @@ export default function EditorEstudiante({
   guardando = false,
   onGuardar,
   onCerrar,
+  onCrearCuenta,
 }) {
   /* Se inicializa con campos definidos para que los inputs nazcan
      controlados; el efecto los rellena con el estudiante al abrir. */
@@ -235,8 +236,19 @@ export default function EditorEstudiante({
               </div>
             </div>
           ) : (
-            <div style={{ fontSize: 12, color: '#9c988e', border: '1px dashed #e5e2da', borderRadius: 10, padding: 12, background: '#fbfaf7' }}>
-              Este estudiante no tiene cuenta de acceso al campus.
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, fontSize: 12, color: '#9c988e', border: '1px dashed #e5e2da', borderRadius: 10, padding: 12, background: '#fbfaf7' }}>
+              <span>Este estudiante no tiene cuenta de acceso al campus.</span>
+              {onCrearCuenta && (
+                <button
+                  type="button"
+                  className="btn"
+                  style={{ padding: '5px 12px', fontSize: 12, background: '#e3f1ff', color: '#06468c', border: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                  onClick={() => onCrearCuenta(estudiante)}
+                  disabled={guardando}
+                >
+                  <Icon name="candado" size={14} /> Crear cuenta de acceso
+                </button>
+              )}
             </div>
           )}
         </div>

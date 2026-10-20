@@ -120,9 +120,10 @@ export default function Sidebar({ currentView, currentTab, onNavigate, isOpen, o
           </div>
         </div>
 
-        {/* Menú de navegación dirigido por rol (src/config/navMenu.js) */}
+        {/* Menú de navegación dirigido por rol (src/config/navMenu.js). Para el
+            estudiante la ficha define qué ve mientras está en ingreso. */}
         <nav className="sidebar-nav" style={{ flex: 1, padding: '10px 0' }}>
-          {menuForRole(user.role).map((sec) => (
+          {menuForRole(user.role, user.estudiante).map((sec) => (
             <div key={sec.section}>
               <div className="nav-sec" style={{ ...NAV_SEC_STYLE, marginTop: 10 }}>
                 {sec.section.toUpperCase()}

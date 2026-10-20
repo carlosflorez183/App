@@ -181,7 +181,7 @@ export const FUENTES = FUENTES_PLANES;
    ============================================= */
 
 const ASPIRANTES = [
-  { id:'ASP-0001', nombre:'Mariana Restrepo Hoyos', documento:'1.008.774.215', programaId:1, puntajeIcfes:412, examen:78, promedio:4.62, fecha:'2026-05-12', estado:'admitido', documentos:'completo' },
+  { id:'ASP-0001', nombre:'Mariana Restrepo Hoyos', documento:'1.008.774.215', programaId:1, puntajeIcfes:412, examen:78, promedio:4.62, fecha:'2026-05-12', estado:'admitido', documentos:'completo', esMenorDeEdad: true, responsableParentesco: 'Madre', responsableNombre: 'Gloria Elena Hoyos', responsableTelefono: '315 440 9922' },
   { id:'ASP-0002', nombre:'Juan Pablo Cardona', documento:'1.019.882.204', programaId:1, puntajeIcfes:388, examen:71, promedio:4.41, fecha:'2026-05-14', estado:'en_proceso', documentos:'pendiente' },
   { id:'ASP-0003', nombre:'Laura Fernanda Gómez', documento:'1.032.117.450', programaId:5, puntajeIcfes:401, examen:74, promedio:4.55, fecha:'2026-05-18', estado:'admitido', documentos:'completo' },
   { id:'ASP-0004', nombre:'Andrés Felipe Ortiz', documento:'1.021.663.908', programaId:2, puntajeIcfes:352, examen:66, promedio:4.08, fecha:'2026-05-20', estado:'en_proceso', documentos:'pendiente' },
@@ -194,7 +194,7 @@ const ASPIRANTES = [
   { id:'ASP-0011', nombre:'Isabella Moreno Rojas', documento:'1.035.668.142', programaId:7, puntajeIcfes:409, examen:85, promedio:4.60, fecha:'2026-06-02', estado:'admitido', documentos:'completo' },
   { id:'ASP-0012', nombre:'Tomás Alejandro Ruiz', documento:'1.009.887.213', programaId:1, puntajeIcfes:331, examen:64, promedio:3.92, fecha:'2026-06-04', estado:'rechazado', documentos:'completo' },
   { id:'ASP-0013', nombre:'Manuela Ochoa Pérez', documento:'1.048.330.761', programaId:10, puntajeIcfes:287, examen:72, promedio:4.05, fecha:'2026-06-05', estado:'en_proceso', documentos:'incompleto' },
-  { id:'ASP-0014', nombre:'Samuel Betancur López', documento:'1.026.774.508', programaId:3, puntajeIcfes:358, examen:73, promedio:4.29, fecha:'2026-06-08', estado:'admitido', documentos:'completo' },
+  { id:'ASP-0014', nombre:'Samuel Betancur López', documento:'1.026.774.508', programaId:3, puntajeIcfes:358, examen:73, promedio:4.29, fecha:'2026-06-08', estado:'admitido', documentos:'completo', esMenorDeEdad: true, responsableParentesco: 'Padre', responsableNombre: 'Rodrigo Betancur', responsableTelefono: '310 987 6543' },
 ];
 
 // Estudiantes que ya venían de periodos anteriores, para que el registro no
@@ -271,6 +271,8 @@ const construirEstudiantes = () => {
       documentos: CICLO_DOCS[i % CICLO_DOCS.length],
       fechaIngreso: e.ingreso,
       admisioId: null,
+      usuario: e.codigo === '20231001' ? 'EST001' : null,
+      usuarioActivo: e.codigo === '20231001' ? true : null,
       pagos: pagosDe(i, e.estado === 'retirado' ? 'mora' : PERFIL_PAGO[i], e.semestre),
     });
   });
@@ -293,6 +295,8 @@ const construirEstudiantes = () => {
       documentos: a.documentos,
       fechaIngreso: '2026-07-15',
       admisioId: a.id,
+      usuario: null,
+      usuarioActivo: null,
       pagos: pagosDe(n, PERFIL_PAGO[n], 1),
     });
   });

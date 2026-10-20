@@ -46,6 +46,43 @@ export default function Matricula({ readOnly = false }) {
   );
   const maxCreditos = 23;
 
+  /* La matrícula se habilita cuando Admisiones valida el expediente de
+     documentos del estudiante. Hasta entonces el portal no deja matricular. */
+  const docsPendientes =
+    user?.role === 'estudiante' && user?.estudiante?.documentos !== 'completo';
+
+  if (docsPendientes) {
+    return (
+      <div style={{ maxWidth: 640, margin: '0 auto' }}>
+        <div className="card">
+          <div className="card-hd">
+            <span className="card-ttl">
+              <Icon name="candado" size={16} /> Matrícula no habilitada
+            </span>
+          </div>
+          <div className="card-bd">
+            <p style={{ fontSize: 13, color: '#6b675e', margin: '0 0 14px' }}>
+              Tu expediente de documentos <strong>aún no está validado por Admisiones</strong>.
+              Cuando revisen y aprueben lo que subiste, este apartado se habilitará y
+              podrás matricular tus materias del periodo 2026-2.
+            </p>
+            <p style={{ fontSize: 12, color: '#9c988e', margin: '0 0 18px' }}>
+              Si Admisiones rechazó alguno de tus documentos, allí verás el motivo y
+              podrás subir una versión corregida.
+            </p>
+            <button
+              className="btn b-primary"
+              data-testid="ir-documentos-ingreso"
+              onClick={() => navigate('/dashboard?view=ingreso&tab=documentos')}
+            >
+              <Icon name="adm-documentos" size={15} /> Ver mis documentos de admisión
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const toggleMateria = (materia) => {
     if (materia.estado === 'cursada' || materia.estado === 'bloqueada') return;
 

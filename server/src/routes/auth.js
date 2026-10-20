@@ -4,7 +4,12 @@
 import { prisma } from '../config.js';
 import { verificar, publico, hash } from '../auth.js';
 import { USUARIOS_DEMO } from '../demoUsuarios.js';
-import { credencialesDeDocumento, documentoLimpio } from '../cuentas.js';
+import {
+  asegurarCuentaEstudiante,
+  credencialesDeDocumento,
+  documentoLimpio,
+  siguienteCodigoEstudiante,
+} from '../cuentas.js';
 
 /* Intentos de login permitidos por cuenta y por minuto. En producción el valor
    seguro es bajo (5); el stack demo lo sube por las corridas de verificación. */
@@ -51,7 +56,13 @@ export default async function rutasAuth(app) {
       return reply.code(400).send({ error: 'Faltan usuario y contraseña' });
     }
 
-    const u = await prisma.usuario.findUnique({ where: { usuario }, include: { programa: true } });
+    const u = await prisma.usuario.findUnique({
+      where: { usuario },
+      include: {
+        programa: true,
+        estudiante: { select: { id: true, estado: true, documentos: true } },
+      },
+    });
     // Mismo mensaje para usuario inexistente y contraseña incorrecta, para no
     // revelar qué cuentas existen.
     if (!u || !verificar(password, u.password)) {
@@ -82,9 +93,11 @@ export default async function rutasAuth(app) {
   });
 
   /* Registro público de aspirantes. Cualquier persona puede inscribirse sin
-     tener cuenta: se crea el aspirante y queda una cuenta PENDIENTE (inactiva)
-     que se activa al formalizar la matrícula. El usuario de ingreso y la
-     contraseña temporal son el número de documento. */
+     tener cuenta: se crea el aspirante, su ficha de estudiante (estado
+     'en_inscripcion', documentos 'pendiente') y una cuenta ACTIVA con
+     contraseña temporal = documento, para que pueda entrar y subir los
+     documentos del expediente. El usuario de ingreso y la contraseña temporal
+     son el número de documento. */
   app.post(
     '/auth/registro',
     {
@@ -100,12 +113,30 @@ export default async function rutasAuth(app) {
             email: { type: 'string', maxLength: 120 },
             telefono: { type: 'string', maxLength: 40 },
             direccion: { type: 'string', maxLength: 160 },
+            esMenorDeEdad: { type: 'boolean' },
+            responsableParentesco: { type: 'string', maxLength: 60 },
+            responsableNombre: { type: 'string', maxLength: 120 },
+            responsableTipoDoc: { type: 'string', maxLength: 20 },
+            responsableDocumento: { type: 'string', maxLength: 30 },
+            responsableTelefono: { type: 'string', maxLength: 40 },
+            responsableEmail: { type: 'string', maxLength: 120 },
           },
         },
       },
     },
     async (req, reply) => {
-      const { nombre, documento, programaId, email, telefono, direccion } = req.body || {};
+      const {
+        nombre, documento, programaId, email, telefono, direccion,
+        esMenorDeEdad, responsableParentesco, responsableNombre,
+        responsableTipoDoc, responsableDocumento, responsableTelefono, responsableEmail,
+      } = req.body || {};
+
+      if (esMenorDeEdad && (!responsableNombre || !responsableDocumento || !responsableTelefono)) {
+        return reply.code(400).send({
+          error: 'Para aspirantes menores de edad, los datos del responsable (nombre, documento y teléfono) son obligatorios',
+        });
+      }
+
       const doc = documentoLimpio(documento);
       if (doc.length < 4) {
         return reply.code(400).send({ error: 'El documento no es válido' });
@@ -122,50 +153,87 @@ export default async function rutasAuth(app) {
       if (await prisma.aspirante.findUnique({ where: { documento: doc } })) {
         return reply.code(409).send({ error: 'Ya existe una inscripción con ese documento' });
       }
-
-      const limpio = String(nombre).trim();
-      const aspirante = await prisma.aspirante.create({
-        data: {
-          procesoId: proceso.id,
-          programaId: programa.id,
-          nombre: limpio,
-          documento: doc,
-          puntajeIcfes: 0,
-          examen: 0,
-          promedio: 0,
-          fecha: new Date(),
-          estado: 'en_proceso',
-          documentos: 'pendiente',
-        },
-      });
-
-      /* Cuenta pendiente: todavía no puede ingresar; se activa al matricular. */
+      if (await prisma.estudiante.findUnique({ where: { documento: doc } })) {
+        return reply.code(409).send({ error: 'Ese documento ya tiene ficha de estudiante' });
+      }
+      /* El documento no puede pisar una cuenta que no sea de estudiante: si no,
+         un registro con documento "ADMIN" tomaría esa cuenta de administración.
+         Se revisa ANTES de crear el aspirante para no dejar registros huérfanos. */
       const { usuario } = credencialesDeDocumento(doc);
       const cuentaExistente = await prisma.usuario.findUnique({ where: { usuario } });
       if (cuentaExistente && cuentaExistente.role !== 'estudiante') {
         return reply.code(409).send({ error: 'Ese documento no se puede usar para la inscripción' });
       }
-      if (!cuentaExistente) {
-        await prisma.usuario.create({
+
+      const limpio = String(nombre).trim();
+      const resultado = await prisma.$transaction(async (tx) => {
+        const aspirante = await tx.aspirante.create({
           data: {
-            usuario,
-            password: hash(usuario),
+            procesoId: proceso.id,
+            programaId: programa.id,
             nombre: limpio,
-            role: 'estudiante',
-            email: email || null,
+            documento: doc,
+            puntajeIcfes: 0,
+            examen: 0,
+            promedio: 0,
+            fecha: new Date(),
+            estado: 'en_proceso',
+            documentos: 'pendiente',
+          },
+        });
+
+        /* Cuenta activa desde ya: la persona entra con su documento y sube los
+           documentos del expediente. `asegurarCuentaEstudiante` reutiliza la
+           cuenta pendiente que hubiera de un intento anterior. */
+        const { cuenta } = await asegurarCuentaEstudiante(tx, {
+          nombre: limpio,
+          documento: doc,
+          email,
+          telefono,
+          direccion,
+          programaId: programa.id,
+          semestre: 1,
+        });
+
+        /* Ficha de estudiante en proceso de ingreso: sin documentos validados
+           no ve cursos ni puede matricular. */
+        const codigo = await siguienteCodigoEstudiante(tx);
+        const estudiante = await tx.estudiante.create({
+          data: {
+            id: codigo,
+            nombre: limpio,
+            documento: doc,
+            correo: email || null,
             telefono: telefono || null,
             direccion: direccion || null,
             programaId: programa.id,
-            activo: false,
-            debeCambiarPassword: true,
+            semestre: 1,
+            jornada: 'diurna',
+            promedio: 0,
+            estado: 'en_inscripcion',
+            documentos: 'pendiente',
+            fechaIngreso: new Date(),
+            aspiranteId: aspirante.id,
+            usuarioId: cuenta.id,
           },
         });
-      }
+        return { aspirante, estudiante, usuario, password: usuario };
+      });
 
       return {
         ok: true,
-        mensaje: `Inscripción registrada para ${aspirante.nombre}. La cuenta se activa al formalizar la matrícula.`,
-        aspirante: { id: aspirante.id, nombre: aspirante.nombre, estado: aspirante.estado },
+        mensaje: `Inscripción registrada para ${resultado.aspirante.nombre}. Ya puede entrar con su documento y la contraseña temporal.`,
+        aspirante: {
+          id: resultado.aspirante.id,
+          nombre: resultado.aspirante.nombre,
+          estado: resultado.aspirante.estado,
+          esMenorDeEdad: !!esMenorDeEdad,
+          responsableNombre: esMenorDeEdad ? responsableNombre : null,
+          responsableParentesco: esMenorDeEdad ? responsableParentesco : null,
+          responsableTelefono: esMenorDeEdad ? responsableTelefono : null,
+        },
+        estudiante: { id: resultado.estudiante.id, estado: resultado.estudiante.estado },
+        credenciales: { usuario: resultado.usuario, password: resultado.password },
       };
     }
   );
@@ -202,7 +270,13 @@ export default async function rutasAuth(app) {
       if (!ES_DEMO.has(usuario)) {
         return reply.code(404).send({ error: 'Cuenta de demostración no disponible' });
       }
-      const u = await prisma.usuario.findUnique({ where: { usuario } });
+      const u = await prisma.usuario.findUnique({
+        where: { usuario },
+        include: {
+          programa: true,
+          estudiante: { select: { id: true, estado: true, documentos: true } },
+        },
+      });
       if (!u || !u.activo) {
         return reply.code(404).send({ error: 'Cuenta de demostración no disponible' });
       }

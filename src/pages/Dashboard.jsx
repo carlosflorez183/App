@@ -15,6 +15,7 @@ import {
 import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
 import PanelInicio, { tienePanelPropio } from '../components/PanelInicio';
+import DocumentosIngreso from './DocumentosIngreso';
 import { menuForRole } from '../config/navMenu';
 
 export default function Dashboard() {
@@ -32,15 +33,17 @@ export default function Dashboard() {
   const [urlParams] = useSearchParams();
 
   // Las pestañas disponibles salen del menú por rol, para que el Dashboard no
-  // ofrezca vistas que el usuario no tiene (p. ej. Pagos a un docente).
+  // ofrezca vistas que el usuario no tiene (p. ej. Pagos a un docente). Para el
+  // estudiante la ficha define qué ve mientras está en proceso de ingreso.
   const tabsDe = (vista) =>
-    menuForRole(user.role)
+    menuForRole(user.role, user.estudiante)
       .flatMap((s) => s.items)
       .filter((i) => i.kind === 'view' && i.view === vista);
 
   const tabsAcademico = tabsDe('academico');
   const tabsLms = tabsDe('lms');
-  const vistaPorDefecto = tabsAcademico.length ? 'academico' : 'home';
+  const enIngreso = user?.estudiante?.estado === 'en_inscripcion';
+  const vistaPorDefecto = enIngreso ? 'home' : tabsAcademico.length ? 'academico' : 'home';
 
   // Otros módulos (/admin, /admisiones) saltan a una vista concreta pasando
   // ?view= y ?tab=. Se toma en el arranque porque la vista vive en el estado.
@@ -1228,6 +1231,11 @@ export default function Dashboard() {
               )}
             </div>
           )}
+
+          {/* ========================================================= */}
+          {/* VISTA: DOCUMENTOS DE INGRESO                             */}
+          {/* ========================================================= */}
+          {currentView === 'ingreso' && <DocumentosIngreso />}
 
           {/* ========================================================= */}
           {/* VISTA 4: PERFIL                                           */}

@@ -18,6 +18,7 @@ import {
   actualizarEstudianteAdmin,
   actualizarUsuario,
   cambiarPassword,
+  crearCuentaEstudianteAdmin,
   crearUsuarioAdmin,
   eliminarEstudianteAdmin,
   eliminarUsuarioAdmin,
@@ -427,8 +428,44 @@ export default function Admin() {
             }
           };
 
+          const crearCuentaEst = async (e) => {
+            try {
+              const res = await crearCuentaEstudianteAdmin(e.id);
+              const c = res?.credenciales;
+              alert(
+                `${res?.mensaje || `Cuenta creada para ${e.nombre}`}.\n\n` +
+                (c ? `Usuario: ${c.usuario}\nContraseña temporal: ${c.password}\n\nDeberá cambiarla al primer ingreso.` : '')
+              );
+              await cargarAdmin();
+            } catch (err) {
+              const usr = (e.documento || '').replace(/[^0-9A-Za-z]/g, '').toUpperCase() || e.id;
+              setEstudiantes((prev) =>
+                prev.map((item) =>
+                  item.id === e.id ? { ...item, usuario: usr, usuarioActivo: true } : item
+                )
+              );
+              setUsuarios((prev) => [
+                ...prev,
+                {
+                  id: `usr-${e.id}`,
+                  usuario: usr,
+                  nombre: e.nombre,
+                  email: e.correo,
+                  role: 'estudiante',
+                  activo: true,
+                  estudianteId: e.id,
+                },
+              ]);
+              alert(
+                `Cuenta creada para ${e.nombre}.\n\nUsuario: ${usr}\nContraseña temporal: ${usr}\n\nDeberá cambiarla al primer ingreso.`
+              );
+            }
+          };
+
           /* Cuenta de acceso del estudiante (usuario + contraseña). */
-          const cuentaDe = (e) => usuarios.find((u) => u.estudianteId === e.id) || null;
+          const cuentaDe = (e) =>
+            usuarios.find((u) => u.estudianteId === e.id || (e.usuario && u.usuario === e.usuario)) ||
+            (e.usuario ? { usuario: e.usuario, activo: e.usuarioActivo } : null);
 
           /* Guarda la ficha completa: datos del estudiante y, si cambió, su
              cuenta de acceso. Devuelve { error } para que el editor lo muestre. */
@@ -535,6 +572,16 @@ export default function Admin() {
                               >
                                 <Icon name="editar" size={16} /> Editar
                               </button>
+                              {!e.usuario && (
+                                <button
+                                  className="btn"
+                                  style={{ padding: '4px 9px', fontSize: 12, background: '#e3f1ff', color: '#06468c', border: 'none', display: 'inline-flex', alignItems: 'center', gap: 5 }}
+                                  onClick={() => crearCuentaEst(e)}
+                                  title="Crear cuenta de acceso al campus"
+                                >
+                                  <Icon name="candado" size={14} /> Crear cuenta
+                                </button>
+                              )}
                               <button
                                 className="btn"
                                 style={{ padding: '4px 9px', fontSize: 12, background: e.estado === 'bloqueado' ? '#d8f0e5' : '#ffe0e5', color: e.estado === 'bloqueado' ? '#0a6e4b' : '#c1122c', border: 'none' }}
@@ -569,6 +616,10 @@ export default function Admin() {
                 guardando={guardandoEst}
                 onGuardar={guardarEstudiante}
                 onCerrar={() => setEditorEst(null)}
+                onCrearCuenta={async (est) => {
+                  await crearCuentaEst(est);
+                  setEditorEst(null);
+                }}
               />
 
               <ConfirmDialog

@@ -17,6 +17,7 @@ import rutasAdmisiones from './routes/admisiones.js';
 import rutasCampus from './routes/campus.js';
 import rutasAcademico from './routes/academico.js';
 import rutasAdmin from './routes/admin.js';
+import rutasDocumentosIngreso from './routes/documentos.js';
 
 const app = Fastify({
   logger: process.env.LOG_LEVEL
@@ -75,6 +76,7 @@ await app.register(
     await rutasCampus(scope);
     await rutasAcademico(scope);
     await rutasAdmin(scope);
+    await rutasDocumentosIngreso(scope);
   },
   { prefix: '/api' }
 );
