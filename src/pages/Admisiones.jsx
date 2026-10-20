@@ -1000,49 +1000,6 @@ export default function Admisiones() {
                 )}
               </div>
 
-              <div style={{ ...card, marginTop: 16 }}>
-                <Encabezado
-                  titulo="Revisión documental por aspirante (flujo antiguo)"
-                  sub="Este bloque queda solo para referencia histórica"
-                />
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr>
-                        <th style={th}>Aspirante</th>
-                        <th style={th}>Programa</th>
-                        <th style={th}>Estado documental</th>
-                        <th style={th}>Acción</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {incompletos.map((a) => (
-                        <tr key={a.id}>
-                          <td style={td}>
-                            <strong>{a.nombre}</strong><br />
-                            <span style={{ fontSize: 11, color: '#9c988e' }}>{a.documento}</span>
-                          </td>
-                          <td style={td}>{nombreProg(a.programaId)}</td>
-                          <td style={td}><Badge tone={DOC_TONE[a.documentos]}>{a.documentos}</Badge></td>
-                          <td style={td}>
-                            <button className="btn" style={{ padding: '5px 9px', fontSize: 11 }} disabled>
-                              Marcar completo
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          );
-        }
-                {incompletos.length === 0 && <Vacio>Todos los aspirantes tienen la documentación completa.</Vacio>}
-              </div>
-            </div>
-          );
-        }
 
         /* =========================================================
            PESTAÑA: REGISTRO (INSCRIPCIÓN DE ADMITIDOS)
