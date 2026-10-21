@@ -13,6 +13,16 @@ export default async function rutasCampus(app) {
     if (req.usuario.role === 'profesor' && req.usuario.id) {
       const docente = await prisma.docente.findFirst({ where: { usuarioId: req.usuario.id } });
       if (docente) where.docenteId = docente.id;
+    } else if (req.usuario.role === 'estudiante' && req.usuario.id) {
+      /* Un estudiante solo ve los cursos en los que está inscrito. Sin este
+         filtro, una cuenta recién creada veía las asignaturas de todos, como
+         si ya hubiera matriculado. */
+      const propio = await prisma.estudiante.findFirst({ where: { usuarioId: req.usuario.id } });
+      if (propio) {
+        where.inscripciones = { some: { estudianteId: propio.id } };
+      } else {
+        where.inscripciones = { some: { estudianteId: '__ninguno__' } };
+      }
     }
     const cursos = await prisma.curso.findMany({
       where,

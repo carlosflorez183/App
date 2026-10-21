@@ -42,6 +42,13 @@ export default async function rutasBootstrap(app) {
     if (req.usuario.role === 'profesor') {
       const docente = await prisma.docente.findFirst({ where: { usuarioId: req.usuario.id } });
       if (docente) filtroCursos = { docenteId: docente.id };
+    } else if (req.usuario.role === 'estudiante') {
+      /* Un estudiante solo ve los cursos en los que está inscrito. Una cuenta
+         nueva (o en el ciclo de admisión) no tiene inscripciones, así que su
+         campus y su barra lateral salen vacíos, que es lo correcto. */
+      filtroCursos = propio
+        ? { inscripciones: { some: { estudianteId: propio.id } } }
+        : { inscripciones: { some: { estudianteId: '__ninguno__' } } };
     }
 
     const [
@@ -82,11 +89,11 @@ export default async function rutasBootstrap(app) {
       prisma.nota.findMany({ where: { estudianteId }, orderBy: { id: 'asc' } }),
       prisma.certificadoEmitido.findMany({ orderBy: { id: 'asc' } }),
       prisma.curso.findMany({ where: filtroCursos, orderBy: { id: 'asc' } }),
-      /* Las actividades van filtradas por los mismos cursos del profesor: si
-         no, su barra lateral y su lista de tareas le taughten a calificar
-         actividades de otros docentes. */
+      /* Las actividades van acotadas a los mismos cursos del filtro: al
+         profesor, a los suyos (si no, su bandeja le pide calificar actividades
+         de otros); al estudiante, a las asignaturas en que está inscrito. */
       prisma.actividad.findMany({
-        where: filtroCursos.docenteId ? { curso: filtroCursos } : {},
+        where: Object.keys(filtroCursos).length ? { curso: filtroCursos } : {},
         orderBy: { id: 'asc' },
       }),
       prisma.anuncio.findMany({ orderBy: { id: 'asc' } }),

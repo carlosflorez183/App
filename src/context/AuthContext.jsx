@@ -49,6 +49,11 @@ const sesionDeServidor = (u) => {
     department: u.departamento,
     avatarClass: u.avatarClass,
     debeCambiarPassword: !!u.debeCambiarPassword,
+    /* Ficha del estudiante (o null). El menú la usa para saber si está en
+       proceso de ingreso, y Matricula.jsx para saber si ya le validaron los
+       documentos. Sin este campo, `user.estudiante` siempre era undefined y la
+       matrícula quedaba bloqueada para todos. */
+    estudiante: u.estudiante || null,
     inicio: new Date().toISOString(),
   };
   if (session.name) session.avatar = initialsOf(session.name);
@@ -259,11 +264,27 @@ export const AuthProvider = ({ children }) => {
     });
   };
 
+  /* Vuelve a leer el usuario de la API. Se usa cuando cambia algo que afecta la
+     sesión (p. ej. Admisiones valida los documentos del estudiante) para que el
+     menú y la matrícula se desbloqueen sin tener que cerrar sesión. */
+  const refrescarSesion = async () => {
+    if (!getToken()) return;
+    try {
+      const u = await yoApi();
+      const session = sesionDeServidor(u);
+      guardarSesion(session);
+      setUser(session);
+      setOffline(false);
+    } catch {
+      /* Sin red o token vencido: se deja la sesión como está. */
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
         user, token, offline, login, loginDemo, demoUsers, logout, updateProfile,
-        cambiarPassword, roleLabels: ROLE_LABELS,
+        cambiarPassword, refrescarSesion, roleLabels: ROLE_LABELS,
       }}
     >
       {children}

@@ -6,8 +6,8 @@ import { certificadoDescargable } from '../data/registro';
 import { usePersistentData } from '../hooks/usePersistentData';
 import Icon, { Ico } from '../components/Icon';
 import {
-  actualizarActividad,
   descargarCertificado,
+  entregarActividad,
   listarPorCalificar,
   marcarNotificacionLeida,
   solicitarCertificado,
@@ -19,7 +19,7 @@ import DocumentosIngreso from './DocumentosIngreso';
 import { menuForRole } from '../config/navMenu';
 
 export default function Dashboard() {
-  const { user: sesion, roleLabels, logout, updateProfile } = useAuth();
+  const { user: sesion, roleLabels, logout, updateProfile, refrescarSesion } = useAuth();
   /* `user` puede llegar nulo mientras se valida la sesión, y también se queda
      nulo si el token vence a media pantalla (p. ej. al cambiar de cuenta en
      otra pestaña). Leer user.role a mano reventaba la página entera con
@@ -64,6 +64,12 @@ export default function Dashboard() {
   const [modalCert, setModalCert] = useState(null);
   const [modalVolante, setModalVolante] = useState(null);
   const [modalEntrega, setModalEntrega] = useState(null);
+  /* Datos de la entrega que se está armando en el modal de tareas. */
+  const [entregaArchivo, setEntregaArchivo] = useState(null);
+  const [entregaComentario, setEntregaComentario] = useState('');
+  const [entregaError, setEntregaError] = useState(null);
+  const [entregando, setEntregando] = useState(false);
+  const [arrastrando, setArrastrando] = useState(false);
 
   // Descarga de certificados: cuál está bajando y qué pasó al terminar
   const [descargando, setDescargando] = useState(null);
@@ -102,6 +108,15 @@ export default function Dashboard() {
     }
   }, [esDocente]);
   useEffect(() => { cargarBandeja(); }, [cargarBandeja]);
+
+  /* Un estudiante en proceso de ingreso puede tener sus documentos validados
+     por Admisiones mientras la sesión sigue abierta. Se relee la ficha al
+     entrar al panel para que el menú y la matrícula se habiliten de inmediato,
+     sin obligarlo a cerrar sesión. */
+  useEffect(() => {
+    if (user?.role === 'estudiante') refrescarSesion();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (!user) {
     navigate('/login');
@@ -192,21 +207,60 @@ export default function Dashboard() {
 
   const toggleFiltro = (actual, nuevo, setter) => setter(actual === nuevo ? 'todas' : nuevo);
 
-  const handleEntregarTarea = (actId) => {
+  const handleEntregarTarea = async (actId) => {
     const act = data.actividades.find((a) => a.id === actId);
-    setData((prev) => ({
-      ...prev,
-      actividades: prev.actividades.map((a) =>
-        a.id === actId ? { ...a, estado_est: 'entregado' } : a
-      ),
-    }));
-    if (act) {
-      actualizarActividad(act.cursoId, actId, { estadoEst: 'entregado' })
-        .catch(() => {})
-        .finally(recargar);
+    if (!act) return;
+
+    /* Se envía el archivo (si lo hay) y el comentario a la API. Antes este
+       botón solo marcaba la tarea como entregada en pantalla: no guardaba nada
+       y por eso "desaparecía" al recargar. */
+    const entrega = {
+      contenido: entregaComentario.trim() || null,
+      archivo: entregaArchivo?.name || null,
+      archivoB64: entregaArchivo?.b64 || null,
+      archivoMime: entregaArchivo?.mime || null,
+    };
+    if (!entrega.contenido && !entrega.archivoB64) {
+      setEntregaError('Adjunta un archivo o escribe un comentario para entregar.');
+      return;
     }
-    setModalEntrega(null);
-    alert('¡Tarea entregada exitosamente! ');
+
+    setEntregando(true);
+    setEntregaError(null);
+    try {
+      await entregarActividad(act.cursoId, actId, entrega);
+      setData((prev) => ({
+        ...prev,
+        actividades: prev.actividades.map((a) =>
+          a.id === actId ? { ...a, estado_est: 'entregado' } : a
+        ),
+      }));
+      setModalEntrega(null);
+      setEntregaArchivo(null);
+      setEntregaComentario('');
+      alert('¡Tarea entregada exitosamente!');
+    } catch (err) {
+      setEntregaError(err.message);
+    } finally {
+      setEntregando(false);
+      recargar();
+    }
+  };
+
+  /* Lee el archivo elegido y lo deja en base64, que es como viaja a la API. */
+  const elegirArchivoEntrega = (file) => {
+    if (!file) return;
+    if (file.size > 4 * 1024 * 1024) {
+      setEntregaError('El archivo supera el máximo de 4 MB.');
+      return;
+    }
+    const lector = new FileReader();
+    lector.onload = () => {
+      const b64 = String(lector.result).split(',')[1] || '';
+      setEntregaArchivo({ name: file.name, mime: file.type || 'application/octet-stream', b64 });
+      setEntregaError(null);
+    };
+    lector.readAsDataURL(file);
   };
 
   const handleSolicitarCertificado = (tipo) => {
@@ -1118,10 +1172,17 @@ export default function Dashboard() {
                                 </span>
                                 {a.estado_est === 'pendiente' && (
                                   <button
-                                    onClick={() => setModalEntrega(a)}
+                                    onClick={() => {
+                                      /* Cada entrega arranca limpia: sin el archivo ni
+                                         el comentario de la tarea anterior. */
+                                      setEntregaArchivo(null);
+                                      setEntregaComentario('');
+                                      setEntregaError(null);
+                                      setModalEntrega(a);
+                                    }}
                                     className="btn b-primary b-sm"
                                   >
-                                    subir Entregar
+                                    <Icon name="subir" size={14} /> Entregar
                                   </button>
                                 )}
                               </div>
@@ -1542,20 +1603,63 @@ export default function Dashboard() {
                   Corte {modalEntrega.corte} · Fecha: {formatDate(modalEntrega.fechaEntrega)} · {modalEntrega.puntos} pts
                 </span>
               </div>
-              <div className="upload-area">
+              {/* Zona de carga real: el clic abre el explorador y también
+                  acepta arrastrar y soltar. Antes era un simple adorno. */}
+              <div
+                className="upload-area"
+                onClick={() => document.getElementById('entrega-file')?.click()}
+                onDragOver={(e) => { e.preventDefault(); setArrastrando(true); }}
+                onDragLeave={() => setArrastrando(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setArrastrando(false);
+                  elegirArchivoEntrega(e.dataTransfer.files?.[0]);
+                }}
+                style={{
+                  cursor: 'pointer',
+                  borderColor: arrastrando ? '#0a84ff' : undefined,
+                  background: arrastrando ? '#eef7ff' : undefined,
+                }}
+              >
                 <div style={{ fontSize: 40, marginBottom: 8 }}><Icon name="subir" size={40} /></div>
-                <p style={{ fontWeight: 600, color: '#4e4a43', margin: 0 }}>Arrastra tu archivo aquí</p>
-                <p style={{ fontSize: 12, color: '#9c988e', margin: '4px 0 0' }}>PDF, DOCX, ZIP — máx. 20MB</p>
+                {entregaArchivo ? (
+                  <>
+                    <p style={{ fontWeight: 600, color: '#0a6e4b', margin: 0 }}>{entregaArchivo.name}</p>
+                    <p style={{ fontSize: 12, color: '#9c988e', margin: '4px 0 0' }}>Clic para cambiarlo</p>
+                  </>
+                ) : (
+                  <>
+                    <p style={{ fontWeight: 600, color: '#4e4a43', margin: 0 }}>Arrastra tu archivo aquí o haz clic para elegirlo</p>
+                    <p style={{ fontSize: 12, color: '#9c988e', margin: '4px 0 0' }}>PDF, DOCX, ZIP — máx. 4 MB</p>
+                  </>
+                )}
+                <input
+                  id="entrega-file"
+                  type="file"
+                  style={{ display: 'none' }}
+                  onChange={(e) => { elegirArchivoEntrega(e.target.files?.[0]); e.target.value = ''; }}
+                />
               </div>
               <div className="f-group" style={{ marginTop: 14 }}>
                 <label className="f-label">Comentario (opcional)</label>
-                <textarea className="f-ctrl" rows={2} placeholder="Escribe un comentario..."></textarea>
+                <textarea
+                  className="f-ctrl"
+                  rows={2}
+                  placeholder="Escribe un comentario..."
+                  value={entregaComentario}
+                  onChange={(e) => setEntregaComentario(e.target.value)}
+                />
               </div>
+              {entregaError && (
+                <p style={{ color: '#c1122c', fontSize: 12.5, margin: '10px 0 0' }}>
+                  <Icon name="alerta" size={14} /> {entregaError}
+                </p>
+              )}
             </div>
             <div className="modal-ft">
               <button className="btn b-secondary" onClick={() => setModalEntrega(null)}>Cancelar</button>
-              <button className="btn b-success" onClick={() => handleEntregarTarea(modalEntrega.id)}>
-                <Icon name="subir" size={18} /> Enviar entrega
+              <button className="btn b-success" disabled={entregando} onClick={() => handleEntregarTarea(modalEntrega.id)}>
+                <Icon name="subir" size={18} /> {entregando ? 'Enviando...' : 'Enviar entrega'}
               </button>
             </div>
           </div>

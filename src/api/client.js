@@ -373,6 +373,15 @@ export const listarMisNotasCurso = (cursoId) => api(`/cursos/${cursoId}/mis-nota
 export const listarEntregasActividad = (cursoId, actividadId) =>
   api(`/cursos/${cursoId}/actividades/${actividadId}/entregas`);
 
+/* El estudiante entrega una actividad. El archivo va como base64 dentro del
+   JSON (`archivoB64`), igual que el material del campus, para no depender de
+   multipart. */
+export const entregarActividad = (cursoId, actividadId, entrega) =>
+  api(`/cursos/${cursoId}/actividades/${actividadId}/entregas`, {
+    method: 'POST',
+    body: entrega,
+  });
+
 /* Califica (o comenta) una entrega. El backend cambia el estado a "calificado"
    cuando llega una nota. */
 export const calificarEntrega = (cursoId, actividadId, estudianteId, cambios) =>

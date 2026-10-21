@@ -323,20 +323,10 @@ export default function Admisiones() {
               (c ? `Usuario: ${c.usuario}\nContraseña temporal: ${c.password}\n\nDeberá cambiarla al primer ingreso.` : '')
             );
           } catch (err) {
-            const usr = (est.documento || '').replace(/[^0-9A-Za-z]/g, '').toUpperCase() || est.id;
-            setData((d) => ({
-              ...d,
-              estudiantes: d.estudiantes.map((x) =>
-                x.id === est.id ? { ...x, usuario: usr, usuarioActivo: true } : x
-              ),
-            }));
-            setAviso({
-              ok: true,
-              text: `Cuenta creada para ${est.nombre} (${est.id}). Usuario: ${usr} · Contraseña temporal: ${usr}.`,
-            });
-            alert(
-              `Cuenta creada para ${est.nombre}.\n\nUsuario: ${usr}\nContraseña temporal: ${usr}\n\nDeberá cambiarla al primer ingreso.`
-            );
+            /* No se simula la cuenta: si la API falla, el alta no quedó en la
+               base y mostrarla aquí daría una falsa sensación de éxito que
+               desaparece al recargar. Se informa el error real. */
+            setAviso({ ok: false, text: `No se pudo crear la cuenta: ${err.message}` });
           } finally {
             recargar();
           }

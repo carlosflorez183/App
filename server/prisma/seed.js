@@ -271,7 +271,11 @@ async function main() {
         jornada: e.jornada,
         promedio: e.promedio,
         estado: e.estado,
-        documentos: e.documentos,
+        /* Un estudiante que apenas va a iniciar su ciclo de admisión no puede
+           venir con el expediente "completo": si no, el portal le habilitaría
+           la matrícula sin haber subido ni revisado un solo documento. Se
+           siembran como 'pendiente' y Admisiones los valida en el flujo. */
+        documentos: e.estado === 'en_inscripcion' ? 'pendiente' : e.documentos,
         fechaIngreso: fecha(e.fechaIngreso),
         aspiranteId: aspId || null,
       },
@@ -384,7 +388,11 @@ async function main() {
     'IS-603': [1, 2],
     'IS-601': [1],
   };
-  const NO_INSCRIBIBLES = ['retirado', 'graduado'];
+  /* Los estudiantes que todavía están en el ciclo de admisión no pertenecen a
+     ningún curso: su matrícula está condicionada a que Admisiones valide los
+     documentos. Inscribirlos aquí les llenaba "Mis Cursos" con asignaturas que
+     nunca matricularon. */
+  const NO_INSCRIBIBLES = ['retirado', 'graduado', 'en_inscripcion'];
   const cursos = await prisma.curso.findMany({ orderBy: { id: 'asc' } });
   const inscritos = [];
   for (const curso of cursos) {
