@@ -271,11 +271,15 @@ async function main() {
         jornada: e.jornada,
         promedio: e.promedio,
         estado: e.estado,
-        /* Un estudiante que apenas va a iniciar su ciclo de admisión no puede
-           venir con el expediente "completo": si no, el portal le habilitaría
-           la matrícula sin haber subido ni revisado un solo documento. Se
-           siembran como 'pendiente' y Admisiones los valida en el flujo. */
-        documentos: e.estado === 'en_inscripcion' ? 'pendiente' : e.documentos,
+        /* El expediente documental solo tiene sentido para quien está EN el
+           ciclo de admisión: es el único con portal para subir archivos y con
+           revisión de Admisiones. Se siembra 'pendiente' y el flujo lo valida.
+
+           Para los estudiantes ya admitidos (activo, retirado, graduado) se
+           fuerza 'completo': ya pasaron por admisión y no tienen dónde subir
+           nada. Antes el mock les ponía un 'pendiente'/'incompleto' decorativo
+           que dejaba al usuario buscando un botón de subir que no existe. */
+        documentos: e.estado === 'en_inscripcion' ? 'pendiente' : 'completo',
         fechaIngreso: fecha(e.fechaIngreso),
         aspiranteId: aspId || null,
       },

@@ -219,7 +219,6 @@ const CONCEPTOS = [
 // Perfil de pago por estudiante. Es fijo (no aleatorio) para que la cartera
 // tenga siempre los tres escenarios: al día, con saldo y en mora.
 const PERFIL_PAGO = ['al_dia','pendiente','al_dia','mora','pendiente','al_dia','pendiente','al_dia','pendiente','mora','al_dia','pendiente','al_dia'];
-const CICLO_DOCS = ['completo','completo','pendiente','completo','incompleto'];
 const JORNADAS   = ['Diurno','Nocturno'];
 
 const slug = (nombre) =>
@@ -268,7 +267,10 @@ const construirEstudiantes = () => {
       jornada: JORNADAS[i % 2],
       promedio: e.promedio,
       estado: e.estado,
-      documentos: CICLO_DOCS[i % CICLO_DOCS.length],
+      /* Los estudiantes ya admitidos tienen el expediente completo: pasaron por
+         admisión y no tienen dónde subir nada. El estado 'pendiente'/'incompleto'
+         solo aplica a quien está en el ciclo de ingreso (más abajo). */
+      documentos: 'completo',
       fechaIngreso: e.ingreso,
       admisioId: null,
       usuario: e.codigo === '20231001' ? 'EST001' : null,
@@ -292,7 +294,9 @@ const construirEstudiantes = () => {
       promedio: a.promedio,
       // El proceso vigente tiene abierta la inscripción de admitidos.
       estado: 'en_inscripcion',
-      documentos: a.documentos,
+      /* El admitido entra con el expediente pendiente: debe subir sus
+         documentos en su portal y Admisiones los valida. */
+      documentos: 'pendiente',
       fechaIngreso: '2026-07-15',
       admisioId: a.id,
       usuario: null,
