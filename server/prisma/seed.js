@@ -362,11 +362,23 @@ async function main() {
       categoria: x.categoria,
     })),
   });
+  /* Ubicación académica de cada curso: a qué programa y semestre pertenece.
+     El mock ya trae estos tres como asignaturas de 6º semestre de Ingeniería
+     de Sistemas (programaId 1), que es lo que permite la navegación jerárquica
+     facultad → programa → semestre → curso. `materiaId` se resuelve por el
+     código contra el plan de estudios ya creado. */
+  const UBICACION_CURSO = {
+    'IS-602': { programaId: 1, semestre: 6 },
+    'IS-603': { programaId: 1, semestre: 6 },
+    'IS-601': { programaId: 1, semestre: 6 },
+  };
   /* Los cursos deben quedar atados a un docente real, no solo al nombre.
      Sin esto el backend no puede saber qué curso le pertenece a cada profesor. */
   await prisma.curso.createMany({
     data: INITIAL_DATA.cursos.map((c) => {
       const docente = DOCENTES.find((d) => d.nombre === c.profesor) || DOCENTES[0];
+      const ubicacion = UBICACION_CURSO[c.codigo] || {};
+      const progId = ubicacion.programaId ? pid.get(ubicacion.programaId) : null;
       return {
         nombre: c.nombre,
         codigo: c.codigo,
@@ -377,6 +389,13 @@ async function main() {
         icono: c.icon,
         color: c.color,
         progreso: c.progreso,
+        programaId: progId,
+        semestre: ubicacion.semestre ?? null,
+        materiaId: progId ? clave.get(`${progId}:${c.codigo}`) ?? null : null,
+        /* El curso demo arranca en matrícula manual (lo inscribe el docente),
+           que es el comportamiento histórico del campus. */
+        modoAcceso: 'manual',
+        cupo: c.estudiantes,
       };
     }),
   });

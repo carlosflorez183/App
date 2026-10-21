@@ -84,6 +84,7 @@ model Programa {
   estudiantes Estudiante[]
   notas     Nota[]
   usuarios  Usuario[]
+  cursos    Curso[]
 
   @@unique([modalidadId, nombre])
   @@index([modalidadId])
@@ -108,6 +109,7 @@ model Materia {
   prerrequisito Materia? @relation("Prerrequisitos", fields: [prerrequisitoId], references: [id])
   requisitosDe  Materia[] @relation("Prerrequisitos")
   horarios      Horario[]
+  cursos        Curso[]
 
   @@unique([programaId, codigo])
   @@index([programaId, semestre])
@@ -278,6 +280,16 @@ model Nota {
 }
 
 /// Curso del campus virtual.
+/// Curso del campus virtual (grupo/paralelo de una asignatura del pensum).
+///
+/// `programaId` y `semestre` ubican el curso en la jerarquía académica
+/// (facultad → programa → semestre → curso) para la navegación tipo Moodle.
+/// `materiaId` liga el curso con su asignatura del plan de estudios: antes la
+/// relación era solo por el texto de `codigo`.
+///
+/// `modoAcceso` define quién inscribe al estudiante:
+///   - 'auto':   el propio estudiante se matricula en el curso (respetando cupo).
+///   - 'manual': solo director/profesor/admin inscriben.
 model Curso {
   id          Int     @id @default(autoincrement())
   nombre      String
@@ -290,7 +302,15 @@ model Curso {
   color       String?
   progreso    Int     @default(0)
 
-  docente     Docente? @relation(fields: [docenteId], references: [id])
+  programaId  Int?
+  semestre    Int?
+  materiaId   Int?
+  modoAcceso  String  @default("manual")
+  cupo        Int?
+
+  programa    Programa? @relation(fields: [programaId], references: [id], onDelete: SetNull)
+  materia     Materia?  @relation(fields: [materiaId], references: [id], onDelete: SetNull)
+  docente     Docente?  @relation(fields: [docenteId], references: [id])
   actividades Actividad[]
   anuncios    Anuncio[]
   asistencias AsistenciaSesion[]
@@ -299,6 +319,8 @@ model Curso {
 
   @@index([codigo])
   @@index([docenteId])
+  @@index([programaId, semestre])
+  @@index([materiaId])
   @@map("cursos")
 }
 
