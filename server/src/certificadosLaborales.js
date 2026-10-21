@@ -20,7 +20,10 @@ import PDFDocument from 'pdfkit';
 import crypto from 'node:crypto';
 import { fechaEnLetras } from './certificados.js';
 
-const INSTITUCION = 'Universidad Tecnológica del Sur';
+/* Nombre de la institución: vacío a propósito por ser documentos de
+   demostración. El membrete clásico ya reserva el renglón, así que poner un
+   nombre real aquí basta para que aparezca centrado. */
+const INSTITUCION = '';
 const TALENTO_HUMANO = 'Talento Humano';
 
 /* Quiénes firman. La Jefa de Talento Humano es la que expide, y el contador
@@ -72,27 +75,45 @@ export function nombreArchivo(certificado) {
 /* ── Piezas del membrete, compartidas por las tres plantillas ─────────── */
 
 function membrete(doc) {
-  const color = '#1e3a5f';
+  const color = '#1b2a4a';
+  const dorado = '#9a7b3f';
   const gris = '#475569';
   const izq = doc.page.margins.left;
   const ancho = doc.page.width - doc.page.margins.left - doc.page.margins.right;
 
-  doc.rect(28, 28, doc.page.width - 56, doc.page.height - 56).lineWidth(1.4).stroke(color);
-  doc.rect(34, 34, doc.page.width - 68, doc.page.height - 68).lineWidth(0.4).stroke('#94a3b8');
+  /* Mismo marco triple que los certificados académicos: así los documentos
+     laborales y académicos salen con la misma cara institucional. */
+  doc.rect(24, 24, doc.page.width - 48, doc.page.height - 48).lineWidth(2.4).stroke(color);
+  doc.rect(31, 31, doc.page.width - 62, doc.page.height - 62).lineWidth(0.8).stroke(dorado);
+  doc.rect(38, 38, doc.page.width - 76, doc.page.height - 76).lineWidth(0.4).stroke('#cbd5e1');
 
   doc.save();
-  doc.roundedRect(doc.page.width / 2 - 19, 56, 38, 38, 8).fill(color);
-  doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(17)
-    .text('U', doc.page.width / 2 - 19, 64, { width: 38, align: 'center' });
+  doc.circle(doc.page.width / 2, 88, 26).lineWidth(2).fillAndStroke(color, dorado);
+  doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(20)
+    .text('U', doc.page.width / 2 - 26, 78, { width: 52, align: 'center' });
   doc.restore();
 
-  doc.fillColor(color).font('Helvetica-Bold').fontSize(15)
-    .text(INSTITUCION, izq, 100, { width: ancho, align: 'center' });
+  let y = 126;
+  if (INSTITUCION) {
+    doc.fillColor(color).font('Helvetica-Bold').fontSize(16)
+      .text(INSTITUCION, izq, y, { width: ancho, align: 'center', characterSpacing: 0.6 });
+    y = doc.y + 3;
+  }
   doc.font('Helvetica').fontSize(8.5).fillColor(gris)
-    .text(`${TALENTO_HUMANO} · Vicerrectoría Administrativa`, izq, 119, { width: ancho, align: 'center' });
+    .text(`${TALENTO_HUMANO} · Vicerrectoría Administrativa`, izq, y, { width: ancho, align: 'center' });
 
-  doc.moveTo(izq, 138).lineTo(doc.page.width - izq, 138).lineWidth(0.8).stroke('#cbd5e1');
-  return { color, gris, izq, ancho };
+  const yFilete = y + 16;
+  doc.moveTo(izq + 30, yFilete).lineTo(doc.page.width / 2 - 14, yFilete).lineWidth(0.8).stroke(dorado);
+  doc.moveTo(doc.page.width / 2 + 14, yFilete).lineTo(doc.page.width - izq - 30, yFilete).lineWidth(0.8).stroke(dorado);
+  doc.save();
+  doc.moveTo(doc.page.width / 2, yFilete - 5)
+    .lineTo(doc.page.width / 2 + 5, yFilete)
+    .lineTo(doc.page.width / 2, yFilete + 5)
+    .lineTo(doc.page.width / 2 - 5, yFilete)
+    .closePath().fill(dorado);
+  doc.restore();
+
+  return { color, gris, izq, ancho, yCuerpo: yFilete + 24 };
 }
 
 /* Tabla de dos columnas para los datos del empleado. */
@@ -142,10 +163,10 @@ function pie(doc, certificado) {
 /* ── Constancia laboral ──────────────────────────────────────────────── */
 
 export function escribirConstanciaLaboral(doc, certificado) {
-  const { color, gris, izq, ancho } = membrete(doc);
+  const { color, gris, izq, ancho, yCuerpo } = membrete(doc);
   const e = certificado.empleado;
 
-  doc.y = 158;
+  doc.y = yCuerpo;
   doc.font('Helvetica-Bold').fontSize(11).fillColor(gris)
     .text('CERTIFICADO', izq, doc.y, { width: ancho, align: 'center', characterSpacing: 2 });
   doc.moveDown(0.6);
@@ -156,9 +177,9 @@ export function escribirConstanciaLaboral(doc, certificado) {
   doc.font('Helvetica').fontSize(11).fillColor('#1e293b')
     .text('La ', { continued: true })
     .text(TALENTO_HUMANO.toUpperCase(), { continued: true })
-    .text(' de la ', { continued: true })
-    .text(INSTITUCION, { continued: true })
-    .text(', en uso de sus atribuciones legales, certifica que:', { width: ancho, align: 'justify' });
+    .text(INSTITUCION ? ' de la ' : ' del Sistema Integrado de Información Universitaria, ', { continued: true })
+    .text(INSTITUCION || '', { continued: true })
+    .text('en uso de sus atribuciones legales, certifica que:', { width: ancho, align: 'justify' });
 
   doc.moveDown(1.2);
   doc.font('Helvetica-Bold').fontSize(16).fillColor('#0f172a')
@@ -208,11 +229,11 @@ export function tiempoDeServicio(ingreso) {
 /* ── Certificado de ingresos ──────────────────────────────────────────── */
 
 export function escribirCertificadoIngresos(doc, certificado) {
-  const { color, gris, izq, ancho } = membrete(doc);
+  const { color, gris, izq, ancho, yCuerpo } = membrete(doc);
   const e = certificado.empleado;
   const liq = certificado.liquidacion;
 
-  doc.y = 158;
+  doc.y = yCuerpo;
   doc.font('Helvetica-Bold').fontSize(11).fillColor(gris)
     .text('CERTIFICADO', izq, doc.y, { width: ancho, align: 'center', characterSpacing: 2 });
   doc.moveDown(0.6);
@@ -223,9 +244,9 @@ export function escribirCertificadoIngresos(doc, certificado) {
   doc.font('Helvetica').fontSize(11).fillColor('#1e293b')
     .text('La ', { continued: true })
     .text(TALENTO_HUMANO.toUpperCase(), { continued: true })
-    .text(' de la ', { continued: true })
-    .text(INSTITUCION, { continued: true })
-    .text(', certifica que el empleado identificado con documento ', { width: ancho, align: 'justify' })
+    .text(INSTITUCION ? ' de la ' : ' del Sistema Integrado de Información Universitaria, ', { continued: true })
+    .text(INSTITUCION || '', { continued: true })
+    .text('certifica que el empleado identificado con documento ', { width: ancho, align: 'justify' })
     .text(e?.documento || '—', { continued: true })
     .text(', ocupa el cargo de ', { width: ancho, align: 'justify' })
     .text(e?.cargo || '—', { continued: true })
@@ -248,13 +269,13 @@ export function escribirCertificadoIngresos(doc, certificado) {
 /* ── Certificado de ingresos y retenciones ────────────────────────────── */
 
 export function escribirIngresosRetenciones(doc, certificado) {
-  const { color, gris, izq, ancho } = membrete(doc);
+  const { color, gris, izq, ancho, yCuerpo } = membrete(doc);
   const e = certificado.empleado;
   const liq = certificado.liquidacion;
   const nomina = certificado.nomina;
   const periodo = periodoEnLetras(certificado.periodo);
 
-  doc.y = 152;
+  doc.y = yCuerpo;
   doc.font('Helvetica-Bold').fontSize(11).fillColor(gris)
     .text('CERTIFICADO', izq, doc.y, { width: ancho, align: 'center', characterSpacing: 2 });
   doc.moveDown(0.5);
@@ -263,9 +284,9 @@ export function escribirIngresosRetenciones(doc, certificado) {
 
   doc.moveDown(1.1);
   doc.font('Helvetica').fontSize(10.5).fillColor('#1e293b')
-    .text(`${TALENTO_HUMANO} de la ${INSTITUCION}, en calidad de agente de retención, `
-      + `certifica que durante el periodo de ${periodo} el empleado que a continuación `
-      + 'se identifica devengó y tuvo los siguientes descuentos:', { width: ancho, align: 'justify' });
+    .text(`${TALENTO_HUMANO}${INSTITUCION ? ` de la ${INSTITUCION}` : ' del Sistema Integrado de Información Universitaria'}, `
+      + `en calidad de agente de retención, certifica que durante el periodo de ${periodo} `
+      + 'el empleado que a continuación se identifica devengó y tuvo los siguientes descuentos:', { width: ancho, align: 'justify' });
 
   doc.moveDown(1);
   doc.font('Helvetica-Bold').fontSize(13).fillColor('#0f172a')
@@ -372,7 +393,7 @@ function sumaConceptos(liq, codigos) {
 export async function pdfDeCertificadoLaboral(certificado) {
   const doc = new PDFDocument({ size: 'LETTER', margin: 56 });
   doc.info.Title = `${certificado.tipo} - ${certificado.empleado?.nombre || 'empleado'}`;
-  doc.info.Author = INSTITUCION;
+  doc.info.Author = INSTITUCION || 'Sistema Integrado de Información Universitaria';
   doc.info.Subject = `Folio CL-${String(certificado.id).padStart(5, '0')}`
     + (certificado.periodo ? ` · Periodo ${periodoEnLetras(certificado.periodo)}` : '');
   doc.info.Keywords = `certificado laboral, ${certificado.tipo}, ${certificado.periodo || ''}`.trim();

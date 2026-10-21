@@ -10,9 +10,12 @@
 import PDFDocument from 'pdfkit';
 import crypto from 'node:crypto';
 
-/* Nombre de la institución. No hay tabla de institución en la base, así que
-   vive aquí como una constante del servidor: es el sello que va en el papel. */
-const INSTITUCION = 'Universidad Tecnológica del Sur';
+/* Nombre de la institución. Queda vacío a propósito: estos PDF son de
+   demostración y el membrete no debe mostrar un nombre real. Si algún día se
+   despliega con una institución concreta, se pone aquí y el membrete entero lo
+   hereda (queda centrado y sin descuadrar porque las plantillas ya reservan el
+   renglón). */
+const INSTITUCION = '';
 const SECRETARIA = 'Secretaría General';
 /* Quiénes firman. No hay tabla de empleados en la base, así que son del
    membrete del certificado; se cambian en un solo sitio. */
@@ -76,43 +79,64 @@ export function nombreArchivo(certificado) {
    fuentes en el contenedor. */
 export function escribirCertificado(doc, certificado) {
   const e = certificado.estudiante;
-  const color = '#0f3d5c';
+  const color = '#1b2a4a';
+  const dorado = '#9a7b3f';
   const gris = '#475569';
   const izq = doc.page.margins.left;
   const anchoUtil = doc.page.width - doc.page.margins.left - doc.page.margins.right;
 
-  /* ── Marco y membrete ── */
-  doc.rect(28, 28, doc.page.width - 56, doc.page.height - 56).lineWidth(1.4).stroke(color);
-  doc.rect(34, 34, doc.page.width - 68, doc.page.height - 68).lineWidth(0.4).stroke('#94a3b8');
+  /* ── Marco y membrete, al estilo clásico CUL ──
+     Doble filete: uno grueso en color institucional y uno fino dorado por
+     dentro, con un tercer filete aún más fino enmarcando el cuerpo. Así el
+     papel se lee como un diploma y no como una factura. */
+  doc.rect(24, 24, doc.page.width - 48, doc.page.height - 48).lineWidth(2.4).stroke(color);
+  doc.rect(31, 31, doc.page.width - 62, doc.page.height - 62).lineWidth(0.8).stroke(dorado);
+  doc.rect(38, 38, doc.page.width - 76, doc.page.height - 76).lineWidth(0.4).stroke('#cbd5e1');
 
+  /* Escudo: círculo en color institucional con filete dorado. Va centrado y
+     sustituye al nombre de la institución cuando este va vacío en la demo. */
   doc.save();
-  doc.roundedRect(doc.page.width / 2 - 19, 56, 38, 38, 8).fill(color);
-  doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(17)
-    .text('U', doc.page.width / 2 - 19, 64, { width: 38, align: 'center' });
+  doc.circle(doc.page.width / 2, 88, 26).lineWidth(2).fillAndStroke(color, dorado);
+  doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(20)
+    .text('U', doc.page.width / 2 - 26, 78, { width: 52, align: 'center' });
   doc.restore();
 
-  doc.fillColor(color).font('Helvetica-Bold').fontSize(15)
-    .text(INSTITUCION, izq, 100, { width: anchoUtil, align: 'center' });
+  let y = 126;
+  if (INSTITUCION) {
+    doc.fillColor(color).font('Helvetica-Bold').fontSize(16)
+      .text(INSTITUCION, izq, y, { width: anchoUtil, align: 'center', characterSpacing: 0.6 });
+    y = doc.y + 3;
+  }
   doc.font('Helvetica').fontSize(8.5).fillColor(gris)
-    .text('Registro y Administración · Sistema Integrado de Información Universitaria', izq, 119, { width: anchoUtil, align: 'center' });
+    .text('Registro y Administración · Sistema Integrado de Información Universitaria', izq, y, { width: anchoUtil, align: 'center' });
 
-  doc.moveTo(izq, 138).lineTo(doc.page.width - izq, 138).lineWidth(0.8).stroke('#cbd5e1');
+  /* Filete decorativo con rombo central, como en los diplomas. */
+  const yFilete = y + 16;
+  doc.moveTo(izq + 30, yFilete).lineTo(doc.page.width / 2 - 14, yFilete).lineWidth(0.8).stroke(dorado);
+  doc.moveTo(doc.page.width / 2 + 14, yFilete).lineTo(doc.page.width - izq - 30, yFilete).lineWidth(0.8).stroke(dorado);
+  doc.save();
+  doc.moveTo(doc.page.width / 2, yFilete - 5)
+    .lineTo(doc.page.width / 2 + 5, yFilete)
+    .lineTo(doc.page.width / 2, yFilete + 5)
+    .lineTo(doc.page.width / 2 - 5, yFilete)
+    .closePath().fill(dorado);
+  doc.restore();
 
   /* ── Cuerpo ── */
-  doc.y = 160;
-  doc.font('Helvetica-Bold').fontSize(11).fillColor(gris)
-    .text('CERTIFICADO', izq, doc.y, { width: anchoUtil, align: 'center', characterSpacing: 2 });
-  doc.moveDown(0.6);
-  doc.font('Helvetica-Bold').fontSize(19).fillColor(color)
-    .text(certificado.tipo.toUpperCase(), izq, doc.y, { width: anchoUtil, align: 'center' });
+  doc.y = yFilete + 26;
+  doc.font('Helvetica-Bold').fontSize(10).fillColor(gris)
+    .text('CERTIFICADO', izq, doc.y, { width: anchoUtil, align: 'center', characterSpacing: 4 });
+  doc.moveDown(0.7);
+  doc.font('Helvetica-Bold').fontSize(20).fillColor(color)
+    .text(certificado.tipo.toUpperCase(), izq, doc.y, { width: anchoUtil, align: 'center', characterSpacing: 1 });
 
-  doc.moveDown(1.4);
+  doc.moveDown(1.5);
   doc.font('Helvetica').fontSize(11).fillColor('#1e293b')
     .text('La ', { continued: true })
     .text(SECRETARIA.toUpperCase(), { continued: true })
-    .text(' de la ', { continued: true })
-    .text(INSTITUCION, { continued: true })
-    .text(', en uso de sus atribuciones legales, certifica que:', { width: anchoUtil, align: 'justify' });
+    .text(INSTITUCION ? ' de la ' : ' del Sistema Integrado de Información Universitaria, ', { continued: true })
+    .text(INSTITUCION || '', { continued: true })
+    .text('en uso de sus atribuciones legales, certifica que:', { width: anchoUtil, align: 'justify' });
 
   doc.moveDown(1.2);
   doc.font('Helvetica-Bold').fontSize(16).fillColor('#0f172a')
@@ -147,7 +171,7 @@ export function escribirCertificado(doc, certificado) {
   const yFirma = doc.page.height - 150;
   FIRMANTES.forEach((firmante, i) => {
     const x = izq + i * (anchoUtil / 2) + 8;
-    doc.moveTo(x, yFirma + 22).lineTo(x + anchoUtil / 2 - 56, yFirma + 22).lineWidth(0.8).stroke('#334155');
+    doc.moveTo(x, yFirma + 22).lineTo(x + anchoUtil / 2 - 56, yFirma + 22).lineWidth(0.8).stroke(color);
     doc.font('Helvetica-Bold').fontSize(10).fillColor('#0f172a')
       .text(firmante.nombre, x, yFirma + 27, { width: anchoUtil / 2 - 56, align: 'center' });
     doc.font('Helvetica').fontSize(8.5).fillColor(gris)
@@ -177,7 +201,7 @@ export async function pdfDeCertificado(certificado) {
      ignora en las opciones. Es lo primero que se ve al abrir el archivo, así que
      el título tiene que decir de qué certificado se trata. */
   doc.info.Title = `${certificado.tipo} - ${certificado.estudiante?.nombre || 'estudiante'}`;
-  doc.info.Author = INSTITUCION;
+  doc.info.Author = INSTITUCION || 'Sistema Integrado de Información Universitaria';
   doc.info.Subject = `Folio CE-${String(certificado.id).padStart(5, '0')} · Matrícula ${certificado.matricula || certificado.estudianteId}`;
   doc.info.Keywords = `certificado, ${certificado.tipo}, ${certificado.matricula || certificado.estudianteId}`;
   escribirCertificado(doc, certificado);
