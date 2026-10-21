@@ -1415,12 +1415,21 @@ export default function Dashboard() {
                   <span className="card-ttl"><Icon name="config" size={16} /> Acciones</span>
                 </div>
                 <div className="card-bd" style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                  <button type="button" className="btn b-secondary" onClick={() => handleNavigate('academico', 'certificados')}>
-                    <Icon name="certificado" size={18} /> Mis Certificados
-                  </button>
-                  <button type="button" className="btn b-secondary" onClick={() => handleNavigate('academico', 'pagos')}>
-                    <Icon name="tarjeta-credito" size={18} /> Estado de Cuenta
-                  </button>
+                  {/* Solo se ofrecen los accesos que el rol realmente tiene:
+                      los botones llevan a la vista `academico`, que para
+                      estudiante y profesor existe, pero para los roles
+                      administrativos no tiene pestañas y dejaría la pantalla
+                      en blanco. */}
+                  {tabsAcademico.some((t) => t.tab === 'certificados') && (
+                    <button type="button" className="btn b-secondary" onClick={() => handleNavigate('academico', 'certificados')}>
+                      <Icon name="certificado" size={18} /> Mis Certificados
+                    </button>
+                  )}
+                  {tabsAcademico.some((t) => t.tab === 'pagos') && (
+                    <button type="button" className="btn b-secondary" onClick={() => handleNavigate('academico', 'pagos')}>
+                      <Icon name="tarjeta-credito" size={18} /> Estado de Cuenta
+                    </button>
+                  )}
                   <button
                     type="button"
                     className="btn b-danger"
