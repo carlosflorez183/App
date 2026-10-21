@@ -169,6 +169,71 @@ export default async function rutasCampus(app) {
     });
   });
 
+  /* ── Configuración de un curso ─────────────────────────────────────────
+     Vista propia tipo Moodle: al entrar a un curso se ajustan sus datos y
+     su modo de acceso. `auto` deja que el estudiante se inscriba solo;
+     `manual` reserva la inscripción al director/profesor/admin. */
+  app.patch('/cursos/:id', puedeAsignarDocente, async (req, reply) => {
+    const cursoId = Number(req.params.id);
+    const curso = await prisma.curso.findUnique({ where: { id: cursoId } });
+    if (!curso) return reply.code(404).send({ error: 'Curso no encontrado' });
+
+    const { nombre, grupo, cupo, modoAcceso, docenteId, semestre } = req.body || {};
+    const data = {};
+
+    if (nombre !== undefined) {
+      const n = String(nombre).trim();
+      if (!n) return reply.code(400).send({ error: 'El nombre no puede quedar vacío' });
+      data.nombre = n;
+    }
+    if (grupo !== undefined) data.grupo = String(grupo).trim() || 'A';
+    if (semestre !== undefined) {
+      const s = Number(semestre);
+      if (!Number.isInteger(s) || s < 1) return reply.code(400).send({ error: 'El semestre debe ser un entero positivo' });
+      data.semestre = s;
+    }
+    if (cupo !== undefined) {
+      /* Cadena vacía o null = sin cupo definido. */
+      if (cupo === '' || cupo === null) {
+        data.cupo = null;
+      } else {
+        const c = Number(cupo);
+        if (!Number.isInteger(c) || c < 0) return reply.code(400).send({ error: 'El cupo debe ser un entero no negativo' });
+        data.cupo = c;
+      }
+    }
+    if (modoAcceso !== undefined) {
+      if (!['auto', 'manual'].includes(modoAcceso)) {
+        return reply.code(400).send({ error: "El modo de acceso debe ser 'auto' o 'manual'" });
+      }
+      data.modoAcceso = modoAcceso;
+    }
+    if (docenteId !== undefined) {
+      if (docenteId === '' || docenteId === null) {
+        data.docenteId = null;
+      } else {
+        const docente = await prisma.docente.findUnique({ where: { id: String(docenteId) } });
+        if (!docente) return reply.code(400).send({ error: 'Ese docente no existe' });
+        data.docenteId = docente.id;
+        data.profesor = docente.nombre;
+      }
+    }
+    if (!Object.keys(data).length) return reply.code(400).send({ error: 'No hay cambios que aplicar' });
+
+    const actualizado = await prisma.curso.update({ where: { id: cursoId }, data });
+    return {
+      id: actualizado.id,
+      nombre: actualizado.nombre,
+      codigo: actualizado.codigo,
+      profesor: actualizado.profesor,
+      docenteId: actualizado.docenteId,
+      grupo: actualizado.grupo,
+      semestre: actualizado.semestre,
+      modoAcceso: actualizado.modoAcceso,
+      cupo: actualizado.cupo,
+    };
+  });
+
   /* Crea una actividad, un parcial (con preguntas) o un foro. */
   app.post('/cursos/:cursoId/actividades', docente, async (req, reply) => {
     const cursoId = Number(req.params.cursoId);

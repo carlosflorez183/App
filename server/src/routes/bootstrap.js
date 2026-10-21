@@ -189,6 +189,11 @@ export default async function rutasBootstrap(app) {
         icon: c.icono,
         color: c.color,
         progreso: c.progreso,
+        programaId: c.programaId,
+        semestre: c.semestre,
+        materiaId: c.materiaId,
+        modoAcceso: c.modoAcceso,
+        cupo: c.cupo,
       })),
 
       actividades: actividades.map((a) => ({

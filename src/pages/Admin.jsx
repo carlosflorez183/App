@@ -14,6 +14,7 @@ import EditorUsuario from '../components/EditorUsuario';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { EstadoVacio } from '../components/Estado';
 import {
+  actualizarCurso,
   actualizarDocente,
   actualizarEstudianteAdmin,
   actualizarUsuario,
@@ -31,7 +32,7 @@ const TABS = [
   { key: 'usuarios', label: 'Usuarios', icon: 'candado' },
   { key: 'estudiantes', label: 'Estudiantes', icon: 'graduacion' },
   { key: 'programas', label: 'Programas', icon: 'libro' },
-  { key: 'pensum', label: 'Pensum', icon: 'libro' },
+  { key: 'cursos', label: 'Cursos', icon: 'libro' },
   { key: 'docentes', label: 'Docentes', icon: 'usuario-config' },
   { key: 'asignacion', label: 'Asignación docente', icon: 'usuario-config' },
   { key: 'matricula', label: 'Matrícula', icon: 'cuaderno' },
@@ -85,7 +86,13 @@ const ROLES = [
 
 export default function Admin() {
   const navigate = useNavigate();
-  const [progSel, setProgSel] = useState(1);
+  /* Navegación jerárquica de cursos: programa → semestre → curso y el borrador
+     de configuración del curso abierto. */
+  const [progSelCursos, setProgSelCursos] = useState(1);
+  const [semSelCursos, setSemSelCursos] = useState(1);
+  const [cursoSel, setCursoSel] = useState(null);
+  const [formCurso, setFormCurso] = useState(null);
+  const [mensajeCurso, setMensajeCurso] = useState(null);
   // Listas de gestión: no vienen en el bootstrap porque no son del alcance
   // del resto de la aplicación.
   const [usuarios, setUsuarios] = useState([]);
@@ -746,43 +753,159 @@ export default function Admin() {
           );
         }
 
-        if (tab === 'pensum') {
-          const prog = programas.find((p) => p.id === progSel) || programas[0];
-          const mias = materias.filter((m) => m.programaId === prog.id);
-          const porSem = Array.from({ length: prog.semestres }, (_, i) =>
-            mias.filter((m) => m.semestre === i + 1)
-          );
+        if (tab === 'cursos') {
+          /* Navegación jerárquica tipo Moodle: programa → semestre → curso.
+             Al elegir un curso se abre su vista de configuración. */
+          const cursos = data.cursos || [];
+          const progCursos = programas.find((p) => p.id === progSelCursos) || programas[0];
+          const cursosProg = cursos.filter((c) => c.programaId === progCursos?.id);
+          const semestresDisp = [...new Set(cursosProg.map((c) => c.semestre).filter(Boolean))].sort((a, b) => a - b);
+          const semElegido = semestresDisp.includes(semSelCursos) ? semSelCursos : (semestresDisp[0] ?? 1);
+          const cursosSem = cursosProg.filter((c) => c.semestre === semElegido);
+          const curso = cursos.find((c) => c.id === cursoSel) || cursosSem[0];
+
+          const guardarCurso = async (cambios) => {
+            try {
+              await actualizarCurso(curso.id, cambios);
+              setFormCurso(null);
+              setMensajeCurso('Cambios guardados.');
+              await recargar();
+            } catch (err) {
+              setMensajeCurso(`No se pudo guardar: ${err.message}`);
+            }
+          };
+
           return (
-            <div>
-              <div style={{ ...card, display: 'flex', gap: 10, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#6f6b62' }}>Programa:</span>
-                <select value={progSel} onChange={(e) => setProgSel(Number(e.target.value))} style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #cdc9bf' }}>
-                  {programas.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-                </select>
-                <Badge tone="purple">{mias.length} asignaturas</Badge>
-                <Badge tone="blue">{mias.reduce((a, m) => a + m.creditos, 0)} créditos</Badge>
-                <span style={{ fontSize: 11, color: '#9c988e' }}>Modo consulta: la matrícula la realiza el estudiante en /matricula</span>
+            <div className="fade-in">
+              <div style={{ ...card, display: 'flex', gap: 12, alignItems: 'flex-end', marginBottom: 16, flexWrap: 'wrap' }}>
+                <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  Programa
+                  <select
+                    value={programas.some((p) => p.id === progSelCursos) ? progSelCursos : programas[0]?.id}
+                    onChange={(e) => { setProgSelCursos(Number(e.target.value)); setCursoSel(null); setFormCurso(null); }}
+                    style={{ ...input, minWidth: 260 }}
+                  >
+                    {programas.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+                  </select>
+                </label>
+                <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  Semestre
+                  <select value={semElegido} onChange={(e) => { setSemSelCursos(Number(e.target.value)); setCursoSel(null); setFormCurso(null); }} style={{ ...input, minWidth: 120 }}>
+                    {semestresDisp.length === 0 && <option value={1}>—</option>}
+                    {semestresDisp.map((s) => <option key={s} value={s}>Semestre {s}</option>)}
+                  </select>
+                </label>
+                <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600, display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 240 }}>
+                  Curso
+                  <select value={curso?.id || ''} onChange={(e) => { setCursoSel(Number(e.target.value)); setFormCurso(null); }} style={{ ...input, width: '100%' }} disabled={cursosSem.length === 0}>
+                    {cursosSem.length === 0 && <option value="">Sin cursos en este semestre</option>}
+                    {cursosSem.map((c) => <option key={c.id} value={c.id}>{c.codigo} — {c.nombre} (Grupo {c.grupo})</option>)}
+                  </select>
+                </label>
+                <Badge tone="purple">{cursosSem.length} curso(s)</Badge>
               </div>
 
-              {porSem.map((ms, i) => (
-                <div key={i} style={{ ...card, marginBottom: 10 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-                    <span style={{ fontWeight: 800, fontSize: 14 }}>Semestre {i + 1}</span>
-                    <span style={{ fontSize: 12, color: '#6f6b62', fontWeight: 700 }}>
-                      {ms.length} materias · {ms.reduce((a, m) => a + m.creditos, 0)} cr
-                    </span>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 8 }}>
-                    {ms.map((m) => (
-                      <div key={m.id} style={{ border: '1px solid #e5e2da', borderRadius: 8, padding: '8px 10px' }}>
-                        <div style={{ fontSize: 12, fontWeight: 700 }}>{m.codigo}</div>
-                        <div style={{ fontSize: 12, color: '#3a3630' }}>{m.nombre}</div>
-                        <div style={{ fontSize: 11, color: '#9c988e', marginTop: 2 }}>{m.creditos} cr · {m.area}</div>
+              {!curso ? (
+                <div style={card}><EstadoVacio mensaje="Este programa todavía no tiene cursos creados en este semestre." /></div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16 }}>
+                  <div style={card}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
+                      <div>
+                        <div style={{ fontSize: 16, fontWeight: 800 }}>{curso.nombre}</div>
+                        <div style={{ fontSize: 12, color: '#9c988e', marginTop: 3 }}>{curso.codigo} · {progCursos?.nombre}</div>
                       </div>
-                    ))}
+                      {!formCurso && (
+                        <button className="btn" onClick={() => setFormCurso({ ...curso, docenteId: curso.docenteId || '' })}>
+                          <Icon name="editar" size={15} /> Configurar
+                        </button>
+                      )}
+                    </div>
+
+                    {!formCurso ? (
+                      <div>
+                        {[
+                          ['Código', curso.codigo],
+                          ['Grupo', curso.grupo],
+                          ['Semestre', curso.semestre ?? '—'],
+                          ['Docente', curso.docenteId ? curso.profesor : 'Sin asignar'],
+                          ['Modo de acceso', curso.modoAcceso === 'auto' ? 'Automática (el estudiante se inscribe)' : 'Manual (director/profesor/admin inscribe)'],
+                          ['Cupo', curso.cupo ?? 'Sin límite'],
+                          ['Inscritos', curso.estudiantes],
+                        ].map(([k, v]) => (
+                          <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '8px 0', borderBottom: '1px solid #f0eee9', fontSize: 13 }}>
+                            <span style={{ color: '#6f6b62' }}>{k}</span>
+                            <strong style={{ textAlign: 'right' }}>{v}</strong>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                        <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600, gridColumn: '1 / -1' }}>
+                          Nombre
+                          <input value={formCurso.nombre} onChange={(e) => setFormCurso({ ...formCurso, nombre: e.target.value })} style={{ ...input, width: '100%', marginTop: 4 }} />
+                        </label>
+                        <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
+                          Grupo
+                          <input value={formCurso.grupo} onChange={(e) => setFormCurso({ ...formCurso, grupo: e.target.value })} style={{ ...input, width: '100%', marginTop: 4 }} />
+                        </label>
+                        <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
+                          Semestre
+                          <input type="number" min={1} value={formCurso.semestre ?? ''} onChange={(e) => setFormCurso({ ...formCurso, semestre: e.target.value })} style={{ ...input, width: '100%', marginTop: 4 }} />
+                        </label>
+                        <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
+                          Docente
+                          <select value={formCurso.docenteId || ''} onChange={(e) => setFormCurso({ ...formCurso, docenteId: e.target.value })} style={{ ...input, width: '100%', marginTop: 4 }}>
+                            <option value="">Sin asignar</option>
+                            {data.docentes.map((d) => <option key={d.id} value={d.id}>{d.nombre}</option>)}
+                          </select>
+                        </label>
+                        <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
+                          Cupo
+                          <input type="number" min={0} placeholder="Sin límite" value={formCurso.cupo ?? ''} onChange={(e) => setFormCurso({ ...formCurso, cupo: e.target.value })} style={{ ...input, width: '100%', marginTop: 4 }} />
+                        </label>
+                        <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600, gridColumn: '1 / -1' }}>
+                          Modo de acceso
+                          <select value={formCurso.modoAcceso} onChange={(e) => setFormCurso({ ...formCurso, modoAcceso: e.target.value })} style={{ ...input, width: '100%', marginTop: 4 }}>
+                            <option value="manual">Manual — director/profesor/admin inscribe</option>
+                            <option value="auto">Automática — el estudiante se inscribe</option>
+                          </select>
+                        </label>
+                        <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 10, marginTop: 4 }}>
+                          <button className="btn" onClick={() => guardarCurso({
+                            nombre: formCurso.nombre,
+                            grupo: formCurso.grupo,
+                            semestre: formCurso.semestre === '' ? undefined : Number(formCurso.semestre),
+                            docenteId: formCurso.docenteId,
+                            cupo: formCurso.cupo,
+                            modoAcceso: formCurso.modoAcceso,
+                          })}>
+                            <Icon name="guardar" size={15} /> Guardar
+                          </button>
+                          <button className="btn" onClick={() => { setFormCurso(null); setMensajeCurso(null); }} style={{ background: '#f0eee9' }}>Cancelar</button>
+                        </div>
+                      </div>
+                    )}
+                    {mensajeCurso && <div style={{ fontSize: 12, marginTop: 10, color: mensajeCurso.startsWith('No') ? '#c1122c' : '#0a6e4b' }}>{mensajeCurso}</div>}
+                  </div>
+
+                  <div style={card}>
+                    <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 4 }}>Inscritos en este curso</div>
+                    <div style={{ fontSize: 12, color: '#9c988e', marginBottom: 14 }}>Estudiantes matriculados en el grupo.</div>
+                    {curso.estudiantes === 0 ? (
+                      <EstadoVacio mensaje="Todavía no hay estudiantes inscritos en este curso." />
+                    ) : (
+                      <div style={{ fontSize: 13, color: '#4e4a43' }}>
+                        El curso tiene <strong>{curso.estudiantes}</strong> estudiante(s) inscrito(s).
+                        {curso.cupo ? ` Cupo disponible: ${Math.max(0, curso.cupo - curso.estudiantes)} de ${curso.cupo}.` : ''}
+                        <div style={{ fontSize: 12, color: '#9c988e', marginTop: 10 }}>
+                          La gestión nominal de la lista se hace desde el curso en el campus (profesor titular) o desde Asignación docente.
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
-              ))}
+              )}
             </div>
           );
         }

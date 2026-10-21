@@ -43,6 +43,7 @@ const TABS = [
   { key: 'aspirantes', label: 'Aspirantes', icon: 'users' },
   { key: 'procesos', label: 'Procesos', icon: 'calendario-dias' },
   { key: 'documentos', label: 'Documentos', icon: 'archivo' },
+  { key: 'estudiantes', label: 'Estudiantes', icon: 'graduacion' },
   { key: 'registro', label: 'Registro', icon: 'graduacion' },
   { key: 'expedientes', label: 'Expedientes', icon: 'carpeta' },
   { key: 'cuenta', label: 'Estado de cuenta', icon: 'tarjeta-credito' },
@@ -114,6 +115,23 @@ const DOC_TONE = { completo: 'green', pendiente: 'amber', incompleto: 'red' };
 const PAGO_TONE = { pagado: 'green', pendiente: 'amber', vencido: 'red' };
 const PAGO_LABEL = { pagado: 'Pagado', pendiente: 'Pendiente', vencido: 'Vencido' };
 
+/* Situación de matrícula del estudiante, para que Admisiones detecte de un
+   vistazo por qué alguien no puede matricularse. Prioriza los bloqueos duros
+   (documentos, cuenta) sobre el financiero. */
+const situacionMatricula = (e) => {
+  if (e.estado === 'en_inscripcion' && e.documentos !== 'completo') {
+    return { key: 'bloqueado', label: 'Bloqueado por documentos', tone: 'red', motivo: 'Falta validar el expediente de ingreso.' };
+  }
+  if (e.estado === 'retirado') return { key: 'retirado', label: 'Retirado', tone: 'slate', motivo: 'El estudiante se retiró.' };
+  if (e.estado === 'graduado') return { key: 'graduado', label: 'Graduado', tone: 'purple', motivo: 'El estudiante ya egresó.' };
+  if (!e.usuario) return { key: 'sin_cuenta', label: 'Sin cuenta de campus', tone: 'amber', motivo: 'No tiene credenciales de acceso.' };
+  if (e.usuarioActivo === false) return { key: 'inactivo', label: 'Cuenta inactiva', tone: 'red', motivo: 'La cuenta está deshabilitada.' };
+  if ((e.pagos || []).some((p) => p.estado === 'vencido')) return { key: 'mora', label: 'En mora', tone: 'amber', motivo: 'Tiene pagos vencidos.' };
+  return { key: 'habilitado', label: 'Habilitado', tone: 'green', motivo: 'Sin bloqueos para matricular.' };
+};
+
+const SITUACION_TONE = { bloqueado: 'red', sin_cuenta: 'amber', inactivo: 'red', mora: 'amber', habilitado: 'green', retirado: 'slate', graduado: 'purple' };
+
 export default function Admisiones() {
   const [busqueda, setBusqueda] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('todos');
@@ -123,6 +141,11 @@ export default function Admisiones() {
   const [selTipo, setSelTipo] = useState('estudios');
   const [filtroRegistro, setFiltroRegistro] = useState('inscritos');
   const [aviso, setAviso] = useState(null);
+  /* Vista jerárquica de estudiantes: facultad → programa → semestre. */
+  const [estFacultad, setEstFacultad] = useState('todas');
+  const [estPrograma, setEstPrograma] = useState('todos');
+  const [estSemestre, setEstSemestre] = useState('todos');
+  const [estSituacion, setEstSituacion] = useState('todas');
 
   /* Expediente de documentos de UN inscrito, abierto desde la pestaña
      Documentos: lo que el alumno subió, el veredicto de cada archivo y la
@@ -847,6 +870,143 @@ export default function Admisiones() {
               </div>
 
               
+            </div>
+          );
+        }
+
+        /* =========================================================
+           PESTAÑA: ESTUDIANTES (VISTA JERÁRQUICA + SITUACIÓN)
+           ========================================================= */
+        if (tab === 'estudiantes') {
+          /* Navegación tipo Moodle: facultad → programa → semestre. Desde aquí
+             Admisiones ve TODOS los estudiantes (activos, en inscripción,
+             retirados, graduados) y su situación de matrícula, para resolver
+             los casos en que un bloqueo impide matricular. */
+          const facultades = [...new Set(programas.map((p) => p.facultad))].filter(Boolean).sort();
+          const programasDeFacultad = programas.filter((p) => estFacultad === 'todas' || p.facultad === estFacultad);
+          const semestresProg = estPrograma === 'todos'
+            ? []
+            : Array.from(
+                { length: programas.find((p) => p.id === Number(estPrograma))?.semestres || 0 },
+                (_, i) => i + 1,
+              );
+
+          const enJerarquia = estudiantes.filter((e) => {
+            const prog = programas.find((p) => p.id === e.programaId);
+            if (estFacultad !== 'todas' && prog?.facultad !== estFacultad) return false;
+            if (estPrograma !== 'todos' && e.programaId !== Number(estPrograma)) return false;
+            if (estSemestre !== 'todos' && e.semestre !== Number(estSemestre)) return false;
+            if (estSituacion !== 'todas' && situacionMatricula(e).key !== estSituacion) return false;
+            return true;
+          });
+          const visibles = enJerarquia.filter(enFiltro);
+          const conteo = (key) => estudiantes.filter((e) => situacionMatricula(e).key === key).length;
+
+          return (
+            <div className="fade-in">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12, marginBottom: 16 }}>
+                <Kpi icon={<Icon name="check" size={16} />} bg="#d8f0e5" value={conteo('habilitado')} label="Habilitados" color="#0a6e4b" onClick={() => setEstSituacion('habilitado')} />
+                <Kpi icon={<Icon name="alerta" size={16} />} bg="#ffe0e5" value={conteo('bloqueado')} label="Bloqueados por documentos" color="#c1122c" onClick={() => setEstSituacion('bloqueado')} />
+                <Kpi icon={<Icon name="candado" size={16} />} bg="#fbefd6" value={conteo('sin_cuenta')} label="Sin cuenta" color="#99610e" onClick={() => setEstSituacion('sin_cuenta')} />
+                <Kpi icon={<Icon name="reloj" size={16} />} bg="#fbefd6" value={conteo('mora')} label="En mora" color="#99610e" onClick={() => setEstSituacion('mora')} />
+                <Kpi icon={<Icon name="graduacion" size={16} />} bg="#e3f1ff" value={estudiantes.length} label="Total" onClick={() => setEstSituacion('todas')} />
+              </div>
+
+              <div style={{ ...card, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 14 }}>
+                <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  Facultad
+                  <select value={estFacultad} onChange={(e) => { setEstFacultad(e.target.value); setEstPrograma('todos'); setEstSemestre('todos'); }} style={{ ...input, minWidth: 200 }}>
+                    <option value="todas">Todas las facultades</option>
+                    {facultades.map((f) => <option key={f} value={f}>{f}</option>)}
+                  </select>
+                </label>
+                <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  Programa
+                  <select value={estPrograma} onChange={(e) => { setEstPrograma(e.target.value); setEstSemestre('todos'); }} style={{ ...input, minWidth: 240 }}>
+                    <option value="todos">Todos los programas</option>
+                    {programasDeFacultad.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+                  </select>
+                </label>
+                <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  Semestre
+                  <select value={estSemestre} onChange={(e) => setEstSemestre(e.target.value)} style={{ ...input, minWidth: 130 }} disabled={estPrograma === 'todos'}>
+                    <option value="todos">{estPrograma === 'todos' ? 'Todos' : 'Todos los semestres'}</option>
+                    {semestresProg.map((s) => <option key={s} value={s}>Semestre {s}</option>)}
+                  </select>
+                </label>
+                <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  Situación
+                  <select value={estSituacion} onChange={(e) => setEstSituacion(e.target.value)} style={{ ...input, minWidth: 160 }}>
+                    <option value="todas">Todas</option>
+                    <option value="habilitado">Habilitados</option>
+                    <option value="bloqueado">Bloqueados por documentos</option>
+                    <option value="sin_cuenta">Sin cuenta</option>
+                    <option value="inactivo">Cuenta inactiva</option>
+                    <option value="mora">En mora</option>
+                    <option value="retirado">Retirados</option>
+                    <option value="graduado">Graduados</option>
+                  </select>
+                </label>
+                <input placeholder="Buscar por nombre, documento o código…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={{ ...input, minWidth: 220, flex: 1 }} />
+                <span style={{ fontSize: 12, color: '#9c988e' }}>{visibles.length} de {enJerarquia.length}</span>
+              </div>
+
+              <div style={card}>
+                <Encabezado
+                  titulo="Estudiantes por programa"
+                  sub="Situación de matrícula de cada estudiante: detecta bloqueos por documentos, cuenta o cartera."
+                />
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr>
+                        <th style={th}>Código</th>
+                        <th style={th}>Estudiante</th>
+                        <th style={th}>Facultad / Programa</th>
+                        <th style={th}>Sem.</th>
+                        <th style={th}>Estado</th>
+                        <th style={th}>Documentos</th>
+                        <th style={th}>Cuenta</th>
+                        <th style={th}>Situación de matrícula</th>
+                        <th style={th}>Expediente</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {visibles.map((e) => {
+                        const sit = situacionMatricula(e);
+                        const prog = programas.find((p) => p.id === e.programaId);
+                        return (
+                          <tr key={e.id}>
+                            <td style={td}><code style={{ fontSize: 12, color: '#4e4a43' }}>{e.id}</code></td>
+                            <td style={td}><strong>{e.nombre}</strong><br /><span style={{ fontSize: 11, color: '#9c988e' }}>{e.documento}</span></td>
+                            <td style={td}>{prog?.facultad || '—'}<br /><span style={{ fontSize: 11, color: '#9c988e' }}>{prog?.nombre || '—'}</span></td>
+                            <td style={td}>{e.semestre}</td>
+                            <td style={td}><Badge tone={ESTADO_ESTUDIANTE[e.estado]?.tone || 'slate'}>{ESTADO_ESTUDIANTE[e.estado]?.label || e.estado}</Badge></td>
+                            <td style={td}><Badge tone={DOC_TONE[e.documentos] || 'slate'}>{e.documentos}</Badge></td>
+                            <td style={td}>
+                              {e.usuario ? (
+                                <Badge tone={e.usuarioActivo ? 'blue' : 'red'}>{e.usuario}</Badge>
+                              ) : (
+                                <span style={{ fontSize: 11, color: '#9c988e' }}>sin cuenta</span>
+                              )}
+                            </td>
+                            <td style={td}>
+                              <Badge tone={SITUACION_TONE[sit.key] || 'slate'}>{sit.label}</Badge>
+                              <div style={{ fontSize: 11, color: '#9c988e', marginTop: 3 }}>{sit.motivo}</div>
+                            </td>
+                            <td style={td}>
+                              <button className="btn" style={{ padding: '5px 9px', fontSize: 11 }} onClick={() => { setSelEstudiante(e.id); setTab('expedientes'); }}>
+                                Ver ficha
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                {visibles.length === 0 && <Vacio>No hay estudiantes que coincidan con los filtros seleccionados.</Vacio>}
+              </div>
             </div>
           );
         }

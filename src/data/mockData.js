@@ -344,9 +344,12 @@ export const INITIAL_DATA = {
     { id:4, concepto:'Seguro Estudiantil 2026', valor:45000, fecha_limite:'2026-03-01', fecha_pago:'2026-02-28', estado:'pagado', referencia:'PAG-20260228-003' },
   ],
   cursos: [
-    { id:1, nombre:'Ingeniería de Software',       codigo:'IS-602', profesor:'Dra. Laura Sánchez', grupo:'A', estudiantes:32, icon:'cohete', color:'linear-gradient(135deg,#6d28d9,#8b5cf6)', progreso:50 },
-    { id:2, nombre:'Redes Computacionales I',     codigo:'IS-603', profesor:'Ing. Suárez',   grupo:'B', estudiantes:28, icon:'globo', color:'linear-gradient(135deg,#0369a1,#0ea5e9)', progreso:65 },
-    { id:3, nombre:'Arquitectura del Computador',  codigo:'IS-601', profesor:'Dr. Ramírez',   grupo:'A', estudiantes:30, icon:'portatil', color:'linear-gradient(135deg,#065f46,#10b981)', progreso:100 },
+    /* Ubicación académica: los tres son asignaturas de 6º semestre de
+       Ingeniería de Sistemas (programaId 1). `modoAcceso` define quién
+       inscribe; `cupo` limita la matrícula automática. */
+    { id:1, nombre:'Ingeniería de Software',       codigo:'IS-602', profesor:'Dra. Laura Sánchez', grupo:'A', estudiantes:32, icon:'cohete', color:'linear-gradient(135deg,#6d28d9,#8b5cf6)', progreso:50, programaId:1, semestre:6, materiaId:606, modoAcceso:'manual', cupo:32 },
+    { id:2, nombre:'Redes Computacionales I',     codigo:'IS-603', profesor:'Ing. Suárez',   grupo:'B', estudiantes:28, icon:'globo', color:'linear-gradient(135deg,#0369a1,#0ea5e9)', progreso:65, programaId:1, semestre:6, materiaId:607, modoAcceso:'manual', cupo:28 },
+    { id:3, nombre:'Arquitectura del Computador',  codigo:'IS-601', profesor:'Dr. Ramírez',   grupo:'A', estudiantes:30, icon:'portatil', color:'linear-gradient(135deg,#065f46,#10b981)', progreso:100, programaId:1, semestre:6, materiaId:601, modoAcceso:'manual', cupo:30 },
   ],
   actividades: [
     { id:1,  cursoId:1, corte:2, titulo:'Diagramas UML — Casos de Uso',    tipo:'taller',   fechaEntrega:'2026-08-22', descripcion:'Modelar los casos de uso y sus diagramas para el sistema propuesto.',            puntos:40,  estado_est:'pendiente',  nota:null },

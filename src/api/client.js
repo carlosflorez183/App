@@ -293,6 +293,10 @@ export const eliminarEstudianteAdmin = (id) =>
 export const actualizarDocente = (id, cambios) =>
   api(`/admin/docentes/${encodeURIComponent(id)}`, { method: 'PATCH', body: cambios });
 
+/* Configuración de un curso del campus (datos + modo de acceso). */
+export const actualizarCurso = (id, cambios) =>
+  api(`/cursos/${id}`, { method: 'PATCH', body: cambios });
+
 export const listarNominas = () => api('/talento-humano/nominas');
 /* La nómina la genera Contabilidad; Talento Humano solo la consulta. */
 export const crearNomina = (data) => api('/contabilidad/nominas', { method: 'POST', body: data });
