@@ -94,6 +94,10 @@ export default function ConfigCurso() {
   const inscritos = data?.inscritos || [];
   const docentes = data?.docentes || [];
   const docenteTitular = data?.docenteTitular || null;
+  const usuariosMatriculados = data?.usuariosMatriculados || [
+    ...(docenteTitular ? [{ tipo: 'docente', rol: 'docente', etiqueta: '(D)', nombre: docenteTitular.nombre, correo: docenteTitular.email, id: docenteTitular.id, docenteId: docenteTitular.id, estudianteId: null }] : []),
+    ...inscritos.map((e) => ({ tipo: 'estudiante', rol: 'estudiante', etiqueta: '', ...e, id: e.estudianteId })),
+  ];
 
   const guardar = async () => {
     setGuardando(true);
@@ -303,40 +307,46 @@ export default function ConfigCurso() {
         </div>
 
         <div style={card}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
             <div>
-              <div style={{ fontSize: 15, fontWeight: 800 }}>Matriculados</div>
-              <div style={{ fontSize: 12, color: '#9c988e' }}>{inscritos.length} estudiante(s) inscritos en este curso</div>
+              <div style={{ fontSize: 15, fontWeight: 800 }}>Usuarios matriculados</div>
+              <div style={{ fontSize: 12, color: '#9c988e' }}>Docente y estudiantes en la misma lista. El docente aparece identificado con (D).</div>
             </div>
             <Badge tone="purple">Cupo: {curso.cupo ?? 'Sin límite'} · Inscritos: {inscritos.length}</Badge>
           </div>
-          {inscritos.length === 0 ? (
-            <div style={{ fontSize: 13, color: '#9c988e' }}>No hay estudiantes inscritos aún.</div>
+          {usuariosMatriculados.length === 0 ? (
+            <div style={{ fontSize: 13, color: '#9c988e' }}>No hay usuarios matriculados aún.</div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr>
-                    <th style={th}>Código</th>
-                    <th style={th}>Estudiante</th>
+                    <th style={th}>Usuario</th>
+                    <th style={th}>Nombre</th>
+                    <th style={th}>Correo</th>
                     <th style={th}>Documento</th>
                     <th style={th}>Programa</th>
-                    <th style={th}>Sem.</th>
+                    <th style={th}>Rol</th>
                     <th style={th}>Acción</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {inscritos.map((e) => (
-                    <tr key={e.estudianteId}>
-                      <td style={td}><code style={{ fontSize: 12 }}>{e.estudianteId}</code></td>
-                      <td style={td}><strong>{e.nombre}</strong><br /><span style={{ fontSize: 11, color: '#9c988e' }}>{e.correo || '—'}</span></td>
-                      <td style={td}>{e.documento}</td>
-                      <td style={td}>{e.programa || '—'}</td>
-                      <td style={td}>{e.semestre}</td>
+                  {usuariosMatriculados.map((u, idx) => (
+                    <tr key={`${u.tipo}-${u.id}-${idx}`}>
+                      <td style={td}><code style={{ fontSize: 12 }}>{u.estudianteId || u.docenteId || u.id}</code></td>
+                      <td style={td}><strong>{u.nombre} {u.etiqueta ? <span style={{ color: '#06468c' }}>{u.etiqueta}</span> : null}</strong></td>
+                      <td style={td}>{u.correo || '—'}</td>
+                      <td style={td}>{u.documento || '—'}</td>
+                      <td style={td}>{u.programa || '—'}</td>
+                      <td style={td}><Badge tone={u.tipo === 'docente' ? 'blue' : 'green'}>{u.tipo === 'docente' ? 'Docente' : 'Estudiante'}</Badge></td>
                       <td style={td}>
-                        <button className="btn" style={{ padding: '4px 9px', fontSize: 11 }} onClick={() => retirar(e)}>
-                          <Icon name="eliminar" size={14} /> Retirar
-                        </button>
+                        {u.tipo === 'estudiante' && u.estudianteId ? (
+                          <button className="btn" style={{ padding: '4px 9px', fontSize: 11 }} onClick={() => retirar({ estudianteId: u.estudianteId, nombre: u.nombre })}>
+                            <Icon name="eliminar" size={14} /> Retirar
+                          </button>
+                        ) : (
+                          <span style={{ fontSize: 11, color: '#9c988e' }}>Gestionado desde docente titular</span>
+                        )}
                       </td>
                     </tr>
                   ))}

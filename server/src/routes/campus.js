@@ -1448,6 +1448,41 @@ export default async function rutasCampus(app) {
       include: { estudiante: { include: { programa: true } } },
     });
     const docentes = await prisma.docente.findMany({ orderBy: { nombre: 'asc' } });
+    const docenteTitular = curso.docenteId ? await prisma.docente.findUnique({ where: { id: curso.docenteId } }) : null;
+
+    const usuariosMatriculados = [];
+    if (docenteTitular) {
+      usuariosMatriculados.push({
+        tipo: 'docente',
+        rol: 'docente',
+        etiqueta: '(D)',
+        id: docenteTitular.id,
+        docenteId: docenteTitular.id,
+        estudianteId: null,
+        nombre: docenteTitular.nombre,
+        correo: docenteTitular.email || null,
+        documento: null,
+        programa: null,
+        semestre: null,
+        estado: docenteTitular.estado || 'activo',
+      });
+    }
+    for (const i of inscripciones) {
+      usuariosMatriculados.push({
+        tipo: 'estudiante',
+        rol: 'estudiante',
+        etiqueta: '',
+        id: i.estudiante.id,
+        estudianteId: i.estudiante.id,
+        docenteId: null,
+        nombre: i.estudiante.nombre,
+        correo: i.estudiante.correo || null,
+        documento: i.estudiante.documento,
+        programa: i.estudiante.programa?.nombre || null,
+        semestre: i.estudiante.semestre,
+        estado: i.estado,
+      });
+    }
 
     return {
       curso: {
@@ -1464,13 +1499,13 @@ export default async function rutasCampus(app) {
         programaId: curso.programaId,
         programa: curso.programa?.nombre || null,
         materiaId: curso.materiaId,
+        categoria: curso.programa?.nombre || null,
+        periodo: PERIODO_CAMPUS,
       },
-      docenteTitular: curso.docenteId
-        ? await prisma.docente.findUnique({ where: { id: curso.docenteId } })
-        : null,
+      docenteTitular,
       inscritos: inscripciones.map((i) => ({
-        estudianteId: i.estudianteId,
-        id: i.estudianteId,
+        estudianteId: i.estudiante.id,
+        id: i.estudiante.id,
         nombre: i.estudiante.nombre,
         documento: i.estudiante.documento,
         correo: i.estudiante.correo,
@@ -1478,6 +1513,7 @@ export default async function rutasCampus(app) {
         semestre: i.estudiante.semestre,
         estado: i.estado,
       })),
+      usuariosMatriculados,
       docentes: docentes.map((d) => ({ id: d.id, nombre: d.nombre, area: d.area, email: d.email })),
     };
   });

@@ -754,15 +754,18 @@ export default function Admin() {
         }
 
         if (tab === 'cursos') {
-          /* Navegación jerárquica tipo Moodle: programa → semestre → curso.
-             La configuración completa se abre en configcurso (/admin/configcurso/:id). */
+          /* Flujo estilo Moodle: Periodo → Programa → Semestre → Curso */
           const cursos = data.cursos || [];
-          const progCursos = programas.find((p) => p.id === progSelCursos) || programas[0];
-          const cursosProg = cursos.filter((c) => c.programaId === progCursos?.id);
-          const semestresDisp = [...new Set(cursosProg.map((c) => c.semestre).filter(Boolean))].sort((a, b) => a - b);
-          const semElegido = semestresDisp.includes(semSelCursos) ? semSelCursos : (semestresDisp[0] ?? 1);
-          const cursosSem = cursosProg.filter((c) => c.semestre === semElegido);
-          const curso = cursos.find((c) => c.id === cursoSel) || cursosSem[0];
+          const programasActivos = programas.filter((p) => p.activo !== false);
+          const periodo = '2026-1';
+          const programasConCursos = programasActivos
+            .map((p) => {
+              const lista = cursos.filter((c) => c.programaId === p.id);
+              const sems = [...new Set(lista.map((c) => c.semestre).filter(Boolean))].sort((a, b) => a - b);
+              return { programa: p, semestres: sems, cursos: lista };
+            })
+            .filter((x) => x.cursos.length > 0)
+            .sort((a, b) => (a.programa.nombre || '').localeCompare(b.programa.nombre || ''));
 
           const guardarCurso = async (cambios) => {
             try {
@@ -779,11 +782,17 @@ export default function Admin() {
             <div className="fade-in">
               <div style={{ ...card, display: 'flex', gap: 12, alignItems: 'flex-end', marginBottom: 16, flexWrap: 'wrap' }}>
                 <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  Periodo
+                  <select style={{ ...input, minWidth: 140 }} value="2026-1" readOnly>
+                    <option value="2026-1">2026-1</option>
+                  </select>
+                </label>
+                <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600, display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 260 }}>
                   Programa
                   <select
                     value={programas.some((p) => p.id === progSelCursos) ? progSelCursos : programas[0]?.id}
                     onChange={(e) => { setProgSelCursos(Number(e.target.value)); setCursoSel(null); setFormCurso(null); }}
-                    style={{ ...input, minWidth: 260 }}
+                    style={{ ...input, width: '100%' }}
                   >
                     {programas.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
                   </select>
@@ -796,65 +805,69 @@ export default function Admin() {
                   </select>
                 </label>
                 <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600, display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 240 }}>
-                  Curso
+                  Curso / Materia
                   <select value={curso?.id || ''} onChange={(e) => { setCursoSel(Number(e.target.value)); setFormCurso(null); }} style={{ ...input, width: '100%' }} disabled={cursosSem.length === 0}>
                     {cursosSem.length === 0 && <option value="">Sin cursos en este semestre</option>}
-                    {cursosSem.map((c) => <option key={c.id} value={c.id}>{c.codigo} — {c.nombre} (Grupo {c.grupo})</option>)}
+                    {cursosSem.map((c) => <option key={c.id} value={c.id}>{c.nombre} — {c.codigo} (Grupo {c.grupo})</option>)}
                   </select>
                 </label>
-                <Badge tone="purple">{cursosSem.length} curso(s)</Badge>
               </div>
 
               {!curso ? (
                 <div style={card}><EstadoVacio mensaje="Este programa todavía no tiene cursos creados en este semestre." /></div>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16 }}>
-                  <div style={card}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
-                      <div>
-                        <div style={{ fontSize: 16, fontWeight: 800 }}>{curso.nombre}</div>
-                        <div style={{ fontSize: 12, color: '#9c988e', marginTop: 3 }}>{curso.codigo} · {progCursos?.nombre}</div>
-                      </div>
-                      <button className="btn" onClick={() => navigate(`/admin/configcurso/${curso.id}`)}>
-                        <Icon name="editar" size={15} /> Configurar
-                      </button>
-                    </div>
-
+                <div style={card}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
                     <div>
-                      {[
-                        ['Código', curso.codigo],
-                        ['Grupo', curso.grupo],
-                        ['Semestre', curso.semestre ?? '—'],
-                        ['Docente', curso.docenteId ? curso.profesor : 'Sin asignar'],
-                        ['Modo de acceso', curso.modoAcceso === 'auto' ? 'Automática' : 'Manual'],
-                        ['Cupo', curso.cupo ?? 'Sin límite'],
-                        ['Inscritos', curso.estudiantes],
-                      ].map(([k, v]) => (
-                        <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '8px 0', borderBottom: '1px solid #f0eee9', fontSize: 13 }}>
-                          <span style={{ color: '#6f6b62' }}>{k}</span>
-                          <strong style={{ textAlign: 'right' }}>{v}</strong>
-                        </div>
-                      ))}
-                      <div style={{ fontSize: 11, color: '#9c988e', marginTop: 10 }}>
-                        La configuración completa, el buscador unificado y la matrícula/retirada se gestionan desde <strong>configcurso</strong>.
+                      <div style={{ fontSize: 18, fontWeight: 800 }}>{curso.nombre}</div>
+                      <div style={{ fontSize: 12, color: '#6f6b62', marginTop: 4 }}>
+                        {curso.codigo} · Grupo {curso.grupo} · {progCursos?.nombre} · Semestre {curso.semestre}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      <button className="btn" onClick={() => navigate(`/admin/configcurso/${curso.id}`)}>Vista</button>
+                      <button className="btn" onClick={() => navigate(`/admin/configcurso/${curso.id}`)}>Editar</button>
+                      <button className="btn" onClick={() => navigate(`/admin/configcurso/${curso.id}`)}>Usuarios matriculados</button>
+                      <button className="btn">Mostrar/Ocultar</button>
+                      <button className="btn">Copia de seguridad</button>
+                      <button className="btn">Restaurar</button>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14 }}>
+                    {[
+                      ['Nombre completo', curso.nombre],
+                      ['Nombre corto', curso.codigo],
+                      ['Número de ID', curso.id],
+                      ['Categoría', progCursos?.nombre || '—'],
+                      ['Grupos', 0],
+                      ['Agrupamientos', 0],
+                      ['Profesor', curso.profesor || 'Sin asignar'],
+                      ['Métodos de matriculación', curso.modoAcceso === 'auto' ? 'Auto-matriculación (Estudiante) / Matriculación manual' : 'Matriculación manual'],
+                      ['Formato', 'Formato de temas'],
+                      ['Secciones', 'General'],
+                    ].map(([k, v]) => (
+                      <div key={k} style={{ background: '#f7f6f3', border: '1px solid #e5e2da', borderRadius: 10, padding: 12 }}>
+                        <div style={{ fontSize: 11, color: '#6f6b62', fontWeight: 600 }}>{k}</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, marginTop: 4 }}>{String(v)}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{ marginTop: 18 }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 8 }}>Contenido</div>
+                    <div style={{ border: '1px solid #e5e2da', borderRadius: 12, overflow: 'hidden' }}>
+                      <div style={{ background: '#f7f6f3', padding: '10px 14px', fontWeight: 700 }}>General</div>
+                      <div style={{ padding: 14, display: 'grid', gap: 8, fontSize: 13 }}>
+                        <div>• NÚMEROS REALES, EXPRESIONES ALGEBRAICAS, ECUACIONES Y DESIGUALDADES CUADRÁTICAS.</div>
+                        <div>• GEOMETRÍA EUCLIDIANA Y GEOMETRÍA ANALÍTICA.</div>
+                        <div>• 3: Estudio De La Trigonometría</div>
                       </div>
                     </div>
                   </div>
 
-                  <div style={card}>
-                    <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 4 }}>Inscritos en este curso</div>
-                    <div style={{ fontSize: 12, color: '#9c988e', marginBottom: 14 }}>Estudiantes matriculados en el grupo.</div>
-                    {curso.estudiantes === 0 ? (
-                      <EstadoVacio mensaje="Todavía no hay estudiantes inscritos en este curso." />
-                    ) : (
-                      <div style={{ fontSize: 13, color: '#4e4a43' }}>
-                        El curso tiene <strong>{curso.estudiantes}</strong> estudiante(s) inscrito(s).
-                        {curso.cupo ? ` Cupo disponible: ${Math.max(0, curso.cupo - curso.estudiantes)} de ${curso.cupo}.` : ''}
-                      </div>
-                    )}
-                    <button className="btn" style={{ marginTop: 14 }} onClick={() => navigate(`/admin/configcurso/${curso.id}`)}>
-                      <Icon name="matricular" size={15} /> Gestionar desde configcurso
-                    </button>
+                  <div style={{ marginTop: 18 }}>
+                    <div style={{ fontSize: 13, color: '#6f6b62' }}>Módulos utilizados: Foro · Archivo · Carpeta · Etiqueta · Tarea</div>
                   </div>
                 </div>
               )}

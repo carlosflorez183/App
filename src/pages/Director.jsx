@@ -216,89 +216,58 @@ export default function Director() {
         }
 
         if (tab === 'cursos') {
-          const curso = cursoActual;
+          /* Flujo estilo Moodle: Periodo → Programa → Semestre → Curso */
+          const programaActual = resumen?.programa;
+          const periodos = [{ id: 1, nombre: '2026-1', activo: true }];
+          const semestres = [...new Set(cursos.map((c) => c.semestre).filter(Boolean))].sort((a, b) => a - b);
+          const cursosPorSemestre = semestres.map((s) => ({
+            semestre: s,
+            items: cursos.filter((c) => c.semestre === s).sort((a, b) => (a.codigo || '').localeCompare(b.codigo || '')),
+          }));
           return (
             <div className="fade-in">
               <div style={{ ...card, display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: 16 }}>
-                <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600, display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 260 }}>
-                  Curso del programa
-                  <select
-                    value={curso?.id || ''}
-                    onChange={(e) => { setCursoSel(Number(e.target.value)); }}
-                    style={{ ...input, width: '100%' }}
-                  >
-                    {cursos.length === 0 && <option value="">Sin cursos</option>}
-                    {cursos.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        S{c.semestre ?? '—'} · {c.codigo} — {c.nombre} (Grupo {c.grupo})
-                      </option>
-                    ))}
+                <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  Periodo
+                  <select style={{ ...input, minWidth: 160 }} value="2026-1" readOnly>
+                    <option value="2026-1">2026-1</option>
                   </select>
                 </label>
-                <Badge tone="purple">{cursos.length} curso(s)</Badge>
+                <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600, display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 260 }}>
+                  Programa
+                  <input style={{ ...input, width: '100%' }} value={programaActual?.nombre || ''} readOnly />
+                </label>
               </div>
 
-              {!curso ? (
-                <div style={card}>Este programa todavía no tiene cursos creados.</div>
+              {cursos.length === 0 ? (
+                <div style={card}>Este programa no tiene cursos asignados en este periodo.</div>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16 }}>
-                  <div style={card}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
-                      <div>
-                        <div style={{ fontSize: 16, fontWeight: 800 }}>{curso.nombre}</div>
-                        <div style={{ fontSize: 12, color: '#9c988e', marginTop: 3 }}>{curso.codigo} · Grupo {curso.grupo}</div>
+                <div style={{ display: 'grid', gap: 14 }}>
+                  {cursosPorSemestre.map((bloque) => (
+                    <div key={bloque.semestre} style={card}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                        <div style={{ fontSize: 15, fontWeight: 800 }}>Semestre {bloque.semestre}</div>
+                        <Badge tone="purple">{bloque.items.length} curso(s)</Badge>
                       </div>
-                      <button className="btn" onClick={() => abrirConfig(curso)}>
-                        <Icon name="editar" size={15} /> Configurar
-                      </button>
-                    </div>
-
-                    <div>
-                      {[
-                        ['Semestre', curso.semestre ?? '—'],
-                        ['Docente', curso.docenteId ? curso.profesor : 'Sin asignar'],
-                        ['Modo de acceso', curso.modoAcceso === 'auto' ? 'Automática' : 'Manual'],
-                        ['Cupo', curso.cupo ?? 'Sin límite'],
-                        ['Inscritos', curso.inscritos],
-                      ].map(([k, v]) => (
-                        <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '8px 0', borderBottom: '1px solid #f0eee9', fontSize: 13 }}>
-                          <span style={{ color: '#6f6b62' }}>{k}</span>
-                          <strong style={{ textAlign: 'right' }}>{v}</strong>
-                        </div>
-                      ))}
-                      <div style={{ fontSize: 11, color: '#9c988e', marginTop: 10 }}>
-                        La configuración completa, el buscador unificado y la matrícula/retirada se gestionan desde <strong>configcurso</strong>.
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={card}>
-                    <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 4 }}>Inscritos en este curso</div>
-                    <div style={{ fontSize: 12, color: '#9c988e', marginBottom: 14 }}>Estudiantes matriculados en el grupo.</div>
-                    <div style={{ fontSize: 13, color: '#4e4a43' }}>
-                      El curso tiene <strong>{curso.inscritos}</strong> estudiante(s) inscrito(s).
-                      {curso.cupo ? ` Cupo disponible: ${Math.max(0, curso.cupo - curso.inscritos)} de ${curso.cupo}.` : ''}
-                    </div>
-                    {matCurso?.id === curso.id && matInscritos.length > 0 && (
-                      <div style={{ marginTop: 12 }}>
-                        {matInscritos.slice(0, 6).map((e) => (
-                          <div key={e.estudianteId} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '6px 0', borderBottom: '1px solid #f0eee9', fontSize: 12.5 }}>
-                            <span>{e.nombre}</span>
-                            <span style={{ color: '#9c988e' }}>{e.codigo || e.documento}</span>
-                          </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 10 }}>
+                        {bloque.items.map((c) => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => abrirConfig(c)}
+                            style={{ textAlign: 'left', background: '#fff', border: '1px solid #e5e2da', borderRadius: 12, padding: '12px 14px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 4 }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                              <strong style={{ fontSize: 14 }}>{c.nombre}</strong>
+                              <Badge tone={c.modoAcceso === 'auto' ? 'green' : 'slate'}>{c.modoAcceso === 'auto' ? 'Auto' : 'Manual'}</Badge>
+                            </div>
+                            <div style={{ fontSize: 12, color: '#6f6b62' }}>{c.codigo} · Grupo {c.grupo} · {c.profesor || 'Sin docente'}</div>
+                            <div style={{ fontSize: 11, color: '#9c988e' }}>Inscritos: {c.inscritos}{c.cupo ? ` / Cupo: ${c.cupo}` : ''}</div>
+                          </button>
                         ))}
-                        {matInscritos.length > 6 && <div style={{ fontSize: 11, color: '#9c988e', marginTop: 6 }}>+{matInscritos.length - 6} más</div>}
                       </div>
-                    )}
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
-                      <button className="btn" onClick={() => abrirConfig(curso)}>
-                        <Icon name="editar" size={15} /> Abrir configcurso
-                      </button>
-                      <button className="btn" onClick={() => abrirMatricula(curso)}>
-                        <Icon name="matricular" size={15} /> Gestión rápida
-                      </button>
                     </div>
-                  </div>
+                  ))}
                 </div>
               )}
             </div>
