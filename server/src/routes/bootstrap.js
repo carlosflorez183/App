@@ -49,6 +49,12 @@ export default async function rutasBootstrap(app) {
       filtroCursos = propio
         ? { inscripciones: { some: { estudianteId: propio.id } } }
         : { inscripciones: { some: { estudianteId: '__ninguno__' } } };
+    } else if (req.usuario.role === 'director') {
+      /* El director solo administra SU programa: la lista de cursos del campus
+         que recibe en el arranque se acota a ese programa. */
+      filtroCursos = req.usuario.programaId
+        ? { programaId: req.usuario.programaId }
+        : { id: -1 };
     }
 
     const [

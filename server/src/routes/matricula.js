@@ -3,10 +3,10 @@
    programas y planes de estudio (pensum).
    ============================================= */
 import { prisma } from '../config.js';
+import { PERIODO_CAMPUS, PERIODO_MATRICULA } from '../periodos.js';
 
-/* Periodo que se matricula y tope de créditos por semestre. Es el mismo tope
-   que valida el portal (23): la API no debe aceptar lo que la vista rechaza. */
-const PERIODO_MATRICULA = '2026-2';
+/* Tope de créditos por semestre. Es el mismo tope que valida el portal (23):
+   la API no debe aceptar lo que la vista rechaza. */
 const MAX_CREDITOS = 23;
 
 export default async function rutasMatricula(app) {
@@ -159,6 +159,48 @@ export default async function rutasMatricula(app) {
         });
       }
 
+      /* Auto-matrícula al campus: los cursos con modoAcceso 'auto' cuyo código
+         coincide con una materia matriculada inscriben al estudiante solos. En
+         los 'manual' la inscripción queda para el profesor/director/admin (o
+         simplemente no existe un curso de campus para esa materia). Se respeta
+         el cupo: si el grupo está lleno, la materia se matricula igual (queda
+         en Notas) pero no se crea la inscripción al curso. */
+      const codigos = materias.map((m) => m.codigo);
+      const cursosAuto = await prisma.curso.findMany({
+        where: {
+          codigo: { in: codigos },
+          modoAcceso: 'auto',
+          programaId: estudiante.programaId,
+        },
+      });
+      const autoInscritos = [];
+      const sinCupo = [];
+      for (const curso of cursosAuto) {
+        const yaEsta = await prisma.inscripcion.findUnique({
+          where: { estudianteId_cursoId: { estudianteId: estudiante.id, cursoId: curso.id } },
+        });
+        if (yaEsta) continue;
+
+        if (curso.cupo != null) {
+          const inscritos = await prisma.inscripcion.count({
+            where: { cursoId: curso.id, periodo: PERIODO_CAMPUS },
+          });
+          if (inscritos >= curso.cupo) {
+            sinCupo.push(curso.nombre);
+            continue;
+          }
+        }
+
+        await prisma.inscripcion.create({
+          data: { estudianteId: estudiante.id, cursoId: curso.id, periodo: PERIODO_CAMPUS, estado: 'matriculado' },
+        });
+        const total = await prisma.inscripcion.count({
+          where: { cursoId: curso.id, periodo: PERIODO_CAMPUS },
+        });
+        await prisma.curso.update({ where: { id: curso.id }, data: { estudiantes: total } });
+        autoInscritos.push({ cursoId: curso.id, nombre: curso.nombre });
+      }
+
       return {
         ok: true,
         periodo: PERIODO_MATRICULA,
@@ -168,6 +210,8 @@ export default async function rutasMatricula(app) {
           nombre: m.nombre,
           creditos: m.creditos,
         })),
+        autoInscritos,
+        sinCupo,
       };
     }
   );

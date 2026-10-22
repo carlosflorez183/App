@@ -755,7 +755,7 @@ export default function Admin() {
 
         if (tab === 'cursos') {
           /* Navegación jerárquica tipo Moodle: programa → semestre → curso.
-             Al elegir un curso se abre su vista de configuración. */
+             La configuración completa se abre en configcurso (/admin/configcurso/:id). */
           const cursos = data.cursos || [];
           const progCursos = programas.find((p) => p.id === progSelCursos) || programas[0];
           const cursosProg = cursos.filter((c) => c.programaId === progCursos?.id);
@@ -815,78 +815,30 @@ export default function Admin() {
                         <div style={{ fontSize: 16, fontWeight: 800 }}>{curso.nombre}</div>
                         <div style={{ fontSize: 12, color: '#9c988e', marginTop: 3 }}>{curso.codigo} · {progCursos?.nombre}</div>
                       </div>
-                      {!formCurso && (
-                        <button className="btn" onClick={() => setFormCurso({ ...curso, docenteId: curso.docenteId || '' })}>
-                          <Icon name="editar" size={15} /> Configurar
-                        </button>
-                      )}
+                      <button className="btn" onClick={() => navigate(`/admin/configcurso/${curso.id}`)}>
+                        <Icon name="editar" size={15} /> Configurar
+                      </button>
                     </div>
 
-                    {!formCurso ? (
-                      <div>
-                        {[
-                          ['Código', curso.codigo],
-                          ['Grupo', curso.grupo],
-                          ['Semestre', curso.semestre ?? '—'],
-                          ['Docente', curso.docenteId ? curso.profesor : 'Sin asignar'],
-                          ['Modo de acceso', curso.modoAcceso === 'auto' ? 'Automática (el estudiante se inscribe)' : 'Manual (director/profesor/admin inscribe)'],
-                          ['Cupo', curso.cupo ?? 'Sin límite'],
-                          ['Inscritos', curso.estudiantes],
-                        ].map(([k, v]) => (
-                          <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '8px 0', borderBottom: '1px solid #f0eee9', fontSize: 13 }}>
-                            <span style={{ color: '#6f6b62' }}>{k}</span>
-                            <strong style={{ textAlign: 'right' }}>{v}</strong>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                        <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600, gridColumn: '1 / -1' }}>
-                          Nombre
-                          <input value={formCurso.nombre} onChange={(e) => setFormCurso({ ...formCurso, nombre: e.target.value })} style={{ ...input, width: '100%', marginTop: 4 }} />
-                        </label>
-                        <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
-                          Grupo
-                          <input value={formCurso.grupo} onChange={(e) => setFormCurso({ ...formCurso, grupo: e.target.value })} style={{ ...input, width: '100%', marginTop: 4 }} />
-                        </label>
-                        <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
-                          Semestre
-                          <input type="number" min={1} value={formCurso.semestre ?? ''} onChange={(e) => setFormCurso({ ...formCurso, semestre: e.target.value })} style={{ ...input, width: '100%', marginTop: 4 }} />
-                        </label>
-                        <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
-                          Docente
-                          <select value={formCurso.docenteId || ''} onChange={(e) => setFormCurso({ ...formCurso, docenteId: e.target.value })} style={{ ...input, width: '100%', marginTop: 4 }}>
-                            <option value="">Sin asignar</option>
-                            {data.docentes.map((d) => <option key={d.id} value={d.id}>{d.nombre}</option>)}
-                          </select>
-                        </label>
-                        <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
-                          Cupo
-                          <input type="number" min={0} placeholder="Sin límite" value={formCurso.cupo ?? ''} onChange={(e) => setFormCurso({ ...formCurso, cupo: e.target.value })} style={{ ...input, width: '100%', marginTop: 4 }} />
-                        </label>
-                        <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600, gridColumn: '1 / -1' }}>
-                          Modo de acceso
-                          <select value={formCurso.modoAcceso} onChange={(e) => setFormCurso({ ...formCurso, modoAcceso: e.target.value })} style={{ ...input, width: '100%', marginTop: 4 }}>
-                            <option value="manual">Manual — director/profesor/admin inscribe</option>
-                            <option value="auto">Automática — el estudiante se inscribe</option>
-                          </select>
-                        </label>
-                        <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 10, marginTop: 4 }}>
-                          <button className="btn" onClick={() => guardarCurso({
-                            nombre: formCurso.nombre,
-                            grupo: formCurso.grupo,
-                            semestre: formCurso.semestre === '' ? undefined : Number(formCurso.semestre),
-                            docenteId: formCurso.docenteId,
-                            cupo: formCurso.cupo,
-                            modoAcceso: formCurso.modoAcceso,
-                          })}>
-                            <Icon name="guardar" size={15} /> Guardar
-                          </button>
-                          <button className="btn" onClick={() => { setFormCurso(null); setMensajeCurso(null); }} style={{ background: '#f0eee9' }}>Cancelar</button>
+                    <div>
+                      {[
+                        ['Código', curso.codigo],
+                        ['Grupo', curso.grupo],
+                        ['Semestre', curso.semestre ?? '—'],
+                        ['Docente', curso.docenteId ? curso.profesor : 'Sin asignar'],
+                        ['Modo de acceso', curso.modoAcceso === 'auto' ? 'Automática' : 'Manual'],
+                        ['Cupo', curso.cupo ?? 'Sin límite'],
+                        ['Inscritos', curso.estudiantes],
+                      ].map(([k, v]) => (
+                        <div key={k} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '8px 0', borderBottom: '1px solid #f0eee9', fontSize: 13 }}>
+                          <span style={{ color: '#6f6b62' }}>{k}</span>
+                          <strong style={{ textAlign: 'right' }}>{v}</strong>
                         </div>
+                      ))}
+                      <div style={{ fontSize: 11, color: '#9c988e', marginTop: 10 }}>
+                        La configuración completa, el buscador unificado y la matrícula/retirada se gestionan desde <strong>configcurso</strong>.
                       </div>
-                    )}
-                    {mensajeCurso && <div style={{ fontSize: 12, marginTop: 10, color: mensajeCurso.startsWith('No') ? '#c1122c' : '#0a6e4b' }}>{mensajeCurso}</div>}
+                    </div>
                   </div>
 
                   <div style={card}>
@@ -898,11 +850,11 @@ export default function Admin() {
                       <div style={{ fontSize: 13, color: '#4e4a43' }}>
                         El curso tiene <strong>{curso.estudiantes}</strong> estudiante(s) inscrito(s).
                         {curso.cupo ? ` Cupo disponible: ${Math.max(0, curso.cupo - curso.estudiantes)} de ${curso.cupo}.` : ''}
-                        <div style={{ fontSize: 12, color: '#9c988e', marginTop: 10 }}>
-                          La gestión nominal de la lista se hace desde el curso en el campus (profesor titular) o desde Asignación docente.
-                        </div>
                       </div>
                     )}
+                    <button className="btn" style={{ marginTop: 14 }} onClick={() => navigate(`/admin/configcurso/${curso.id}`)}>
+                      <Icon name="matricular" size={15} /> Gestionar desde configcurso
+                    </button>
                   </div>
                 </div>
               )}

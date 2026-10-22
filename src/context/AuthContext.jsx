@@ -18,6 +18,7 @@ export const ROLE_LABELS = {
   talento_humano: 'Talento Humano',
   contabilidad: 'Contabilidad',
   admisiones: 'Coordinación de Admisiones',
+  director: 'Dirección de Programa',
   planeacion: 'Planeación',
   bienestar: 'Bienestar Universitario',
   registro: 'Registro y Control'
@@ -45,6 +46,7 @@ const sesionDeServidor = (u) => {
     phone: u.telefono,
     address: u.direccion,
     program: u.programa,
+    programaId: u.programaId ?? null,
     semester: u.semestre,
     department: u.departamento,
     avatarClass: u.avatarClass,

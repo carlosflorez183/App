@@ -77,13 +77,23 @@ export const NAV_MENU = [
     ],
   },
   {
+    section: 'Dirección de Programa',
+    items: [
+      { key: 'dir_resumen', label: 'Resumen del programa', icon: 'admin-resumen', kind: 'route', to: '/director', tab: 'resumen', roles: ['director'] },
+      { key: 'dir_cursos', label: 'Cursos', icon: 'cursos', kind: 'route', to: '/director', tab: 'cursos', roles: ['director'] },
+      { key: 'dir_estudiantes', label: 'Estudiantes', icon: 'admin-estudiantes', kind: 'route', to: '/director', tab: 'estudiantes', roles: ['director'] },
+      { key: 'dir_matricular', label: 'Matricular', icon: 'matricular', kind: 'route', to: '/director', tab: 'matricular', roles: ['director'] },
+      { key: 'dir_docentes', label: 'Docentes', icon: 'admin-docentes', kind: 'route', to: '/director', tab: 'docentes', roles: ['director'] },
+    ],
+  },
+  {
     section: 'Panel de Administración',
     items: [
       { key: 'admin_resumen', label: 'Resumen', icon: 'admin-resumen', kind: 'route', to: '/admin', tab: 'resumen', roles: ['admin'] },
       { key: 'admin_usuarios', label: 'Usuarios', icon: 'admin-usuarios', kind: 'route', to: '/admin', tab: 'usuarios', roles: ['admin'] },
       { key: 'admin_estudiantes', label: 'Estudiantes', icon: 'admin-estudiantes', kind: 'route', to: '/admin', tab: 'estudiantes', roles: ['admin'] },
       { key: 'admin_programas', label: 'Programas', icon: 'admin-programas', kind: 'route', to: '/admin', tab: 'programas', roles: ['admin'] },
-      { key: 'admin_pensum', label: 'Pensum', icon: 'admin-pensum', kind: 'route', to: '/admin', tab: 'pensum', roles: ['admin'] },
+      { key: 'admin_cursos', label: 'Cursos', icon: 'admin-pensum', kind: 'route', to: '/admin', tab: 'cursos', roles: ['admin'] },
       { key: 'admin_docentes', label: 'Docentes', icon: 'admin-docentes', kind: 'route', to: '/admin', tab: 'docentes', roles: ['admin'] },
       { key: 'admin_asignacion', label: 'Asignación docente', icon: 'admin-asignacion', kind: 'route', to: '/admin', tab: 'asignacion', roles: ['admin'] },
       { key: 'admin_matricula', label: 'Matrícula', icon: 'admin-matricula', kind: 'route', to: '/admin', tab: 'matricula', roles: ['admin'] },
@@ -153,6 +163,7 @@ export const TAB_POR_DEFECTO = {
   '/docente': 'cursos',
   '/talento-humano': 'planta',
   '/contabilidad': 'recaudo',
+  '/director': 'resumen',
 };
 
 export const NAV_SEC_STYLE = {

@@ -372,6 +372,16 @@ async function main() {
     'IS-603': { programaId: 1, semestre: 6 },
     'IS-601': { programaId: 1, semestre: 6 },
   };
+  /* Modo de acceso de cada curso del campus:
+     - 'auto'   → el estudiante se inscribe solo al matricular la materia.
+     - 'manual' → lo inscribe el profesor titular, el admin o el director.
+     Se dejan los tres modos visibles en la demo para poder probar ambos
+     comportamientos desde la misma pantalla. */
+  const MODO_ACCESO_CURSO = {
+    'IS-601': 'auto',
+    'IS-602': 'manual',
+    'IS-603': 'manual',
+  };
   /* Los cursos deben quedar atados a un docente real, no solo al nombre.
      Sin esto el backend no puede saber qué curso le pertenece a cada profesor. */
   await prisma.curso.createMany({
@@ -392,9 +402,9 @@ async function main() {
         programaId: progId,
         semestre: ubicacion.semestre ?? null,
         materiaId: progId ? clave.get(`${progId}:${c.codigo}`) ?? null : null,
-        /* El curso demo arranca en matrícula manual (lo inscribe el docente),
-           que es el comportamiento histórico del campus. */
-        modoAcceso: 'manual',
+        /* Modo de acceso: 'auto' inscribe al estudiante al matricular la
+           materia; 'manual' deja la inscripción en manos del staff. */
+        modoAcceso: MODO_ACCESO_CURSO[c.codigo] || 'manual',
         cupo: c.estudiantes,
       };
     }),

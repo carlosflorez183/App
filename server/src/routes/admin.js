@@ -70,7 +70,7 @@ export default async function rutasAdmin(app) {
 
   /* ── Gestión de usuarios (solo administrador) ────────────────────────── */
   const soloAdmin = { preHandler: [app.autenticar, app.requiereRoles('admin')] };
-  const ROLES = ['estudiante', 'profesor', 'admin', 'admisiones', 'rectoria', 'talento_humano', 'contabilidad'];
+  const ROLES = ['estudiante', 'profesor', 'admin', 'admisiones', 'rectoria', 'talento_humano', 'contabilidad', 'director'];
 
   app.get('/admin/usuarios', soloAdmin, async () => {
     const usuarios = await prisma.usuario.findMany({

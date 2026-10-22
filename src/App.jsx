@@ -14,6 +14,8 @@ const Docente = lazy(() => import('./pages/Docente'));
 const Rectoria = lazy(() => import('./pages/Rectoria'));
 const TalentoHumano = lazy(() => import('./pages/TalentoHumano'));
 const Contabilidad = lazy(() => import('./pages/Contabilidad'));
+const Director = lazy(() => import('./pages/Director'));
+const ConfigCurso = lazy(() => import('./pages/ConfigCurso'));
 const Inscripcion = lazy(() => import('./pages/Inscripcion'));
 const CambioPassword = lazy(() => import('./pages/CambioPassword'));
 
@@ -138,6 +140,30 @@ export default function App() {
                 element={
                   <ProtectedRoute roles={['contabilidad']}>
                     <Contabilidad />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/director"
+                element={
+                  <ProtectedRoute roles={['director']}>
+                    <Director />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/director/configcurso/:id"
+                element={
+                  <ProtectedRoute roles={['director']}>
+                    <ConfigCurso />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/configcurso/:id"
+                element={
+                  <ProtectedRoute roles={['admin']}>
+                    <ConfigCurso />
                   </ProtectedRoute>
                 }
               />

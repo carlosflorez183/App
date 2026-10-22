@@ -460,6 +460,41 @@ export const guardarNotaCorte = (cursoId, estudianteId, notas) =>
     body: notas,
   });
 
+/* ── Director de programa ───────────────────────────────────────────────── */
+/* Todas las rutas del director operan sobre SU programa (usuario.programaId);
+   el backend ignora cualquier programa que no sea el suyo. */
+export const directorResumen = () => api('/director/resumen');
+export const directorCursos = () => api('/director/cursos');
+export const directorActualizarCurso = (id, cambios) =>
+  api(`/director/cursos/${id}`, { method: 'PATCH', body: cambios });
+export const directorEstudiantes = (filtros = {}) => {
+  const qs = new URLSearchParams(
+    Object.entries(filtros).filter(([, v]) => v !== '' && v != null)
+  ).toString();
+  return api(`/director/estudiantes${qs ? `?${qs}` : ''}`);
+};
+export const directorDocentes = () => api('/director/docentes');
+export const directorRosterCurso = (cursoId) => api(`/director/cursos/${cursoId}/estudiantes`);
+export const directorCandidatosCurso = (cursoId) => api(`/director/cursos/${cursoId}/candidatos`);
+export const directorInscribir = (cursoId, estudianteId) =>
+  api(`/director/cursos/${cursoId}/estudiantes`, { method: 'POST', body: { estudianteId } });
+export const directorRetirar = (cursoId, estudianteId) =>
+  api(`/director/cursos/${cursoId}/estudiantes/${encodeURIComponent(estudianteId)}`, { method: 'DELETE' });
+
+/* ── Configcurso (compartido director/admin) ─────────────────────────────── */
+export const buscarUsuarios = (q, cursoId) => {
+  const params = new URLSearchParams();
+  if (q) params.set('q', q);
+  if (cursoId) params.set('cursoId', cursoId);
+  const qs = params.toString();
+  return api(`/usuarios/buscar${qs ? `?${qs}` : ''}`);
+};
+export const configCurso = (id) => api(`/cursos/${id}/configcurso`);
+export const inscribirUsuarioCurso = (id, body) =>
+  api(`/cursos/${id}/inscribir-usuario`, { method: 'POST', body });
+export const retirarEstudianteCurso = (cursoId, estudianteId) =>
+  api(`/cursos/${cursoId}/estudiantes/${encodeURIComponent(estudianteId)}`, { method: 'DELETE' });
+
 /* ── Asignacion de docentes a cursos (administracion y rectoria) ────────── */
 export const listarAsignacionDocentes = () => api('/cursos/docentes/asignacion');
 

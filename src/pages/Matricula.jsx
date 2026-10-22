@@ -27,6 +27,10 @@ export default function Matricula({ readOnly = false }) {
   const [matriculaFinalizada, setMatriculaFinalizada] = useState(false);
   const [guardandoMatricula, setGuardandoMatricula] = useState(false);
   const [errorMatricula, setErrorMatricula] = useState('');
+  /* Cursos del campus que se abrieron solos (acceso automático) y los que
+     quedaron fuera por cupo lleno. */
+  const [autoInscritos, setAutoInscritos] = useState([]);
+  const [sinCupo, setSinCupo] = useState([]);
 
   const programasFiltrados = data.matricula.programas.filter(
     (p) => p.modalidadId === modalidad?.id
@@ -123,7 +127,12 @@ export default function Matricula({ readOnly = false }) {
     setGuardandoMatricula(true);
     setErrorMatricula('');
     try {
-      await registrarMatricula(materiasSeleccionadasObj.map((m) => m.id));
+      const res = await registrarMatricula(materiasSeleccionadasObj.map((m) => m.id));
+      /* Los cursos del campus con acceso automático se inscriben solos al
+         matricular la materia: se le avisa al estudiante qué quedó abierto y
+         qué courses quedaron sin cupo. */
+      setAutoInscritos(res?.autoInscritos || []);
+      setSinCupo(res?.sinCupo || []);
       setMatriculaFinalizada(true);
     } catch (err) {
       if (!err?.status) setMatriculaFinalizada(true);
@@ -602,6 +611,31 @@ export default function Matricula({ readOnly = false }) {
                   <p style={{ fontSize: 13, color: '#6f6b62', maxWidth: 440, margin: '0 auto 24px' }}>
                     Tus materias han sido inscritas en el sistema académico. Tu horario oficial ya se encuentra disponible en tu Dashboard.
                   </p>
+
+                  {autoInscritos.length > 0 && (
+                    <div style={{ background: '#e9f7f1', border: '1px solid #b6e3cf', borderRadius: 10, padding: 12, marginBottom: 12, textAlign: 'left' }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 800, color: '#0a6e4b', marginBottom: 6 }}>
+                        <Icon name="check" size={14} /> Cursos del campus habilitados
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: '#0a6e4b' }}>
+                        {autoInscritos.map((c) => <li key={c.cursoId}>{c.nombre}</li>)}
+                      </ul>
+                    </div>
+                  )}
+
+                  {sinCupo.length > 0 && (
+                    <div style={{ background: '#fbefd6', border: '1px solid #f0dcae', borderRadius: 10, padding: 12, marginBottom: 12, textAlign: 'left' }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 800, color: '#99610e', marginBottom: 6 }}>
+                        <Icon name="alerta" size={14} /> Cursos sin cupo disponible
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: '#99610e' }}>
+                        {sinCupo.map((n, i) => <li key={i}>{n}</li>)}
+                      </ul>
+                      <div style={{ fontSize: 11.5, color: '#99610e', marginTop: 6 }}>
+                        Tu materia quedó registrada en el sistema académico, pero debes solicitar la inscripción al grupo al director del programa.
+                      </div>
+                    </div>
+                  )}
                   <button
                     onClick={() => navigate('/dashboard')}
                     style={{

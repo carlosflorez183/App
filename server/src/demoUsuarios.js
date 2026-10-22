@@ -6,6 +6,7 @@ export const CLAVES_ROL = {
   rectoria: 'rectoria',
   talento_humano: 'talento_humano',
   contabilidad: 'contabilidad',
+  director: 'director',
 };
 
 /* Metadatos de las cuentas de demostración. A propósito NO llevan contraseña:
@@ -55,6 +56,15 @@ export const USUARIOS_DEMO = [
     email: 'j.rios@uni.edu.co', telefono: '316 404 5050',
     direccion: 'Cra. 3 #14-8, Bogotá', avatar: 'JR', avatarClass: 'av-blue',
   },
+  {
+    /* Director de programa: gestiona SOLO el programa que dirige
+       (programaId). Aquí, Ingeniería de Sistemas (programaId 1). */
+    usuario: 'DIR001', role: 'director',
+    nombre: 'Ing. Paula Restrepo', codigo: 'DIR-001',
+    programaId: 1,
+    email: 'p.restrepo@uni.edu.co', telefono: '319 808 7070',
+    direccion: 'Cra. 8 #12-34, Bogotá', avatar: 'PR', avatarClass: 'av-green',
+  },
 ];
 
 /* Módulos a los que tiene acceso cada rol. `*` = acceso total.
@@ -69,4 +79,5 @@ export const ACCESO_POR_ROL = {
   rectoria: ['rectoria', 'notificaciones', 'perfil'],
   talento_humano: ['talento-humano', 'notificaciones', 'perfil'],
   contabilidad: ['contabilidad', 'notificaciones', 'perfil'],
+  director: ['director', 'notificaciones', 'perfil'],
 };

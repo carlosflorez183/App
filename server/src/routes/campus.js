@@ -3,6 +3,7 @@
    y anuncios.
    ============================================= */
 import { prisma } from '../config.js';
+import { PERIODO_CAMPUS } from '../periodos.js';
 import { corteDesdeEntregas, cortesDe, definitivaDe, estadoDe, resumenCorte } from '../calificaciones.js';
 
 export default async function rutasCampus(app) {
@@ -383,7 +384,7 @@ export default async function rutasCampus(app) {
        tardanza. Antes se tomaba cualquier estudiante de la institución y la
        hoja mostraba a gente que nunca estuvo en esa materia. */
     const inscritos = await prisma.inscripcion.findMany({
-      where: { cursoId, periodo: '2026-1' },
+      where: { cursoId, periodo: PERIODO_CAMPUS },
       select: { estudianteId: true },
     });
     let asistentes = inscritos.map((i) => ({ id: i.estudianteId }));
@@ -881,7 +882,7 @@ export default async function rutasCampus(app) {
      no podia existir porque no habia una lista de quien estaba matriculado en
      cada curso: `Curso.estudiantes` era un numero, no un roster. */
 
-  const PERIODO = '2026-1';
+  const PERIODO = PERIODO_CAMPUS;
 
   /* Leer la lista de alumnos es distinto de modificarla: el docente titular y
      el administrador la usan para calificar, y el estudiante la ve como
@@ -1129,6 +1130,15 @@ export default async function rutasCampus(app) {
       return reply.code(409).send({ error: `${est.nombre} ya está en este curso` });
     }
 
+    /* El cupo del grupo manda también en la inscripción manual: si el
+       profesor inscribe de más, el contador y el cupo dejan de cuadrar. */
+    if (curso.cupo != null) {
+      const inscritos = await prisma.inscripcion.count({ where: { cursoId, periodo: PERIODO } });
+      if (inscritos >= curso.cupo) {
+        return reply.code(409).send({ error: `El curso alcanzó su cupo (${curso.cupo})` });
+      }
+    }
+
     await prisma.inscripcion.create({
       data: { estudianteId, cursoId, periodo: PERIODO, estado: 'matriculado' },
     });
@@ -1301,5 +1311,259 @@ export default async function rutasCampus(app) {
       estado: nota.estado,
       cortesManuales: nota.cortesManuales || '',
     };
+  });
+
+  /* Buscador unificado estilo Moodle: buscar por nombre, correo o documento. */
+  app.get('/usuarios/buscar', { preHandler: [app.autenticar, app.requiereRoles('admin', 'director')] }, async (req) => {
+    const q = String(req.query?.q || '').trim().toLowerCase();
+    const cursoId = req.query?.cursoId ? Number(req.query.cursoId) : null;
+    if (!q || q.length < 2 || q.length > 80) return [];
+
+    if (req.usuario.role === 'director' && !req.usuario.programaId) {
+      throw Object.assign(new Error('Su cuenta de director no tiene un programa asignado'), { statusCode: 403 });
+    }
+
+    const [usuarios, estudiantes, docentes] = await Promise.all([
+      prisma.usuario.findMany({
+        where: {
+          activo: true,
+          OR: [
+            { usuario: { contains: q, mode: 'insensitive' } },
+            { nombre: { contains: q, mode: 'insensitive' } },
+            { email: { contains: q, mode: 'insensitive' } },
+          ],
+        },
+        include: { programa: true, estudiante: true, docente: true },
+        take: 30,
+      }),
+      prisma.estudiante.findMany({
+        where: {
+          OR: [
+            { nombre: { contains: q, mode: 'insensitive' } },
+            { documento: { contains: q, mode: 'insensitive' } },
+            { correo: { contains: q, mode: 'insensitive' } },
+          ],
+        },
+        include: { programa: true, usuario: true },
+        take: 30,
+      }),
+      prisma.docente.findMany({
+        where: {
+          OR: [
+            { nombre: { contains: q, mode: 'insensitive' } },
+            { email: { contains: q, mode: 'insensitive' } },
+          ],
+        },
+        include: { usuario: true },
+        take: 30,
+      }),
+    ]);
+
+    const map = new Map();
+    for (const u of usuarios) {
+      map.set(`u:${u.id}`, {
+        usuarioId: u.id,
+        usuario: u.usuario,
+        nombre: u.nombre,
+        correo: u.email || null,
+        documento: u.estudiante?.documento || null,
+        role: u.role,
+        programa: u.programa?.nombre || null,
+        programaId: u.programaId || null,
+        esEstudiante: !!u.estudiante,
+        estudianteId: u.estudiante?.id || null,
+        esDocente: !!u.docente,
+        docenteId: u.docente?.id || null,
+      });
+    }
+    for (const e of estudiantes) {
+      const key = `e:${e.id}`;
+      if (!map.has(key)) {
+        map.set(key, {
+          usuarioId: e.usuarioId || null,
+          usuario: e.usuario?.usuario || null,
+          nombre: e.nombre,
+          correo: e.correo || null,
+          documento: e.documento,
+          role: e.usuario?.role || 'estudiante',
+          programa: e.programa?.nombre || null,
+          programaId: e.programaId || null,
+          esEstudiante: true,
+          estudianteId: e.id,
+          esDocente: false,
+          docenteId: null,
+        });
+      }
+    }
+    for (const d of docentes) {
+      const key = `d:${d.id}`;
+      if (!map.has(key)) {
+        map.set(key, {
+          usuarioId: d.usuarioId || null,
+          usuario: d.usuario?.usuario || null,
+          nombre: d.nombre,
+          correo: d.email || null,
+          documento: null,
+          role: d.usuario?.role || 'profesor',
+          programa: null,
+          programaId: null,
+          esEstudiante: false,
+          estudianteId: null,
+          esDocente: true,
+          docenteId: d.id,
+        });
+      }
+    }
+
+    let inscritos = new Set();
+    if (cursoId) {
+      const ins = await prisma.inscripcion.findMany({
+        where: { cursoId, periodo: PERIODO_CAMPUS },
+        select: { estudianteId: true },
+      });
+      inscritos = new Set(ins.map((i) => i.estudianteId));
+    }
+
+    const resultados = [...map.values()]
+      .map((r) => ({ ...r, yaInscrito: r.estudianteId ? inscritos.has(r.estudianteId) : false }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre))
+      .slice(0, 25);
+    return resultados;
+  });
+
+  /* Configuración completa del curso para configcurso (director/admin). */
+  app.get('/cursos/:id/configcurso', { preHandler: [app.autenticar, app.requiereRoles('admin', 'director')] }, async (req, reply) => {
+    const id = Number(req.params.id);
+    const curso = await prisma.curso.findUnique({ where: { id }, include: { programa: true } });
+    if (!curso) return reply.code(404).send({ error: 'Curso no encontrado' });
+    if (req.usuario.role === 'director') {
+      if (!req.usuario.programaId || req.usuario.programaId !== curso.programaId) {
+        return reply.code(403).send({ error: 'Ese curso no pertenece a su programa' });
+      }
+    }
+
+    const inscripciones = await prisma.inscripcion.findMany({
+      where: { cursoId: id, periodo: PERIODO_CAMPUS, estado: { not: 'retirado' } },
+      orderBy: { inscritoEn: 'asc' },
+      include: { estudiante: { include: { programa: true } } },
+    });
+    const docentes = await prisma.docente.findMany({ orderBy: { nombre: 'asc' } });
+
+    return {
+      curso: {
+        id: curso.id,
+        nombre: curso.nombre,
+        codigo: curso.codigo,
+        grupo: curso.grupo,
+        semestre: curso.semestre,
+        profesor: curso.profesor,
+        docenteId: curso.docenteId,
+        modoAcceso: curso.modoAcceso,
+        cupo: curso.cupo,
+        estudiantes: curso.estudiantes,
+        programaId: curso.programaId,
+        programa: curso.programa?.nombre || null,
+        materiaId: curso.materiaId,
+      },
+      docenteTitular: curso.docenteId
+        ? await prisma.docente.findUnique({ where: { id: curso.docenteId } })
+        : null,
+      inscritos: inscripciones.map((i) => ({
+        estudianteId: i.estudianteId,
+        id: i.estudianteId,
+        nombre: i.estudiante.nombre,
+        documento: i.estudiante.documento,
+        correo: i.estudiante.correo,
+        programa: i.estudiante.programa?.nombre || null,
+        semestre: i.estudiante.semestre,
+        estado: i.estado,
+      })),
+      docentes: docentes.map((d) => ({ id: d.id, nombre: d.nombre, area: d.area, email: d.email })),
+    };
+  });
+
+  /* Inscribir usuario unificado: estudiante o docente titular. */
+  app.post('/cursos/:id/inscribir-usuario', { preHandler: [app.autenticar, app.requiereRoles('admin', 'director')] }, async (req, reply) => {
+    const id = Number(req.params.id);
+    const curso = await prisma.curso.findUnique({ where: { id } });
+    if (!curso) return reply.code(404).send({ error: 'Curso no encontrado' });
+    if (req.usuario.role === 'director') {
+      if (!req.usuario.programaId || req.usuario.programaId !== curso.programaId) {
+        return reply.code(403).send({ error: 'Ese curso no pertenece a su programa' });
+      }
+    }
+
+    const { usuarioId, rolEnCurso, estudianteId, docenteId, forzarReemplazo } = req.body || {};
+    const rol = rolEnCurso;
+
+    if (rol === 'estudiante') {
+      let estId = String(estudianteId || '').trim();
+      if (!estId && usuarioId) {
+        const u = await prisma.usuario.findUnique({ where: { id: Number(usuarioId) }, include: { estudiante: true } });
+        estId = u?.estudiante?.id || '';
+      }
+      if (!estId) return reply.code(400).send({ error: 'Falta el estudiante a matricular' });
+      const est = await prisma.estudiante.findUnique({ where: { id: estId } });
+      if (!est) return reply.code(404).send({ error: 'Ese estudiante no existe' });
+
+      const repetida = await prisma.inscripcion.findUnique({
+        where: { estudianteId_cursoId: { estudianteId: estId, cursoId: id } },
+      });
+      if (repetida) return reply.code(409).send({ error: `${est.nombre} ya está inscrito en este curso` });
+
+      if (curso.cupo != null) {
+        const inscritos = await prisma.inscripcion.count({ where: { cursoId: id, periodo: PERIODO_CAMPUS } });
+        if (inscritos >= curso.cupo) {
+          return reply.code(409).send({ error: `El curso alcanzó su cupo (${curso.cupo})` });
+        }
+      }
+
+      await prisma.inscripcion.create({
+        data: { estudianteId: estId, cursoId: id, periodo: PERIODO_CAMPUS, estado: 'matriculado' },
+      });
+
+      const nota = await prisma.nota.findUnique({
+        where: { estudianteId_periodo_codigo: { estudianteId: estId, periodo: PERIODO_CAMPUS, codigo: curso.codigo } },
+      });
+      if (!nota) {
+        await prisma.nota.create({
+          data: {
+            estudianteId: estId,
+            programaId: est.programaId,
+            codigo: curso.codigo,
+            nombre: curso.nombre,
+            creditos: 4,
+            profesor: curso.profesor,
+            estado: 'en_curso',
+            periodo: PERIODO_CAMPUS,
+          },
+        });
+      }
+
+      const total = await prisma.inscripcion.count({ where: { cursoId: id, periodo: PERIODO_CAMPUS } });
+      await prisma.curso.update({ where: { id }, data: { estudiantes: total } });
+      return { ok: true, tipo: 'estudiante', estudianteId: estId, total };
+    }
+
+    if (rol === 'docente') {
+      let docId = String(docenteId || '').trim();
+      if (!docId && usuarioId) {
+        const u = await prisma.usuario.findUnique({ where: { id: Number(usuarioId) }, include: { docente: true } });
+        docId = u?.docente?.id || '';
+      }
+      if (!docId) return reply.code(400).send({ error: 'Falta el docente a asignar' });
+      const doc = await prisma.docente.findUnique({ where: { id: docId } });
+      if (!doc) return reply.code(404).send({ error: 'Ese docente no existe' });
+      if (curso.docenteId && curso.docenteId !== doc.id && !forzarReemplazo) {
+        return reply.code(409).send({ error: 'El curso ya tiene un docente titular. Use forzarReemplazo para cambiarlo.' });
+      }
+      await prisma.curso.update({
+        where: { id },
+        data: { docenteId: doc.id, profesor: doc.nombre },
+      });
+      return { ok: true, tipo: 'docente', docenteId: doc.id, profesor: doc.nombre };
+    }
+
+    return reply.code(400).send({ error: "rolEnCurso debe ser 'estudiante' o 'docente'" });
   });
 }
