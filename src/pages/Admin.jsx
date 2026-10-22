@@ -756,27 +756,14 @@ export default function Admin() {
         if (tab === 'cursos') {
           /* Flujo estilo Moodle: Periodo → Programa → Semestre → Curso */
           const cursos = data.cursos || [];
-          const programasActivos = programas.filter((p) => p.activo !== false);
           const periodo = '2026-1';
-          const programasConCursos = programasActivos
-            .map((p) => {
-              const lista = cursos.filter((c) => c.programaId === p.id);
-              const sems = [...new Set(lista.map((c) => c.semestre).filter(Boolean))].sort((a, b) => a - b);
-              return { programa: p, semestres: sems, cursos: lista };
-            })
-            .filter((x) => x.cursos.length > 0)
-            .sort((a, b) => (a.programa.nombre || '').localeCompare(b.programa.nombre || ''));
-
-          const guardarCurso = async (cambios) => {
-            try {
-              await actualizarCurso(curso.id, cambios);
-              setFormCurso(null);
-              setMensajeCurso('Cambios guardados.');
-              await recargar();
-            } catch (err) {
-              setMensajeCurso(`No se pudo guardar: ${err.message}`);
-            }
-          };
+          const programasActivos = programas;
+          const progCursos = programasActivos.find((p) => p.id === progSelCursos) || programasActivos[0] || null;
+          const cursosProg = progCursos ? cursos.filter((c) => c.programaId === progCursos.id) : [];
+          const semestresDisp = [...new Set(cursosProg.map((c) => c.semestre).filter(Boolean))].sort((a, b) => a - b);
+          const semElegido = semestresDisp.includes(semSelCursos) ? semSelCursos : (semestresDisp[0] ?? '');
+          const cursosSem = cursosProg.filter((c) => c.semestre === semElegido);
+          const curso = cursos.find((c) => c.id === cursoSel) || cursosSem[0] || null;
 
           return (
             <div className="fade-in">
