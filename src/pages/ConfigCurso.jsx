@@ -1,14 +1,10 @@
 /* =============================================
    Configuración completa del curso (configcurso)
    Compartida por director y administrador.
-   - Director: solo puede editar cupo, modo de acceso
-     y docente titular. Busca/inscribe estudiantes
-     y asigna/reemplaza docente.
-   - Admin: usa la misma vista unificada con sus
-     permisos habituales.
+   Vista Moodle-style con pestañas: Editar / Usuarios matriculados
    ============================================= */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import ModuleLayout from '../components/ModuleLayout';
 import Icon from '../components/Icon';
 import { useAuth } from '../context/AuthContext';
@@ -32,8 +28,11 @@ export default function ConfigCurso() {
   const { id } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const esDirector = user?.role === 'director';
   const esAdmin = user?.role === 'admin';
+
+  const tab = (searchParams.get('tab') || 'editar').toLowerCase();
 
   const [data, setData] = useState(null);
   const [cargando, setCargando] = useState(true);
@@ -48,7 +47,6 @@ export default function ConfigCurso() {
   const [resultados, setResultados] = useState([]);
   const [buscando, setBuscando] = useState(false);
   const [inscribiendo, setInscribiendo] = useState(null);
-  const [reemplazarDocente, setReemplazarDocente] = useState(false);
 
   const cargar = useCallback(async () => {
     setError(null);
@@ -59,9 +57,19 @@ export default function ConfigCurso() {
         modoAcceso: res.curso.modoAcceso || 'manual',
         cupo: res.curso.cupo ?? '',
         docenteId: res.curso.docenteId || '',
-        nombre: res.curso.nombre,
-        grupo: res.curso.grupo,
+        nombre: res.curso.nombre || '',
+        nombreCorto: res.curso.nombreCorto || res.curso.codigo || '',
+        grupo: res.curso.grupo || '',
         semestre: res.curso.semestre ?? '',
+        portadaUrl: res.curso.portadaUrl || '',
+        bannerUrl: res.curso.bannerUrl || '',
+        imagenUrl: res.curso.imagenUrl || '',
+        formato: res.curso.formato || 'secciones',
+        resumen: res.curso.resumen || '',
+        descripcion: res.curso.descripcion || '',
+        visible: res.curso.visible !== false,
+        fechaInicio: res.curso.fechaInicio ? String(res.curso.fechaInicio).substring(0,10) : '',
+        fechaFin: res.curso.fechaFin ? String(res.curso.fechaFin).substring(0,10) : '',
       });
     } catch (err) {
       setError(err.message);
@@ -104,22 +112,42 @@ export default function ConfigCurso() {
     setMensaje(null);
     try {
       if (esDirector) {
-        await inscribirUsuarioCurso ? null : null;
         const payload = {
           cupo: form.cupo === '' ? null : Number(form.cupo),
           modoAcceso: form.modoAcceso,
           docenteId: form.docenteId || null,
+          portadaUrl: form.portadaUrl || null,
+          bannerUrl: form.bannerUrl || null,
+          imagenUrl: form.imagenUrl || null,
+          formato: form.formato,
+          resumen: form.resumen,
+          descripcion: form.descripcion,
+          visible: form.visible !== false,
+          fechaInicio: form.fechaInicio || null,
+          fechaFin: form.fechaFin || null,
+          nombre: form.nombre,
+          nombreCorto: form.nombreCorto,
         };
         const { directorActualizarCurso } = await import('../api/client');
         await directorActualizarCurso(curso.id, payload);
       } else if (esAdmin) {
         const payload = {
           nombre: form.nombre,
+          nombreCorto: form.nombreCorto,
           grupo: form.grupo,
           semestre: form.semestre === '' ? null : Number(form.semestre),
           cupo: form.cupo === '' ? null : Number(form.cupo),
           modoAcceso: form.modoAcceso,
           docenteId: form.docenteId || null,
+          portadaUrl: form.portadaUrl || null,
+          bannerUrl: form.bannerUrl || null,
+          imagenUrl: form.imagenUrl || null,
+          formato: form.formato,
+          resumen: form.resumen,
+          descripcion: form.descripcion,
+          visible: form.visible !== false,
+          fechaInicio: form.fechaInicio || null,
+          fechaFin: form.fechaFin || null,
         };
         const { actualizarCurso } = await import('../api/client');
         await actualizarCurso(curso.id, payload);
@@ -155,7 +183,6 @@ export default function ConfigCurso() {
       }
       setBusqueda('');
       setResultados([]);
-      setReemplazarDocente(false);
       await cargar();
     } catch (err) {
       setMensaje(err.message);
@@ -181,6 +208,11 @@ export default function ConfigCurso() {
     else navigate(-1);
   };
 
+  const cambiarTab = (t) => {
+    setSearchParams({ tab: t });
+    setMensaje(null);
+  };
+
   if (cargando) return <ModuleLayout title="Configuración del curso"><div style={card}>Cargando…</div></ModuleLayout>;
   if (error) {
     return (
@@ -199,9 +231,14 @@ export default function ConfigCurso() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
           <button className="btn" onClick={volver}><Icon name="flecha-izquierda" size={15} /> Volver</button>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button className="btn" onClick={() => navigate(`/curso/${curso.id}`)}>Ver curso</button>
+            <button className="btn" onClick={() => navigate(`/curso/${curso.id}`)}>Vista</button>
             <Badge tone="purple">{curso.programa || '—'}</Badge> <Badge tone="blue">Semestre {curso.semestre ?? '—'}</Badge> <Badge tone={curso.modoAcceso === 'auto' ? 'green' : 'slate'}>{curso.modoAcceso === 'auto' ? 'Autoinscripción' : 'Manual'}</Badge>
           </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button className={`btn ${tab === 'editar' ? 'btn-primary' : ''}`} onClick={() => cambiarTab('editar')}>Editar</button>
+          <button className={`btn ${tab === 'usuarios' ? 'btn-primary' : ''}`} onClick={() => cambiarTab('usuarios')}>Usuarios matriculados</button>
         </div>
 
         {mensaje && (
@@ -210,17 +247,17 @@ export default function ConfigCurso() {
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16 }}>
+        {tab === 'editar' && (
           <div style={card}>
-            <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 12 }}>Configuración del curso</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 12 }}>Editar curso</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 10 }}>
               <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600, gridColumn: '1 / -1' }}>
                 Nombre completo del curso
                 <input value={form.nombre || ''} onChange={(e) => setForm({ ...form, nombre: e.target.value })} style={{ ...input, width: '100%', marginTop: 4 }} disabled={!esAdmin} />
               </label>
               <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
                 Nombre corto / Código
-                <input value={form.grupo ? `${curso.codigo}_${form.grupo}` : curso.codigo || form.grupo || ''} style={{ ...input, width: '100%', marginTop: 4 }} disabled />
+                <input value={form.nombreCorto || curso.codigo || ''} onChange={(e) => setForm({ ...form, nombreCorto: e.target.value })} style={{ ...input, width: '100%', marginTop: 4 }} disabled={!esAdmin} />
               </label>
               <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
                 Grupo
@@ -234,132 +271,185 @@ export default function ConfigCurso() {
                 Cupo
                 <input type="number" min={0} placeholder="Sin límite" value={form.cupo ?? ''} onChange={(e) => setForm({ ...form, cupo: e.target.value })} style={{ ...input, width: '100%', marginTop: 4 }} />
               </label>
-              <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600, gridColumn: '1 / -1' }}>
+              <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
                 Modo de acceso
                 <select value={form.modoAcceso} onChange={(e) => setForm({ ...form, modoAcceso: e.target.value })} style={{ ...input, width: '100%', marginTop: 4 }}>
-                  <option value="manual">Manual — se inscribe desde configcurso</option>
-                  <option value="auto">Automática — el estudiante se inscribe al matricular la materia</option>
+                  <option value="manual">Manual</option>
+                  <option value="auto">Automática</option>
                 </select>
+              </label>
+              <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
+                Formato
+                <select value={form.formato || 'secciones'} onChange={(e) => setForm({ ...form, formato: e.target.value })} style={{ ...input, width: '100%', marginTop: 4 }}>
+                  <option value="secciones">Por secciones (Moodle)</option>
+                  <option value="semanas">Por semanas/cortes</option>
+                </select>
+              </label>
+              <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
+                Fecha inicio
+                <input type="date" value={form.fechaInicio || ''} onChange={(e) => setForm({ ...form, fechaInicio: e.target.value })} style={{ ...input, width: '100%', marginTop: 4 }} />
+              </label>
+              <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
+                Fecha fin
+                <input type="date" value={form.fechaFin || ''} onChange={(e) => setForm({ ...form, fechaFin: e.target.value })} style={{ ...input, width: '100%', marginTop: 4 }} />
               </label>
               <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600, gridColumn: '1 / -1' }}>
-                Docente titular
-                <select value={form.docenteId || ''} onChange={(e) => setForm({ ...form, docenteId: e.target.value })} style={{ ...input, width: '100%', marginTop: 4 }}>
-                  <option value="">Sin asignar</option>
-                  {docentes.map((d) => <option key={d.id} value={d.id}>{d.nombre}{d.area ? ` · ${d.area}` : ''}</option>)}
-                </select>
+                URL de portada
+                <input value={form.portadaUrl || ''} onChange={(e) => setForm({ ...form, portadaUrl: e.target.value })} placeholder="https://..." style={{ ...input, width: '100%', marginTop: 4 }} />
               </label>
-              <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 10, marginTop: 4 }}>
-                <button className="btn" onClick={guardar} disabled={guardando}>
-                  <Icon name="guardar" size={15} /> {guardando ? 'Guardando…' : 'Guardar configuración'}
-                </button>
+              <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600, gridColumn: '1 / -1' }}>
+                URL de banner
+                <input value={form.bannerUrl || ''} onChange={(e) => setForm({ ...form, bannerUrl: e.target.value })} placeholder="https://..." style={{ ...input, width: '100%', marginTop: 4 }} />
+              </label>
+              <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600, gridColumn: '1 / -1' }}>
+                URL de imagen
+                <input value={form.imagenUrl || ''} onChange={(e) => setForm({ ...form, imagenUrl: e.target.value })} placeholder="https://..." style={{ ...input, width: '100%', marginTop: 4 }} />
+              </label>
+              <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600, gridColumn: '1 / -1' }}>
+                Resumen
+                <textarea value={form.resumen || ''} onChange={(e) => setForm({ ...form, resumen: e.target.value })} rows={3} style={{ ...input, width: '100%', marginTop: 4, resize: 'vertical' }} />
+              </label>
+              <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600, gridColumn: '1 / -1' }}>
+                Descripción
+                <textarea value={form.descripcion || ''} onChange={(e) => setForm({ ...form, descripcion: e.target.value })} rows={4} style={{ ...input, width: '100%', marginTop: 4, resize: 'vertical' }} />
+              </label>
+            </div>
+            {(form.portadaUrl || form.bannerUrl || form.imagenUrl) && (
+              <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px,1fr))', gap: 10 }}>
+                {form.portadaUrl && <img src={form.portadaUrl} alt="portada" style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 10, border: '1px solid #e5e2da' }} onError={(e)=>{e.target.style.display='none';}} />}
+                {form.bannerUrl && <img src={form.bannerUrl} alt="banner" style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 10, border: '1px solid #e5e2da' }} onError={(e)=>{e.target.style.display='none';}} />}
+                {form.imagenUrl && <img src={form.imagenUrl} alt="imagen" style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 10, border: '1px solid #e5e2da' }} onError={(e)=>{e.target.style.display='none';}} />}
               </div>
+            )}
+            <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+              <button className="btn btn-primary" onClick={guardar} disabled={guardando}>
+                <Icon name="guardar" size={15} /> {guardando ? 'Guardando…' : 'Guardar'}
+              </button>
             </div>
             <div style={{ fontSize: 11, color: '#9c988e', marginTop: 10 }}>
-              {esDirector ? 'Como director solo puede ajustar cupo, modo de acceso y docente titular.' : 'Desde aquí puede gestionar la configuración del curso.'}
+              {esDirector ? 'Como director solo puede ajustar cupo, modo de acceso, docente titular y la configuración visual de portada.' : 'Desde aquí puede gestionar la configuración del curso.'}
             </div>
           </div>
+        )}
 
-          <div style={card}>
-            <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 12 }}>Buscar y matricular</div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
-              <input
-                placeholder="Buscar por nombre, apellido, correo o documento..."
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-                style={{ ...input, flex: '1 1 260px' }}
-              />
-              <select value={rolEnCurso} onChange={(e) => setRolEnCurso(e.target.value)} style={input}>
-                <option value="estudiante">Inscribir como Estudiante</option>
-                <option value="docente">Asignar como Docente</option>
-              </select>
-            </div>
-            {docenteTitular && rolEnCurso === 'docente' && (
-              <div style={{ fontSize: 12, color: '#6f6b62', marginBottom: 10 }}>
-                Docente titular actual: <strong>{docenteTitular.nombre}</strong>. Al asignar otro docente se reemplazará el titular.
+        {tab === 'usuarios' && (
+          <>
+            <div style={card}>
+              <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 12 }}>Métodos de matriculación</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12 }}>
+                <div style={{ border: '1px solid #e5e2da', borderRadius: 10, padding: 12 }}>
+                  <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6 }}>Matriculación manual</div>
+                  <div style={{ fontSize: 12, color: '#6f6b62' }}>Asignación desde este panel con buscador unificado.</div>
+                </div>
+                <div style={{ border: '1px solid #e5e2da', borderRadius: 10, padding: 12 }}>
+                  <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6 }}>Auto-matriculación (Estudiante)</div>
+                  <div style={{ fontSize: 12, color: '#6f6b62' }}>Cuando el modo de acceso es <strong>auto</strong>, la inscripción se crea al matricular la materia.</div>
+                </div>
               </div>
-            )}
-            {buscando && <div style={{ fontSize: 12, color: '#9c988e' }}>Buscando…</div>}
-            {resultados.length > 0 && (
-              <div style={{ border: '1px solid #e5e2da', borderRadius: 10, overflow: 'hidden' }}>
-                {resultados.map((r) => (
-                  <div key={`${r.usuarioId || r.nombre}-${r.documento || r.correo}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '9px 12px', borderBottom: '1px solid #f0eee9' }}>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 700 }}>{r.nombre}</div>
-                      <div style={{ fontSize: 11, color: '#9c988e' }}>
-                        {r.correo || '—'}{r.documento ? ` · ${r.documento}` : ''}{r.programa ? ` · ${r.programa}` : ''}
+            </div>
+
+            <div style={card}>
+              <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 12 }}>Buscar y matricular / Asignar docente</div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+                <input
+                  placeholder="Buscar por nombre, apellido, correo o documento..."
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                  style={{ ...input, flex: '1 1 260px' }}
+                />
+                <select value={rolEnCurso} onChange={(e) => setRolEnCurso(e.target.value)} style={input}>
+                  <option value="estudiante">Inscribir como Estudiante</option>
+                  <option value="docente">Asignar como Docente titular</option>
+                </select>
+              </div>
+              {docenteTitular && rolEnCurso === 'docente' && (
+                <div style={{ fontSize: 12, color: '#6f6b62', marginBottom: 10 }}>
+                  Docente titular actual: <strong>{docenteTitular.nombre}</strong>. Al asignar otro docente se reemplazará el titular.
+                </div>
+              )}
+              {buscando && <div style={{ fontSize: 12, color: '#9c988e' }}>Buscando…</div>}
+              {resultados.length > 0 && (
+                <div style={{ border: '1px solid #e5e2da', borderRadius: 10, overflow: 'hidden' }}>
+                  {resultados.map((r) => (
+                    <div key={`${r.usuarioId || r.nombre}-${r.documento || r.correo}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '9px 12px', borderBottom: '1px solid #f0eee9' }}>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700 }}>{r.nombre}</div>
+                        <div style={{ fontSize: 11, color: '#9c988e' }}>
+                          {r.correo || '—'}{r.documento ? ` · ${r.documento}` : ''}{r.programa ? ` · ${r.programa}` : ''}
+                        </div>
+                        <div style={{ fontSize: 11, color: '#9c988e' }}>
+                          {r.esEstudiante && <span>Estudiante</span>}{r.esEstudiante && r.esDocente ? ' / ' : ''}{r.esDocente && <span>Docente</span>}
+                          {r.yaInscrito ? ' · Ya inscrito' : ''}
+                        </div>
                       </div>
-                      <div style={{ fontSize: 11, color: '#9c988e' }}>
-                        {r.esEstudiante && <span>Estudiante</span>}{r.esEstudiante && r.esDocente ? ' / ' : ''}{r.esDocente && <span>Docente</span>}
-                        {r.yaInscrito ? ' · Ya inscrito' : ''}
-                      </div>
+                      <button
+                        className="btn"
+                        style={{ padding: '5px 10px', fontSize: 11, background: rolEnCurso === 'docente' ? '#0a84ff' : '#0a6e4b', color: '#fff' }}
+                        disabled={inscribiendo === (r.usuarioId || r.nombre) || (rolEnCurso === 'estudiante' && r.yaInscrito)}
+                        onClick={() => matricular(r)}
+                      >
+                        {inscribiendo === (r.usuarioId || r.nombre) ? 'Procesando…' : rolEnCurso === 'docente' ? (docenteTitular && r.docenteId !== docenteTitular.id ? 'Reemplazar docente titular' : 'Asignar como docente titular') : r.yaInscrito ? 'Ya inscrito' : 'Matricular'}
+                      </button>
                     </div>
-                    <button
-                      className="btn"
-                      style={{ padding: '5px 10px', fontSize: 11, background: rolEnCurso === 'docente' ? '#0a84ff' : '#0a6e4b', color: '#fff' }}
-                      disabled={inscribiendo === (r.usuarioId || r.nombre) || (rolEnCurso === 'estudiante' && r.yaInscrito)}
-                      onClick={() => matricular(r)}
-                    >
-                      {inscribiendo === (r.usuarioId || r.nombre) ? 'Procesando…' : rolEnCurso === 'docente' ? (docenteTitular && r.docenteId !== docenteTitular.id ? 'Reemplazar docente titular' : 'Asignar como docente') : r.yaInscrito ? 'Ya inscrito' : 'Matricular al curso'}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-            {busqueda.trim().length >= 2 && resultados.length === 0 && !buscando && (
-              <div style={{ fontSize: 12, color: '#9c988e' }}>Sin resultados para esa búsqueda.</div>
-            )}
-          </div>
-        </div>
-
-        <div style={card}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
-            <div>
-              <div style={{ fontSize: 15, fontWeight: 800 }}>Usuarios matriculados</div>
-              <div style={{ fontSize: 12, color: '#9c988e' }}>Docente y estudiantes en la misma lista. El docente aparece identificado con (D).</div>
-            </div>
-            <Badge tone="purple">Cupo: {curso.cupo ?? 'Sin límite'} · Inscritos: {inscritos.length}</Badge>
-          </div>
-          {usuariosMatriculados.length === 0 ? (
-            <div style={{ fontSize: 13, color: '#9c988e' }}>No hay usuarios matriculados aún.</div>
-          ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr>
-                    <th style={th}>Usuario</th>
-                    <th style={th}>Nombre</th>
-                    <th style={th}>Correo</th>
-                    <th style={th}>Documento</th>
-                    <th style={th}>Programa</th>
-                    <th style={th}>Rol</th>
-                    <th style={th}>Acción</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {usuariosMatriculados.map((u, idx) => (
-                    <tr key={`${u.tipo}-${u.id}-${idx}`}>
-                      <td style={td}><code style={{ fontSize: 12 }}>{u.estudianteId || u.docenteId || u.id}</code></td>
-                      <td style={td}><strong>{u.nombre} {u.etiqueta ? <span style={{ color: '#06468c' }}>{u.etiqueta}</span> : null}</strong></td>
-                      <td style={td}>{u.correo || '—'}</td>
-                      <td style={td}>{u.documento || '—'}</td>
-                      <td style={td}>{u.programa || '—'}</td>
-                      <td style={td}><Badge tone={u.tipo === 'docente' ? 'blue' : 'green'}>{u.tipo === 'docente' ? 'Docente' : 'Estudiante'}</Badge></td>
-                      <td style={td}>
-                        {u.tipo === 'estudiante' && u.estudianteId ? (
-                          <button className="btn" style={{ padding: '4px 9px', fontSize: 11 }} onClick={() => retirar({ estudianteId: u.estudianteId, nombre: u.nombre })}>
-                            <Icon name="eliminar" size={14} /> Retirar
-                          </button>
-                        ) : (
-                          <span style={{ fontSize: 11, color: '#9c988e' }}>Gestionado desde docente titular</span>
-                        )}
-                      </td>
-                    </tr>
                   ))}
-                </tbody>
-              </table>
+                </div>
+              )}
+              {busqueda.trim().length >= 2 && resultados.length === 0 && !buscando && (
+                <div style={{ fontSize: 12, color: '#9c988e' }}>Sin resultados para esa búsqueda.</div>
+              )}
             </div>
-          )}
-        </div>
+
+            <div style={card}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 800 }}>Usuarios matriculados</div>
+                  <div style={{ fontSize: 12, color: '#9c988e' }}>Lista unificada. Docente identificado con (D).</div>
+                </div>
+                <Badge tone="purple">Cupo: {curso.cupo ?? 'Sin límite'} · Inscritos: {inscritos.length}</Badge>
+              </div>
+              {usuariosMatriculados.length === 0 ? (
+                <div style={{ fontSize: 13, color: '#9c988e' }}>No hay usuarios matriculados aún.</div>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr>
+                        <th style={th}>Usuario</th>
+                        <th style={th}>Nombre</th>
+                        <th style={th}>Correo</th>
+                        <th style={th}>Documento</th>
+                        <th style={th}>Programa</th>
+                        <th style={th}>Rol</th>
+                        <th style={th}>Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {usuariosMatriculados.map((u, idx) => (
+                        <tr key={`${u.tipo}-${u.id}-${idx}`}>
+                          <td style={td}><code style={{ fontSize: 12 }}>{u.estudianteId || u.docenteId || u.id}</code></td>
+                          <td style={td}><strong>{u.nombre} {u.etiqueta ? <span style={{ color: '#06468c' }}>{u.etiqueta}</span> : null}</strong></td>
+                          <td style={td}>{u.correo || '—'}</td>
+                          <td style={td}>{u.documento || '—'}</td>
+                          <td style={td}>{u.programa || '—'}</td>
+                          <td style={td}><Badge tone={u.tipo === 'docente' ? 'blue' : 'green'}>{u.tipo === 'docente' ? 'Docente' : 'Estudiante'}</Badge></td>
+                          <td style={td}>
+                            {u.tipo === 'estudiante' && u.estudianteId ? (
+                              <button className="btn" style={{ padding: '4px 9px', fontSize: 11 }} onClick={() => retirar({ estudianteId: u.estudianteId, nombre: u.nombre })}>
+                                <Icon name="eliminar" size={14} /> Retirar
+                              </button>
+                            ) : (
+                              <span style={{ fontSize: 11, color: '#9c988e' }}>Docente titular</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </ModuleLayout>
   );
