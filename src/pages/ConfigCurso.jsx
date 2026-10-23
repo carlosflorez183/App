@@ -235,10 +235,10 @@ export default function ConfigCurso() {
                 <input type="number" min={0} placeholder="Sin límite" value={form.cupo ?? ''} onChange={(e) => setForm({ ...form, cupo: e.target.value })} style={{ ...input, width: '100%', marginTop: 4 }} />
               </label>
               <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600, gridColumn: '1 / -1' }}>
-                Métodos de matriculación
+                Modo de acceso
                 <select value={form.modoAcceso} onChange={(e) => setForm({ ...form, modoAcceso: e.target.value })} style={{ ...input, width: '100%', marginTop: 4 }}>
-                  <option value="manual">Matriculación manual</option>
-                  <option value="auto">Auto-matriculación (Estudiante)</option>
+                  <option value="manual">Manual — se inscribe desde configcurso</option>
+                  <option value="auto">Automática — el estudiante se inscribe al matricular la materia</option>
                 </select>
               </label>
               <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600, gridColumn: '1 / -1' }}>
