@@ -333,10 +333,7 @@ model Curso {
   inscripciones Inscripcion[]
   secciones     CursoSeccion[]
 
-  @@index([codigo])
-  @@index([docenteId])
-  @@index([programaId, semestre])
-  @@index([materiaId])
+  @@map("cursos")
 }
 
 model CursoSeccion {
@@ -352,6 +349,7 @@ model CursoSeccion {
   recursos  CursoRecurso[]
 
   @@index([cursoId, orden])
+  @@map("cursos_secciones")
 }
 
 model CursoRecurso {
@@ -362,6 +360,7 @@ model CursoRecurso {
   descripcion String?
   url       String?
   archivoUrl String?
+  archivo   String?
   contenido String?
   visible   Boolean  @default(true)
   obligatorio Boolean @default(false)
@@ -371,6 +370,7 @@ model CursoRecurso {
   seccion   CursoSeccion @relation(fields: [seccionId], references: [id], onDelete: Cascade)
 
   @@index([seccionId, orden])
+  @@map("cursos_recursos")
 }
 
 /// Inscripción de un estudiante a un curso del campus virtual.
