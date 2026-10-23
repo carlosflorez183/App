@@ -178,8 +178,11 @@ export default async function rutasCampus(app) {
     const cursoId = Number(req.params.id);
     const curso = await prisma.curso.findUnique({ where: { id: cursoId } });
     if (!curso) return reply.code(404).send({ error: 'Curso no encontrado' });
+    if (req.usuario.role === 'director' && req.usuario.programaId && curso.programaId !== req.usuario.programaId) {
+      return reply.code(403).send({ error: 'No autorizado' });
+    }
 
-    const { nombre, grupo, cupo, modoAcceso, docenteId, semestre } = req.body || {};
+    const { nombre, nombreCorto, grupo, cupo, modoAcceso, docenteId, semestre, portadaUrl, bannerUrl, imagenUrl, formato, resumen, descripcion, visible, activo, fechaInicio, fechaFin } = req.body || {};
     const data = {};
 
     if (nombre !== undefined) {
@@ -187,6 +190,7 @@ export default async function rutasCampus(app) {
       if (!n) return reply.code(400).send({ error: 'El nombre no puede quedar vacío' });
       data.nombre = n;
     }
+    if (nombreCorto !== undefined) data.nombreCorto = nombreCorto || null;
     if (grupo !== undefined) data.grupo = String(grupo).trim() || 'A';
     if (semestre !== undefined) {
       const s = Number(semestre);
@@ -203,6 +207,16 @@ export default async function rutasCampus(app) {
         data.cupo = c;
       }
     }
+    if (portadaUrl !== undefined) data.portadaUrl = portadaUrl || null;
+    if (bannerUrl !== undefined) data.bannerUrl = bannerUrl || null;
+    if (imagenUrl !== undefined) data.imagenUrl = imagenUrl || null;
+    if (formato !== undefined) data.formato = formato;
+    if (resumen !== undefined) data.resumen = resumen;
+    if (descripcion !== undefined) data.descripcion = descripcion;
+    if (visible !== undefined) data.visible = !!visible;
+    if (activo !== undefined) data.activo = !!activo;
+    if (fechaInicio !== undefined) data.fechaInicio = fechaInicio ? new Date(fechaInicio) : null;
+    if (fechaFin !== undefined) data.fechaFin = fechaFin ? new Date(fechaFin) : null;
     if (modoAcceso !== undefined) {
       if (!['auto', 'manual'].includes(modoAcceso)) {
         return reply.code(400).send({ error: "El modo de acceso debe ser 'auto' o 'manual'" });
@@ -1488,6 +1502,7 @@ export default async function rutasCampus(app) {
       curso: {
         id: curso.id,
         nombre: curso.nombre,
+        nombreCorto: curso.nombreCorto || curso.codigo,
         codigo: curso.codigo,
         grupo: curso.grupo,
         semestre: curso.semestre,
@@ -1500,7 +1515,16 @@ export default async function rutasCampus(app) {
         programa: curso.programa?.nombre || null,
         materiaId: curso.materiaId,
         categoria: curso.programa?.nombre || null,
-        periodo: PERIODO_CAMPUS,
+        periodo: curso.periodo || PERIODO_CAMPUS,
+        portadaUrl: curso.portadaUrl || null,
+        bannerUrl: curso.bannerUrl || null,
+        imagenUrl: curso.imagenUrl || null,
+        formato: curso.formato || 'secciones',
+        resumen: curso.resumen || '',
+        descripcion: curso.descripcion || '',
+        visible: curso.visible !== false,
+        fechaInicio: curso.fechaInicio,
+        fechaFin: curso.fechaFin,
       },
       docenteTitular,
       inscritos: inscripciones.map((i) => ({

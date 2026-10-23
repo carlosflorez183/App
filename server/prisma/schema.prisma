@@ -291,37 +291,86 @@ model Nota {
 ///   - 'auto':   el propio estudiante se matricula en el curso (respetando cupo).
 ///   - 'manual': solo director/profesor/admin inscriben.
 model Curso {
-  id          Int     @id @default(autoincrement())
-  nombre      String
-  codigo      String
-  profesor    String
-  docenteId   String?
-  grupo       String
-  estudiantes Int     @default(0)
-  icono       String?
-  color       String?
-  progreso    Int     @default(0)
+  id            Int      @id @default(autoincrement())
+  nombre        String
+  nombreCorto   String?
+  codigo        String
+  profesor      String
+  docenteId     String?
+  grupo         String
+  estudiantes   Int      @default(0)
+  icono         String?
+  color         String?
+  progreso      Int      @default(0)
 
-  programaId  Int?
-  semestre    Int?
-  materiaId   Int?
-  modoAcceso  String  @default("manual")
-  cupo        Int?
+  programaId    Int?
+  semestre      Int?
+  materiaId     Int?
+  modoAcceso    String   @default("manual")
+  cupo          Int?
+  periodo       String   @default("2026-1")
+  activo        Boolean  @default(true)
+  visible       Boolean  @default(true)
 
-  programa    Programa? @relation(fields: [programaId], references: [id], onDelete: SetNull)
-  materia     Materia?  @relation(fields: [materiaId], references: [id], onDelete: SetNull)
-  docente     Docente?  @relation(fields: [docenteId], references: [id])
-  actividades Actividad[]
-  anuncios    Anuncio[]
-  asistencias AsistenciaSesion[]
-  mensajes    ForoMensaje[]
+  portadaUrl    String?
+  bannerUrl     String?
+  imagenUrl     String?
+  formato       String   @default("secciones")
+  resumen       String?
+  descripcion   String?
+  fechaInicio   DateTime?
+  fechaFin      DateTime?
+  creadoEn      DateTime @default(now())
+  actualizadoEn DateTime @updatedAt
+
+  programa      Programa? @relation(fields: [programaId], references: [id], onDelete: SetNull)
+  materia       Materia?  @relation(fields: [materiaId], references: [id], onDelete: SetNull)
+  docente       Docente?  @relation(fields: [docenteId], references: [id])
+  actividades   Actividad[]
+  anuncios      Anuncio[]
+  asistencias   AsistenciaSesion[]
+  mensajes      ForoMensaje[]
   inscripciones Inscripcion[]
+  secciones     CursoSeccion[]
 
   @@index([codigo])
   @@index([docenteId])
   @@index([programaId, semestre])
   @@index([materiaId])
-  @@map("cursos")
+}
+
+model CursoSeccion {
+  id        Int      @id @default(autoincrement())
+  cursoId   Int
+  titulo    String
+  descripcion String?
+  orden     Int      @default(0)
+  visible   Boolean  @default(true)
+  creadoEn  DateTime @default(now())
+  actualizadoEn DateTime @updatedAt
+  curso     Curso    @relation(fields: [cursoId], references: [id], onDelete: Cascade)
+  recursos  CursoRecurso[]
+
+  @@index([cursoId, orden])
+}
+
+model CursoRecurso {
+  id        Int      @id @default(autoincrement())
+  seccionId Int
+  tipo      String   @default("material")
+  titulo    String
+  descripcion String?
+  url       String?
+  archivoUrl String?
+  contenido String?
+  visible   Boolean  @default(true)
+  obligatorio Boolean @default(false)
+  orden     Int      @default(0)
+  creadoEn  DateTime @default(now())
+  actualizadoEn DateTime @updatedAt
+  seccion   CursoSeccion @relation(fields: [seccionId], references: [id], onDelete: Cascade)
+
+  @@index([seccionId, orden])
 }
 
 /// Inscripción de un estudiante a un curso del campus virtual.

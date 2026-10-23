@@ -133,7 +133,7 @@ export default async function rutasDirector(app) {
       return reply.code(404).send({ error: 'Ese curso no pertenece a su programa' });
     }
 
-    const { cupo, modoAcceso, docenteId } = req.body || {};
+    const { cupo, modoAcceso, docenteId, portadaUrl, bannerUrl, imagenUrl, formato, resumen, descripcion, visible, fechaInicio, fechaFin, nombre, nombreCorto } = req.body || {};
     const data = {};
     if (cupo !== undefined) {
       if (cupo === '' || cupo === null) {
@@ -162,16 +162,35 @@ export default async function rutasDirector(app) {
         data.profesor = docente.nombre;
       }
     }
+    if (portadaUrl !== undefined) data.portadaUrl = portadaUrl || null;
+    if (bannerUrl !== undefined) data.bannerUrl = bannerUrl || null;
+    if (imagenUrl !== undefined) data.imagenUrl = imagenUrl || null;
+    if (formato !== undefined) data.formato = formato;
+    if (resumen !== undefined) data.resumen = resumen;
+    if (descripcion !== undefined) data.descripcion = descripcion;
+    if (visible !== undefined) data.visible = !!visible;
+    if (fechaInicio !== undefined) data.fechaInicio = fechaInicio ? new Date(fechaInicio) : null;
+    if (fechaFin !== undefined) data.fechaFin = fechaFin ? new Date(fechaFin) : null;
+    if (nombre !== undefined) data.nombre = String(nombre).trim();
+    if (nombreCorto !== undefined) data.nombreCorto = nombreCorto || null;
     if (!Object.keys(data).length) return reply.code(400).send({ error: 'No hay cambios que aplicar' });
 
     const actualizado = await prisma.curso.update({ where: { id: cursoId }, data });
     return {
       id: actualizado.id,
       nombre: actualizado.nombre,
+      nombreCorto: actualizado.nombreCorto,
       modoAcceso: actualizado.modoAcceso,
       cupo: actualizado.cupo,
       docenteId: actualizado.docenteId,
       profesor: actualizado.profesor,
+      portadaUrl: actualizado.portadaUrl,
+      bannerUrl: actualizado.bannerUrl,
+      imagenUrl: actualizado.imagenUrl,
+      formato: actualizado.formato,
+      resumen: actualizado.resumen,
+      descripcion: actualizado.descripcion,
+      visible: actualizado.visible,
     };
   });
 
