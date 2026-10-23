@@ -812,9 +812,9 @@ export default function Admin() {
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      <button className="btn" onClick={() => navigate(`/admin/configcurso/${curso.id}`)}>Vista</button>
-                      <button className="btn" onClick={() => navigate(`/admin/configcurso/${curso.id}`)}>Editar</button>
-                      <button className="btn" onClick={() => navigate(`/admin/configcurso/${curso.id}`)}>Usuarios matriculados</button>
+                      <button className="btn" onClick={() => navigate(`/curso/${curso.id}`)}>Vista</button>
+                      <button className="btn" onClick={() => navigate(`/admin/configcurso/${curso.id}?tab=editar`) }>Editar</button>
+                      <button className="btn" onClick={() => navigate(`/admin/configcurso/${curso.id}?tab=usuarios`)}>Usuarios matriculados</button>
                       <button className="btn">Mostrar/Ocultar</button>
                       <button className="btn">Copia de seguridad</button>
                       <button className="btn">Restaurar</button>

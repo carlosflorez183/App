@@ -198,7 +198,8 @@ export default function ConfigCurso() {
       <div className="fade-in" style={{ display: 'grid', gap: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
           <button className="btn" onClick={volver}><Icon name="flecha-izquierda" size={15} /> Volver</button>
-          <div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button className="btn" onClick={() => navigate(`/curso/${curso.id}`)}>Ver curso</button>
             <Badge tone="purple">{curso.programa || '—'}</Badge> <Badge tone="blue">Semestre {curso.semestre ?? '—'}</Badge> <Badge tone={curso.modoAcceso === 'auto' ? 'green' : 'slate'}>{curso.modoAcceso === 'auto' ? 'Autoinscripción' : 'Manual'}</Badge>
           </div>
         </div>
@@ -214,8 +215,12 @@ export default function ConfigCurso() {
             <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 12 }}>Configuración del curso</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600, gridColumn: '1 / -1' }}>
-                Nombre
+                Nombre completo del curso
                 <input value={form.nombre || ''} onChange={(e) => setForm({ ...form, nombre: e.target.value })} style={{ ...input, width: '100%', marginTop: 4 }} disabled={!esAdmin} />
+              </label>
+              <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
+                Nombre corto / Código
+                <input value={form.grupo ? `${curso.codigo}_${form.grupo}` : curso.codigo || form.grupo || ''} style={{ ...input, width: '100%', marginTop: 4 }} disabled />
               </label>
               <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600 }}>
                 Grupo
@@ -230,10 +235,10 @@ export default function ConfigCurso() {
                 <input type="number" min={0} placeholder="Sin límite" value={form.cupo ?? ''} onChange={(e) => setForm({ ...form, cupo: e.target.value })} style={{ ...input, width: '100%', marginTop: 4 }} />
               </label>
               <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600, gridColumn: '1 / -1' }}>
-                Modo de acceso
+                Métodos de matriculación
                 <select value={form.modoAcceso} onChange={(e) => setForm({ ...form, modoAcceso: e.target.value })} style={{ ...input, width: '100%', marginTop: 4 }}>
-                  <option value="manual">Manual — se inscribe desde configcurso</option>
-                  <option value="auto">Automática — el estudiante se inscribe al matricular la materia</option>
+                  <option value="manual">Matriculación manual</option>
+                  <option value="auto">Auto-matriculación (Estudiante)</option>
                 </select>
               </label>
               <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600, gridColumn: '1 / -1' }}>

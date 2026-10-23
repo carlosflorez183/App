@@ -897,25 +897,25 @@ export default function Dashboard() {
                 <div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 16 }}>
                     <div className="stat-card">
-                      <div className="stat-ic" style={{ background: '#e3f1ff' }}><Icon name="estrella" size={18} /></div>
-                      <div>
-                        <div className="stat-v">4.2</div>
-                        <div className="stat-l">Promedio 2026-1</div>
-                      </div>
+                    <div className="stat-ic" style={{ background: '#e3f1ff', flexShrink: 0, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}><Icon name="estrella" size={18} /></div>
+                    <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                      <div className="stat-v">4.2</div>
+                      <div className="stat-l" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Promedio 2026-1</div>
+                    </div>
+                  </div>
+                  <div className="stat-card">
+                    <div className="stat-ic" style={{ background: '#d8f0e5', flexShrink: 0, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}><Icon name="libro" size={18} /></div>
+                    <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                      <div className="stat-v">{data.materias.filter(m => m.periodo === '2026-1').length}</div>
+                      <div className="stat-l" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Materias activas</div>
+                    </div>
                     </div>
                     <div className="stat-card">
-                      <div className="stat-ic" style={{ background: '#d8f0e5' }}><Icon name="libro" size={18} /></div>
-                      <div>
-                        <div className="stat-v">{data.materias.filter(m => m.periodo === '2026-1').length}</div>
-                        <div className="stat-l">Materias activas</div>
-                      </div>
+                    <div className="stat-ic" style={{ background: '#efe9fb', flexShrink: 0, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}><Icon name="graduacion" size={18} /></div>
+                    <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                      <div className="stat-v">82</div>
+                      <div className="stat-l" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Créditos acumulados</div>
                     </div>
-                    <div className="stat-card">
-                      <div className="stat-ic" style={{ background: '#efe9fb' }}>graduacion</div>
-                      <div>
-                        <div className="stat-v">82</div>
-                        <div className="stat-l">Créditos acumulados</div>
-                      </div>
                     </div>
                   </div>
 
