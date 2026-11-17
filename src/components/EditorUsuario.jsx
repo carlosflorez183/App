@@ -6,6 +6,7 @@
    ============================================= */
 import React, { useEffect, useState } from 'react';
 import Icon from './Icon';
+import Select from './Select';
 
 const etiqueta = { fontSize: 12, color: '#4e4a43', fontWeight: 600 };
 const campo = {
@@ -34,6 +35,7 @@ export default function EditorUsuario({
   const [f, setF] = useState({
     nombre: '', email: '', telefono: '', direccion: '',
     role: 'estudiante', usuario: '', activo: true,
+    docenteId: '', area: '', titulo: '',
   });
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -44,6 +46,7 @@ export default function EditorUsuario({
       setF({
         nombre: '', email: '', telefono: '', direccion: '',
         role: 'estudiante', usuario: '', activo: true,
+        docenteId: '', area: '', titulo: '',
       });
       setPassword('');
       setError('');
@@ -165,10 +168,12 @@ export default function EditorUsuario({
               <input style={campo} value={f.nombre} onChange={(e) => set('nombre', e.target.value)} />
             </label>
             <label style={etiqueta}>
-              Rol
-              <select value={f.role} onChange={(e) => set('role', e.target.value)} style={campo}>
-                {roles.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-              </select>
+              <Select
+                label="Rol"
+                value={f.role}
+                onChange={(v) => set('role', v)}
+                groups={[{ options: roles.map(([v, l]) => ({ value: v, label: l })) }]}
+              />
             </label>
             <label style={etiqueta}>
               Correo
@@ -183,6 +188,33 @@ export default function EditorUsuario({
               <input value={f.direccion} onChange={(e) => set('direccion', e.target.value)} style={campo} />
             </label>
           </div>
+
+          {creando && f.role === 'profesor' && (
+            <>
+              <div style={{ fontSize: 13, fontWeight: 800, color: '#211d17', margin: '0 0 10px' }}>
+                Ficha de docente
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 22 }}>
+                <label style={etiqueta}>
+                  Código de docente (opcional)
+                  <input
+                    value={f.docenteId}
+                    onChange={(e) => set('docenteId', e.target.value.toUpperCase())}
+                    placeholder="Ej: DOC-0046 (en blanco = automático)"
+                    style={campo}
+                  />
+                </label>
+                <label style={etiqueta}>
+                  Área
+                  <input value={f.area} onChange={(e) => set('area', e.target.value)} style={campo} />
+                </label>
+                <label style={{ ...etiqueta, gridColumn: '1 / -1' }}>
+                  Título académico
+                  <input value={f.titulo} onChange={(e) => set('titulo', e.target.value)} style={campo} />
+                </label>
+              </div>
+            </>
+          )}
 
           <div style={{ fontSize: 13, fontWeight: 800, color: '#211d17', margin: '0 0 10px' }}>
             Acceso

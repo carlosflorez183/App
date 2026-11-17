@@ -10,6 +10,8 @@ import Icon, { Ico } from '../components/Icon';
 import { useSearchParams } from 'react-router-dom';
 import ModuleLayout from '../components/ModuleLayout';
 import RegistroNotas from '../components/RegistroNotas';
+import Select from '../components/Select';
+import '../assets/css/registros.css';
 import {
   abrirAsistencia,
   crearActividad,
@@ -24,7 +26,6 @@ import { formatDate } from '../data/mockData';
 
 const TABS = [
   { key: 'cursos', label: 'Mis cursos', icon: 'libro' },
-  { key: 'notas', label: 'Registro de notas', icon: 'cuaderno' },
   { key: 'actividades', label: 'Actividades', icon: 'check' },
   { key: 'asistencia', label: 'Asistencia', icon: 'calendario-dias' },
   { key: 'foro', label: 'Foro', icon: 'mensaje' },
@@ -56,17 +57,23 @@ const Aviso = ({ children, tone = 'red' }) => {
   );
 };
 
-const SelectorCurso = ({ cursos, sel, onChange, permitirTodos = true }) => (
-  <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-    <span style={{ fontSize: 12, fontWeight: 700, color: '#6f6b62' }}>Curso:</span>
-    <select value={sel ?? ''} onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))} style={input}>
-      {permitirTodos && <option value="">Todos</option>}
-      {cursos.map((c) => (
-        <option key={c.id} value={c.id}>{c.nombre} ({c.grupo})</option>
-      ))}
-    </select>
-  </div>
-);
+const SelectorCurso = ({ cursos, sel, onChange, permitirTodos = true }) => {
+  const groups = useMemo(() => {
+    const opts = cursos.map((c) => ({ value: String(c.id), label: `${c.nombre} (${c.grupo})` }));
+    const all = permitirTodos ? [{ value: 'todos', label: 'Todos' }, ...opts] : opts;
+    return [{ options: all }];
+  }, [cursos, permitirTodos]);
+  const value = sel === null || sel === undefined ? (permitirTodos ? 'todos' : '') : String(sel);
+  const handleChange = (v) => {
+    if (v === 'todos' || v === '') return onChange(null);
+    onChange(Number(v));
+  };
+  return (
+    <div style={{ minWidth: 260 }}>
+      <Select label="Curso" value={value} onChange={handleChange} groups={groups} />
+    </div>
+  );
+};
 
 export default function Docente() {
   // El curso llega por ?curso= para que una asistencia o un foro se puedan
@@ -305,7 +312,7 @@ export default function Docente() {
   };
 
   return (
-    <ModuleLayout title="Mi Cátedra" subtitle="Cursos, calificaciones, asistencia y foros" tabs={TABS}>
+    <ModuleLayout title="Mi Cátedra" subtitle="Cursos, calificaciones, asistencia y foros" tabs={TABS} colapsarSidebar rutaModulo="/docente">
       {({ tab, data }) => {
         /* El servidor ya devuelve solo los cursos del docente (ver
            bootstrap.js: para el profesor filtra por docenteId). Antes esta
@@ -331,38 +338,38 @@ export default function Docente() {
                 <div style={card}><div style={{ fontSize: 12, color: '#6f6b62', fontWeight: 600 }}>Actividades pendientes</div><div style={{ fontSize: 26, fontWeight: 800 }}>{data.actividades.filter((a) => a.estado_est === 'pendiente').length}</div></div>
               </div>
               <div style={card}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr>
-                      <th style={th}>Curso</th><th style={th}>Código</th><th style={th}>Grupo</th>
-                      <th style={th}>Estudiantes</th><th style={th}>Progreso</th><th style={th}>Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {cursosVisibles.map((c) => (
-                      <tr key={c.id}>
-                        <td style={td}><strong><Ico name={c.icon} size={14} /> {c.nombre}</strong></td>
-                        <td style={td}>{c.codigo}</td>
-                        <td style={td}>{c.grupo}</td>
-                        <td style={td}>{c.estudiantes}</td>
-                        <td style={td}>{c.progreso}%</td>
-                        <td style={td}>
-                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                            <button className="btn" style={{ padding: '5px 10px', fontSize: 12 }} onClick={() => irA(c.id, 'asistencia')}>
-                              <Icon name="calendario-dias" size={16} /> Asistencia
-                            </button>
-                            <button className="btn" style={{ padding: '5px 10px', fontSize: 12 }} onClick={() => irA(c.id, 'actividades')}>
-                              <Icon name="check" size={16} /> Actividades
-                            </button>
-                            <button className="btn" style={{ padding: '5px 10px', fontSize: 12 }} onClick={() => irA(c.id, 'foro')}>
-                              <Icon name="mensaje" size={16} /> Foro
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <div className="reg-lista">
+                  {cursosVisibles.map((c) => (
+                    <div key={c.id} className="reg-card">
+                      <div className="reg-id">
+                        <div className="reg-nombre"><Ico name={c.icon} size={14} /> {c.nombre}</div>
+                        <div className="reg-sub">{c.codigo} · Grupo {c.grupo}</div>
+                      </div>
+                      <div className="reg-datos">
+                        <div className="reg-dato">
+                          <span className="reg-etq">Estudiantes</span>
+                          <span>{c.estudiantes}</span>
+                        </div>
+                        <div className="reg-dato">
+                          <span className="reg-etq">Progreso</span>
+                          <span>{c.progreso}%</span>
+                        </div>
+                      </div>
+                      <div className="reg-estado" />
+                      <div className="reg-acciones">
+                        <button className="btn" style={{ padding: '6px 10px', fontSize: 12 }} onClick={() => irA(c.id, 'asistencia')}>
+                          <Icon name="calendario-dias" size={16} /> Asistencia
+                        </button>
+                        <button className="btn" style={{ padding: '6px 10px', fontSize: 12 }} onClick={() => irA(c.id, 'actividades')}>
+                          <Icon name="check" size={16} /> Actividades
+                        </button>
+                        <button className="btn" style={{ padding: '6px 10px', fontSize: 12 }} onClick={() => irA(c.id, 'foro')}>
+                          <Icon name="mensaje" size={16} /> Foro
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           );
@@ -393,7 +400,7 @@ export default function Docente() {
               <Aviso>{error}</Aviso>
               <Aviso tone="ok">{exito}</Aviso>
 
-              <div style={{ ...card, marginBottom: 14 }}>
+              <div className="admin-filter-bar" style={{ marginBottom: 14 }}>
                 <SelectorCurso cursos={cursosVisibles} sel={sel} onChange={setSel} />
               </div>
 
@@ -417,20 +424,16 @@ export default function Docente() {
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
                       <div>
-                        <span style={label}>Tipo</span>
-                        <select value={formActividad.tipo} style={{ ...input, width: '100%' }} onChange={(e) => setFormActividad((f) => ({ ...f, tipo: e.target.value }))}>
-                          <option value="tarea">Tarea</option>
-                          <option value="taller">Taller</option>
-                          <option value="proyecto">Proyecto</option>
-                          <option value="exposicion">Exposición</option>
-                          <option value="foro">Foro</option>
-                        </select>
+                        <Select label="Tipo" value={formActividad.tipo} onChange={(v) => setFormActividad((f) => ({ ...f, tipo: v }))} groups={[{ options: [
+                          { value: 'tarea', label: 'Tarea' },
+                          { value: 'taller', label: 'Taller' },
+                          { value: 'proyecto', label: 'Proyecto' },
+                          { value: 'exposicion', label: 'Exposición' },
+                          { value: 'foro', label: 'Foro' },
+                        ] }]} />
                       </div>
                       <div>
-                        <span style={label}>Corte</span>
-                        <select value={formActividad.corte} style={{ ...input, width: '100%' }} onChange={(e) => setFormActividad((f) => ({ ...f, corte: Number(e.target.value) }))}>
-                          {[1, 2, 3].map((c) => <option key={c} value={c}>Corte {c}</option>)}
-                        </select>
+                        <Select label="Corte" value={formActividad.corte} onChange={(v) => setFormActividad((f) => ({ ...f, corte: Number(v) }))} groups={[{ options: [1, 2, 3].map((c) => ({ value: c, label: `Corte ${c}` })) }]} />
                       </div>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
@@ -461,10 +464,7 @@ export default function Docente() {
                         <input required value={formParcial.titulo} style={{ ...input, width: '100%' }} onChange={(e) => setFormParcial((f) => ({ ...f, titulo: e.target.value }))} placeholder="Parcial 1" />
                       </div>
                       <div>
-                        <span style={label}>Corte</span>
-                        <select value={formParcial.corte} style={{ ...input, width: '100%' }} onChange={(e) => setFormParcial((f) => ({ ...f, corte: Number(e.target.value) }))}>
-                          {[1, 2, 3].map((c) => <option key={c} value={c}>{c}</option>)}
-                        </select>
+                        <Select label="Corte" value={formParcial.corte} onChange={(v) => setFormParcial((f) => ({ ...f, corte: Number(v) }))} groups={[{ options: [1, 2, 3].map((c) => ({ value: c, label: String(c) })) }]} />
                       </div>
                       <div>
                         <span style={label}>Puntos</span>
@@ -525,39 +525,46 @@ export default function Docente() {
                 <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 14 }}>
                   Actividades programadas {cursoSel ? `en ${cursoSel.nombre}` : ''}
                 </div>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr>
-                      <th style={th}>Actividad</th><th style={th}>Curso</th><th style={th}>Tipo</th>
-                      <th style={th}>Entrega</th><th style={th}>Puntos</th><th style={th}>Estado</th>
-                      {sel ? <th style={th}>Acción</th> : null}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {lista.map((a) => (
-                      <tr key={a.id}>
-                        <td style={td}>
+                {lista.length === 0 && <div style={{ fontSize: 12, color: '#9c988e' }}>Sin actividades registradas.</div>}
+                <div className="reg-lista">
+                  {lista.map((a) => (
+                    <div key={a.id} className="reg-card">
+                      <div className="reg-id">
+                        <div className="reg-nombre">
                           {a.titulo}
-                          {preguntas(a) > 0 && (
-                            <span style={{ fontSize: 11, color: '#5a37ad', fontWeight: 700 }}> · {preguntas(a)} preguntas</span>
-                          )}
-                        </td>
-                        <td style={td}>{data.cursos.find((x) => x.id === a.cursoId)?.nombre}</td>
-                        <td style={td}>{a.tipo}</td>
-                        <td style={td}>{formatDate(a.fechaEntrega)}</td>
-                        <td style={td}>{a.puntos}</td>
-                        <td style={td}>{a.estado_est}</td>
-                        {sel ? (
-                          <td style={td}>
-                            <button className="btn" style={{ padding: '4px 9px', fontSize: 11 }} onClick={() => borrarActividad(a)}>
-                              Eliminar
-                            </button>
-                          </td>
-                        ) : null}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                          {preguntas(a) > 0 && <span style={{ fontSize: 11, color: '#5a37ad', fontWeight: 700 }}> · {preguntas(a)} preguntas</span>}
+                        </div>
+                        <div className="reg-sub">{data.cursos.find((x) => x.id === a.cursoId)?.nombre}</div>
+                      </div>
+                      <div className="reg-datos">
+                        <div className="reg-dato">
+                          <span className="reg-etq">Tipo</span>
+                          <span>{a.tipo}</span>
+                        </div>
+                        <div className="reg-dato">
+                          <span className="reg-etq">Entrega</span>
+                          <span>{formatDate(a.fechaEntrega)}</span>
+                        </div>
+                        <div className="reg-dato">
+                          <span className="reg-etq">Puntos</span>
+                          <span>{a.puntos}</span>
+                        </div>
+                        <div className="reg-dato">
+                          <span className="reg-etq">Estado</span>
+                          <span>{a.estado_est}</span>
+                        </div>
+                      </div>
+                      <div className="reg-estado" />
+                      {sel && (
+                        <div className="reg-acciones">
+                          <button className="btn" style={{ padding: '6px 10px', fontSize: 12 }} onClick={() => borrarActividad(a)}>
+                            Eliminar
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           );
@@ -569,7 +576,7 @@ export default function Docente() {
               <Aviso>{error}</Aviso>
               <Aviso tone="ok">{exito}</Aviso>
 
-              <div style={{ ...card, marginBottom: 14 }}>
+              <div className="admin-filter-bar" style={{ marginBottom: 14 }}>
                 <SelectorCurso cursos={cursosVisibles} sel={sel} onChange={setSel} />
               </div>
 
@@ -668,39 +675,34 @@ export default function Docente() {
                           })}
                         </div>
 
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                          <thead>
-                            <tr><th style={th}>Estudiante</th><th style={th}>Estado</th></tr>
-                          </thead>
-                          <tbody>
-                            {borrador.registros.map((r) => (
-                              <tr key={r.estudianteId}>
-                                <td style={td}>
-                                  <strong>{r.estudiante?.nombre}</strong>
-                                  <span style={{ fontSize: 11, color: '#9c988e', marginLeft: 8 }}>{r.estudiante?.documento}</span>
-                                </td>
-                                <td style={td}>
-                                  <div style={{ display: 'flex', gap: 6 }}>
-                                    {ESTADOS.map(([valor, texto, fg, bg]) => (
-                                      <button
-                                        key={valor}
-                                        onClick={() => marcar(r.estudianteId, valor)}
-                                        style={{
-                                          padding: '4px 10px', borderRadius: 7, fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                                          border: `1px solid ${r.estado === valor ? fg : '#cdc9bf'}`,
-                                          background: r.estado === valor ? bg : '#fff',
-                                          color: r.estado === valor ? fg : '#6f6b62',
-                                        }}
-                                      >
-                                        {texto}
-                                      </button>
-                                    ))}
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                        <div className="reg-lista">
+                          {borrador.registros.map((r) => (
+                            <div key={r.estudianteId} className="reg-card">
+                              <div className="reg-id">
+                                <div className="reg-nombre">{r.estudiante?.nombre}</div>
+                                <div className="reg-sub">{r.estudiante?.documento}</div>
+                              </div>
+                              <div className="reg-datos" />
+                              <div className="reg-estado" />
+                              <div className="reg-acciones">
+                                {ESTADOS.map(([valor, texto, fg, bg]) => (
+                                  <button
+                                    key={valor}
+                                    onClick={() => marcar(r.estudianteId, valor)}
+                                    style={{
+                                      padding: '5px 11px', borderRadius: 7, fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                                      border: `1px solid ${r.estado === valor ? fg : '#cdc9bf'}`,
+                                      background: r.estado === valor ? bg : '#fff',
+                                      color: r.estado === valor ? fg : '#6f6b62',
+                                    }}
+                                  >
+                                    {texto}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
 
                         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14 }}>
                           <button className="btn" onClick={guardarBorrador} disabled={guardando}>
@@ -722,7 +724,7 @@ export default function Docente() {
               <Aviso>{error}</Aviso>
               <Aviso tone="ok">{exito}</Aviso>
 
-              <div style={{ ...card, marginBottom: 14 }}>
+              <div className="admin-filter-bar" style={{ marginBottom: 14 }}>
                 <SelectorCurso cursos={cursosVisibles} sel={sel} onChange={setSel} />
               </div>
 

@@ -5,7 +5,10 @@
    de capacitaciones.
    ============================================= */
 import React, { useCallback, useEffect, useState } from 'react';
+import Select from '../components/Select';
+import Avatar from '../components/Avatar';
 import ModuleLayout from '../components/ModuleLayout';
+import '../assets/css/registros.css';
 import {
   actualizarConvocatoria,
   actualizarCapacitacion,
@@ -409,7 +412,7 @@ export default function TalentoHumano() {
   };
 
   return (
-    <ModuleLayout title="Talento Humano" subtitle="Planta docente, convocatorias, capacitaciones y carga" tabs={TABS}>
+    <ModuleLayout title="Talento Humano" subtitle="Planta docente, convocatorias, capacitaciones y carga" tabs={TABS} colapsarSidebar rutaModulo="/talento-humano">
       {({ tab, data, setData }) => {
         const docentes = data.docentes;
         const materias = data.matricula.materias;
@@ -429,74 +432,67 @@ export default function TalentoHumano() {
                 <div style={card}><div style={{ fontSize: 12, color: '#6f6b62' }}>Áreas cubiertas</div><div style={{ fontSize: 26, fontWeight: 800 }}>{new Set(docentes.map((d) => d.area)).size}</div></div>
               </div>
 
-              <div style={{ ...card, overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr>
-                      <th style={th}>Docente</th><th style={th}>Área</th><th style={th}>Categoría</th>
-                      <th style={th}>Asignaturas</th><th style={th}>Correo</th><th style={th}>Estado</th><th style={th}>Acción</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {docentes.map((d) => {
-                      const enEdicion = editando === d.id;
-                      return (
-                        <tr key={d.id}>
-                          <td style={td}>
-                            <strong>{d.nombre}</strong>
-                            <br />
-                            <span style={{ fontSize: 11, color: '#9c988e' }}>{d.id}</span>
-                          </td>
-                          {enEdicion ? (
-                            <td style={td}>
-                              <input style={{ ...input, width: '100%' }} value={form.area || ''} onChange={(e) => setForm((f) => ({ ...f, area: e.target.value }))} />
-                            </td>
-                          ) : (
-                            <td style={td}>{d.area}</td>
-                          )}
-                          {enEdicion ? (
-                            <td style={td}>
-                              <select style={input} value={form.categoria || ''} onChange={(e) => setForm((f) => ({ ...f, categoria: e.target.value }))}>
-                                {CATEGORIAS.map((c) => <option key={c}>{c}</option>)}
-                              </select>
-                            </td>
-                          ) : (
-                            <td style={td}>{d.categoria}</td>
-                          )}
-                          <td style={td}>{cargaDe(d.nombre).length}</td>
-                          <td style={td}>{d.email}</td>
-                          {enEdicion ? (
-                            <td style={td}>
-                              <select style={input} value={form.estado || ''} onChange={(e) => setForm((f) => ({ ...f, estado: e.target.value }))}>
-                                <option value="activo">Activo</option>
-                                <option value="permanencia">Permanencia</option>
-                                <option value="cesado">Cesado</option>
-                              </select>
-                            </td>
-                          ) : (
-                            <td style={td}>{d.estado === 'activo' ? 'Activo' : 'Permanencia'}</td>
-                          )}
-                          <td style={td}>
-                            {enEdicion ? (
-                              <div style={{ display: 'flex', gap: 6 }}>
-                                <button className="btn" style={{ padding: '4px 9px', fontSize: 11 }} onClick={() => guardarDocente(d, refrescarDocentes)} disabled={guardando}>
-                                  Guardar
-                                </button>
-                                <button className="btn" style={{ padding: '4px 9px', fontSize: 11 }} onClick={cerrarEdicion}>
-                                  Cancelar
-                                </button>
-                              </div>
-                            ) : (
-                              <button className="btn" style={{ padding: '4px 9px', fontSize: 11 }} onClick={() => abrirDocente(d)}>
-                                Editar
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+              <div className="reg-lista">
+                {docentes.map((d) => {
+                  const enEdicion = editando === d.id;
+                  return (
+                    <div key={d.id} style={{ display: 'flex', flexDirection: 'column' }}>
+                      <div className="reg-card">
+                        <Avatar nombre={d.nombre} clase="av-purple" tamano={44} radio={22} />
+                        <div className="reg-id">
+                          <div className="reg-nombre">{d.nombre}</div>
+                          <div className="reg-sub">{d.id}</div>
+                        </div>
+                        <div className="reg-datos">
+                          <div className="reg-dato">
+                            <span className="reg-etq">Área</span>
+                            <span>{d.area}</span>
+                          </div>
+                          <div className="reg-dato">
+                            <span className="reg-etq">Categoría</span>
+                            <span>{d.categoria}</span>
+                          </div>
+                          <div className="reg-dato">
+                            <span className="reg-etq">Asignaturas</span>
+                            <span>{cargaDe(d.nombre).length}</span>
+                          </div>
+                          <div className="reg-dato">
+                            <span className="reg-etq">Correo</span>
+                            <span>{d.email}</span>
+                          </div>
+                        </div>
+                        <div className="reg-estado">
+                          <EstadoBadge estado={d.estado} />
+                        </div>
+                        <div className="reg-acciones">
+                          <button className="btn" style={{ padding: '6px 10px', fontSize: 12 }} onClick={() => abrirDocente(d)}>
+                            Editar
+                          </button>
+                        </div>
+                      </div>
+                      {enEdicion && (
+                        <div style={{ background: '#f7f6f3', border: '1px solid #e5e2da', borderTop: 'none', borderRadius: '0 0 14px 14px', padding: 14, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                          <label style={{ fontSize: 12, fontWeight: 600 }}>
+                            Área
+                            <input style={{ ...input, width: '100%', marginTop: 4 }} value={form.area || ''} onChange={(e) => setForm((f) => ({ ...f, area: e.target.value }))} />
+                          </label>
+                          <label style={{ fontSize: 12, fontWeight: 600 }}>
+                            Categoría
+                            <Select label="Categoría" value={form.categoria || ''} onChange={(v) => setForm((f) => ({ ...f, categoria: v }))} groups={[{ options: CATEGORIAS.map((c) => ({ value: c, label: c })) }]} />
+                          </label>
+                          <label style={{ fontSize: 12, fontWeight: 600 }}>
+                            Estado
+                            <Select label="Estado" value={form.estado || ''} onChange={(v) => setForm((f) => ({ ...f, estado: v }))} groups={[{ options: [{ value: 'activo', label: 'Activo' }, { value: 'permanencia', label: 'Permanencia' }, { value: 'cesado', label: 'Cesado' }] }]} />
+                          </label>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <button className="btn" style={{ padding: '6px 10px', fontSize: 12 }} onClick={() => guardarDocente(d, refrescarDocentes)} disabled={guardando}>Guardar</button>
+                            <button className="btn" style={{ padding: '6px 10px', fontSize: 12 }} onClick={cerrarEdicion}>Cancelar</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           );
@@ -525,13 +521,12 @@ export default function TalentoHumano() {
                       <input value={formConv.dependencia} style={{ ...input, width: '100%' }} onChange={(e) => setFormConv((f) => ({ ...f, dependencia: e.target.value }))} />
                     </div>
                     <div>
-                      <span style={label}>Vínculo</span>
-                      <select value={formConv.vinculo} style={{ ...input, width: '100%' }} onChange={(e) => setFormConv((f) => ({ ...f, vinculo: e.target.value }))}>
-                        <option value="catedra">Cátedra</option>
-                        <option value="planta">Planta</option>
-                        <option value="contrato">Contrato</option>
-                        <option value="horas">Por horas</option>
-                      </select>
+                      <Select label="Vínculo" value={formConv.vinculo} onChange={(v) => setFormConv((f) => ({ ...f, vinculo: v }))} groups={[{ options: [
+                        { value: 'catedra', label: 'Cátedra' },
+                        { value: 'planta', label: 'Planta' },
+                        { value: 'contrato', label: 'Contrato' },
+                        { value: 'horas', label: 'Por horas' },
+                      ] }]} />
                     </div>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
@@ -585,14 +580,7 @@ export default function TalentoHumano() {
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                             <EstadoBadge estado={c.estado} />
-                            <select
-                              style={input}
-                              value={c.estado}
-                              onChange={(e) => cambiarEstadoConv(c, e.target.value)}
-                              title="Cambiar estado"
-                            >
-                              {ESTADOS_CONV.map((s) => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
-                            </select>
+                            <Select label="Estado" value={c.estado} onChange={(v) => cambiarEstadoConv(c, v)} groups={[{ options: ESTADOS_CONV.map((s) => ({ value: s, label: s.replace(/_/g, ' ') })) }]} />
                           </div>
                         </div>
 
@@ -625,38 +613,37 @@ export default function TalentoHumano() {
                               <div style={{ fontSize: 12, color: '#9c988e' }}>Todavía nadie se ha postulado para este cargo.</div>
                             )}
                             {lista && lista.length > 0 && (
-                              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                <thead>
-                                  <tr><th style={th}>Nombre</th><th style={th}>Documento</th><th style={th}>Puntaje</th><th style={th}>Estado</th></tr>
-                                </thead>
-                                <tbody>
-                                  {lista.map((p) => (
-                                    <tr key={p.id}>
-                                      <td style={td}>{p.nombre}</td>
-                                      <td style={td}>{p.documento}</td>
-                                      <td style={td}>
+                              <div className="reg-lista" style={{ marginTop: 8 }}>
+                                {lista.map((p) => (
+                                  <div key={p.id} className="reg-card">
+                                    <div className="reg-id">
+                                      <div className="reg-nombre">{p.nombre}</div>
+                                      <div className="reg-sub">{p.documento}</div>
+                                    </div>
+                                    <div className="reg-datos">
+                                      <div className="reg-dato">
+                                        <span className="reg-etq">Puntaje</span>
                                         <input
-                                          type="number" min="0" max="100" defaultValue={p.puntaje || 0} style={{ ...input, width: 70 }}
+                                          type="number" min="0" max="100" defaultValue={p.puntaje || 0}
+                                          style={{ ...input, width: 80, padding: '5px 8px' }}
                                           onBlur={async (e) => {
                                             const v = e.target.value === '' ? null : Number(e.target.value);
                                             if (v === (p.puntaje || 0)) return;
-                                             try {
-                                               const r=await actualizarPuntaje(p.id,v); setPostulados((m)=>({...m,[c.id]:m[c.id].map(x=>x.id===p.id?{...x,...r}:x)}));
-                                            } catch (err) {
-                                              avisar(`No se guardó el puntaje: ${err.message}`, 'error');
-                                            }
+                                            try {
+                                              const r = await actualizarPuntaje(p.id, v);
+                                              setPostulados((m) => ({ ...m, [c.id]: m[c.id].map((x) => (x.id === p.id ? { ...x, ...r } : x)) }));
+                                            } catch (err) { avisar(`No se guardó el puntaje: ${err.message}`, 'error'); }
                                           }}
                                         />
-                                      </td>
-                                      <td style={td}>
-                                        <select style={input} value={p.estado} onChange={(e) => calificarPostulado(c.id, p, e.target.value)}>
-                                          {ESTADOS_POSTULADO.map((s) => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
-                                        </select>
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
+                                      </div>
+                                    </div>
+                                    <div className="reg-estado" />
+                                    <div className="reg-acciones">
+                                      <Select label="Estado" value={p.estado} onChange={(v) => calificarPostulado(c.id, p, v)} groups={[{ options: ESTADOS_POSTULADO.map((s) => ({ value: s, label: s.replace(/_/g, ' ') })) }]} />
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
                             )}
                           </div>
                         )}
@@ -728,9 +715,7 @@ export default function TalentoHumano() {
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                           <button className="btn" style={{ padding: '4px 9px', fontSize: 11 }} onClick={() => inscribir(c, Math.max(0, c.inscritos - 1))}>- Quitar</button>
                           <button className="btn" style={{ padding: '4px 9px', fontSize: 11 }} onClick={() => inscribir(c, c.inscritos + 1)} disabled={lleno}>+ Inscribir</button>
-                          <select style={input} value={c.estado} onChange={(e) => avanzarCap(c, e.target.value)}>
-                            {ESTADOS_CAPACITACION.map((s) => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
-                          </select>
+                          <Select label="Estado" value={c.estado} onChange={(v) => avanzarCap(c, v)} groups={[{ options: ESTADOS_CAPACITACION.map((s) => ({ value: s, label: s.replace(/_/g, ' ') })) }]} />
                         </div>
                       </div>
                     );
@@ -774,18 +759,25 @@ export default function TalentoHumano() {
           return (
             <div style={card}>
               <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 14 }}>Áreas de conocimiento</div>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead><tr><th style={th}>Área</th><th style={th}>Docentes</th><th style={th}>Créditos a su cargo</th></tr></thead>
-                <tbody>
-                  {Object.values(areas).sort((a, b) => b.docentes - a.docentes).map((a) => (
-                    <tr key={a.area}>
-                      <td style={td}>{a.area}</td>
-                      <td style={td}>{a.docentes}</td>
-                      <td style={td}>{a.cr || 0}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="reg-lista">
+                {Object.values(areas).sort((a, b) => b.docentes - a.docentes).map((a) => (
+                  <div key={a.area} className="reg-card">
+                    <div className="reg-id">
+                      <div className="reg-nombre">{a.area}</div>
+                    </div>
+                    <div className="reg-datos">
+                      <div className="reg-dato">
+                        <span className="reg-etq">Docentes</span>
+                        <span style={{ fontWeight: 700 }}>{a.docentes}</span>
+                      </div>
+                      <div className="reg-dato">
+                        <span className="reg-etq">Créditos a su cargo</span>
+                        <span>{a.cr || 0}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           );
         }
@@ -819,36 +811,38 @@ export default function TalentoHumano() {
                   {nominas.length > 0 && (
                     <div style={card}>
                       <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 10 }}>Corridas generadas</div>
-                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <thead>
-                          <tr>
-                            <th style={th}>Periodo</th>
-                            <th style={th}>Fecha de pago</th>
-                            <th style={th}>Estado</th>
-                            <th style={th}>Devengado</th>
-                            <th style={th}>Deducciones</th>
-                            <th style={th}>Neto</th>
-                            <th style={th}>Liquidaciones</th>
-                            <th style={th}></th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {nominas.map((n) => (
-                            <tr key={n.id}>
-                              <td style={{ ...td, fontWeight: 700 }}>{n.periodo}</td>
-                              <td style={td}>{formatDate(n.fechaPago)}</td>
-                              <td style={td}><EstadoBadge estado={n.estado} /></td>
-                              <td style={td}>${Number(n.totalDevengado).toLocaleString('es-CO')}</td>
-                              <td style={td}>${Number(n.totalDeducciones).toLocaleString('es-CO')}</td>
-                              <td style={{ ...td, fontWeight: 700 }}>${Number(n.totalNeto).toLocaleString('es-CO')}</td>
-                              <td style={td}>{n._count?.liquidaciones ?? 0}</td>
-                              <td style={td}>
-                                <button className="btn" style={{ padding: '4px 9px', fontSize: 11 }} onClick={() => verDetalle(n.id)}>Ver detalle</button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                      <div className="reg-lista">
+                        {nominas.map((n) => (
+                          <div key={n.id} className="reg-card">
+                            <div className="reg-id">
+                              <div className="reg-nombre">{n.periodo}</div>
+                              <div className="reg-sub">{formatDate(n.fechaPago)}</div>
+                            </div>
+                            <div className="reg-datos">
+                              <div className="reg-dato">
+                                <span className="reg-etq">Estado</span>
+                                <EstadoBadge estado={n.estado} />
+                              </div>
+                              <div className="reg-dato">
+                                <span className="reg-etq">Devengado</span>
+                                <span>${Number(n.totalDevengado).toLocaleString('es-CO')}</span>
+                              </div>
+                              <div className="reg-dato">
+                                <span className="reg-etq">Neto</span>
+                                <span style={{ fontWeight: 700 }}>${Number(n.totalNeto).toLocaleString('es-CO')}</span>
+                              </div>
+                              <div className="reg-dato">
+                                <span className="reg-etq">Liquidaciones</span>
+                                <span>{n._count?.liquidaciones ?? 0}</span>
+                              </div>
+                            </div>
+                            <div className="reg-estado" />
+                            <div className="reg-acciones">
+                              <button className="btn" style={{ padding: '6px 10px', fontSize: 12 }} onClick={() => verDetalle(n.id)}>Ver detalle</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
 
@@ -876,58 +870,61 @@ export default function TalentoHumano() {
                            <div style={{ fontSize: 12 }}>{detalleNomina.smlmv ? `$${Number(detalleNomina.smlmv).toLocaleString('es-CO')}` : '—'} / {detalleNomina.uvt != null ? Number(detalleNomina.uvt).toLocaleString('es-CO') : '—'}</div>
                         </div>
                       </div>
-                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <thead>
-                          <tr>
-                            <th style={th}>Persona</th>
-                            <th style={th}>Vínculo</th>
-                            <th style={th}>Cargo</th>
-                            <th style={th}>Base</th>
-                            <th style={th}>Devengado</th>
-                            <th style={th}>Deducciones</th>
-                            <th style={th}>Neto</th>
-                            <th style={th}>Retención</th>
-                            <th style={th}></th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {(detalleNomina.liquidaciones || []).map((l) => (
-                            <React.Fragment key={l.id}>
-                              <tr>
-                                <td style={{ ...td, fontWeight: 600 }}>{l.nombre}</td>
-                                <td style={td}>{l.tipoPersona === 'docente' ? 'Docente' : 'Empleado'}</td>
-                                <td style={td}>{l.cargo}</td>
-                                <td style={td}>${Number(l.salarioBase).toLocaleString('es-CO')}</td>
-                                <td style={td}>${Number(l.devengado).toLocaleString('es-CO')}</td>
-                                <td style={td}>-${Number(l.deducciones).toLocaleString('es-CO')}</td>
-                                <td style={{ ...td, fontWeight: 700 }}>${Number(l.neto).toLocaleString('es-CO')}</td>
-                                <td style={td}>${Number(l.retencion).toLocaleString('es-CO')}</td>
-                                <td style={td}>
-                                  <button className="btn" style={{ padding: '3px 8px', fontSize: 10 }} onClick={() => setConceptosNomina(conceptosNomina === l.id ? null : l.id)}>
-                                    {conceptosNomina === l.id ? 'Ocultar' : 'Conceptos'}
-                                  </button>
-                                </td>
-                              </tr>
-                              {conceptosNomina === l.id && (
-                                <tr>
-                                  <td colSpan={9} style={{ ...td, background: '#f7f6f3' }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 8 }}>
-                                      {(l.conceptos || []).map((c) => (
-                                        <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', background: '#fff', border: '1px solid #e5e2da', borderRadius: 8, padding: '6px 10px', fontSize: 12 }}>
-                                          <span>{c.nombre}</span>
-                                          <span style={{ fontWeight: 700, color: c.tipo === 'deduccion' ? '#c1122c' : '#0a6e4b' }}>
-                                            {c.tipo === 'deduccion' ? '-' : ''}${Number(c.valor).toLocaleString('es-CO')}
-                                          </span>
-                                        </div>
-                                      ))}
+                      <div className="reg-lista">
+                        {(detalleNomina.liquidaciones || []).map((l) => (
+                          <div key={l.id} style={{ display: 'flex', flexDirection: 'column' }}>
+                            <div className="reg-card">
+                              <Avatar nombre={l.nombre} clase="av-teal" tamano={40} radio={20} />
+                              <div className="reg-id">
+                                <div className="reg-nombre">{l.nombre}</div>
+                                <div className="reg-sub">{l.tipoPersona === 'docente' ? 'Docente' : 'Empleado'}{l.cargo ? ` · ${l.cargo}` : ''}</div>
+                              </div>
+                              <div className="reg-datos">
+                                <div className="reg-dato">
+                                  <span className="reg-etq">Base</span>
+                                  <span>${Number(l.salarioBase).toLocaleString('es-CO')}</span>
+                                </div>
+                                <div className="reg-dato">
+                                  <span className="reg-etq">Devengado</span>
+                                  <span style={{ color: '#0a6e4b', fontWeight: 600 }}>${Number(l.devengado).toLocaleString('es-CO')}</span>
+                                </div>
+                                <div className="reg-dato">
+                                  <span className="reg-etq">Deducciones</span>
+                                  <span style={{ color: '#c1122c' }}>-${Number(l.deducciones).toLocaleString('es-CO')}</span>
+                                </div>
+                                <div className="reg-dato">
+                                  <span className="reg-etq">Neto</span>
+                                  <span style={{ fontWeight: 700 }}>${Number(l.neto).toLocaleString('es-CO')}</span>
+                                </div>
+                                <div className="reg-dato">
+                                  <span className="reg-etq">Retención</span>
+                                  <span>${Number(l.retencion).toLocaleString('es-CO')}</span>
+                                </div>
+                              </div>
+                              <div className="reg-estado" />
+                              <div className="reg-acciones">
+                                <button className="btn" style={{ padding: '6px 10px', fontSize: 12 }} onClick={() => setConceptosNomina(conceptosNomina === l.id ? null : l.id)}>
+                                  {conceptosNomina === l.id ? 'Ocultar' : 'Conceptos'}
+                                </button>
+                              </div>
+                            </div>
+                            {conceptosNomina === l.id && (
+                              <div style={{ background: '#f7f6f3', border: '1px solid #e5e2da', borderTop: 'none', borderRadius: '0 0 14px 14px', padding: '10px 18px 14px' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 8 }}>
+                                  {(l.conceptos || []).map((c) => (
+                                    <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', background: '#fff', border: '1px solid #e5e2da', borderRadius: 8, padding: '6px 10px', fontSize: 12 }}>
+                                      <span>{c.nombre}</span>
+                                      <span style={{ fontWeight: 700, color: c.tipo === 'deduccion' ? '#c1122c' : '#0a6e4b' }}>
+                                        {c.tipo === 'deduccion' ? '-' : ''}${Number(c.valor).toLocaleString('es-CO')}
+                                      </span>
                                     </div>
-                                  </td>
-                                </tr>
-                              )}
-                            </React.Fragment>
-                          ))}
-                        </tbody>
-                      </table>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -948,31 +945,24 @@ export default function TalentoHumano() {
                 <form style={card} onSubmit={emitirCertificado}>
                   <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 12 }}>Emitir certificado laboral</div>
                   <div style={{ marginBottom: 10 }}>
-                    <span style={label}>Empleado</span>
-                    <select required value={formCert.empleadoId} style={{ ...input, width: '100%' }} onChange={(e) => setFormCert((f) => ({ ...f, empleadoId: e.target.value }))}>
-                      <option value="">Seleccione…</option>
-                      {empleadosData.map((emp) => (
-                        <option key={emp.id} value={emp.id}>{emp.nombre} ? {emp.cargo}</option>
-                      ))}
-                    </select>
+                    <Select label="Empleado" value={String(formCert.empleadoId || '')} onChange={(v) => setFormCert((f) => ({ ...f, empleadoId: v }))} groups={[{ options: [
+                      { value: '', label: 'Seleccione…' },
+                      ...empleadosData.map((emp) => ({ value: String(emp.id), label: `${emp.nombre} ? ${emp.cargo}` })),
+                    ] }]} />
                   </div>
                   <div style={{ marginBottom: 10 }}>
-                    <span style={label}>Tipo de certificado</span>
-                    <select value={formCert.tipo} style={{ ...input, width: '100%' }} onChange={(e) => setFormCert((f) => ({ ...f, tipo: e.target.value }))}>
-                      <option value="constancia_laboral">Constancia laboral</option>
-                      <option value="certificado_ingresos">Certificado de ingresos</option>
-                      <option value="ingresos_retenciones">Ingresos y retenciones</option>
-                    </select>
+                    <Select label="Tipo de certificado" value={formCert.tipo} onChange={(v) => setFormCert((f) => ({ ...f, tipo: v }))} groups={[{ options: [
+                      { value: 'constancia_laboral', label: 'Constancia laboral' },
+                      { value: 'certificado_ingresos', label: 'Certificado de ingresos' },
+                      { value: 'ingresos_retenciones', label: 'Ingresos y retenciones' },
+                    ] }]} />
                   </div>
                   {pideNomina && (
                     <div style={{ marginBottom: 10 }}>
-                      <span style={label}>Corrida de nómina del periodo</span>
-                      <select required value={formCert.nominaId} style={{ ...input, width: '100%' }} onChange={(e) => setFormCert((f) => ({ ...f, nominaId: e.target.value }))}>
-                        <option value="">Seleccione…</option>
-                        {nominas.map((n) => (
-                          <option key={n.id} value={n.id}>{n.periodo}</option>
-                        ))}
-                      </select>
+                      <Select label="Corrida de nómina del periodo" value={String(formCert.nominaId || '')} onChange={(v) => setFormCert((f) => ({ ...f, nominaId: v }))} groups={[{ options: [
+                        { value: '', label: 'Seleccione…' },
+                        ...nominas.map((n) => ({ value: String(n.id), label: n.periodo })),
+                      ] }]} />
                       {nominas.length === 0 && (
                         <div style={{ fontSize: 11, color: '#c1122c', marginTop: 4 }}>No hay corridas: primero liquide el mes en Contabilidad.</div>
                       )}
@@ -1000,38 +990,42 @@ export default function TalentoHumano() {
                   {certificados.length > 0 && (
                     <div style={card}>
                       <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 10 }}>Certificados emitidos</div>
-                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <thead>
-                          <tr>
-                            <th style={th}>#</th>
-                            <th style={th}>Empleado</th>
-                            <th style={th}>Cargo</th>
-                            <th style={th}>Tipo</th>
-                            <th style={th}>Periodo</th>
-                            <th style={th}>Fecha</th>
-                            <th style={th}>Emitido por</th>
-                            <th style={th}></th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {certificados.map((c) => (
-                            <tr key={c.id}>
-                              <td style={{ ...td, fontWeight: 700 }}>{c.id}</td>
-                              <td style={{ ...td, fontWeight: 600 }}>{c.empleado?.nombre}</td>
-                              <td style={td}>{c.empleado?.cargo}</td>
-                              <td style={td}><EstadoBadge estado={c.tipo} /></td>
-                              <td style={td}>{c.periodo || '?'}</td>
-                              <td style={td}>{formatDate(c.fecha)}</td>
-                              <td style={td}>{c.emisor?.nombre || '?'}</td>
-                              <td style={td}>
-                                <button className="btn" style={{ padding: '4px 9px', fontSize: 11 }} disabled={descargando} onClick={() => descargarCert(c.id)}>
-                                  {descargando ? 'Descargando…' : 'Descargar PDF'}
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                      <div className="reg-lista">
+                        {certificados.map((c) => (
+                          <div key={c.id} className="reg-card">
+                            <div className="reg-id">
+                              <div className="reg-nombre">{c.empleado?.nombre}</div>
+                              <div className="reg-sub">{c.empleado?.cargo}</div>
+                            </div>
+                            <div className="reg-datos">
+                              <div className="reg-dato">
+                                <span className="reg-etq">Tipo</span>
+                                <EstadoBadge estado={c.tipo} />
+                              </div>
+                              <div className="reg-dato">
+                                <span className="reg-etq">Periodo</span>
+                                <span>{c.periodo || '—'}</span>
+                              </div>
+                              <div className="reg-dato">
+                                <span className="reg-etq">Fecha</span>
+                                <span>{formatDate(c.fecha)}</span>
+                              </div>
+                              <div className="reg-dato">
+                                <span className="reg-etq">Emitido por</span>
+                                <span>{c.emisor?.nombre || '—'}</span>
+                              </div>
+                            </div>
+                            <div className="reg-estado">
+                              <span style={{ fontSize: 11, color: '#9c988e' }}>#{c.id}</span>
+                            </div>
+                            <div className="reg-acciones">
+                              <button className="btn" style={{ padding: '6px 10px', fontSize: 12 }} disabled={descargando} onClick={() => descargarCert(c.id)}>
+                                {descargando ? 'Descargando…' : 'Descargar PDF'}
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1056,21 +1050,13 @@ export default function TalentoHumano() {
                 <form style={card} onSubmit={reportarNovedad}>
                   <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 10 }}>Reportar novedad</div>
                   <div style={{ marginBottom: 10 }}>
-                    <span style={label}>Persona</span>
-                    <select required value={formNovedad.persona} style={{ ...input, width: '100%' }} onChange={(e) => setFormNovedad((f) => ({ ...f, persona: e.target.value }))}>
-                      <option value="">Seleccione…</option>
-                      {personas.map((p) => (
-                        <option key={p.id} value={p.id}>{p.nombre}</option>
-                      ))}
-                    </select>
+                    <Select label="Persona" value={formNovedad.persona} onChange={(v) => setFormNovedad((f) => ({ ...f, persona: v }))} groups={[{ options: [
+                      { value: '', label: 'Seleccione…' },
+                      ...personas.map((p) => ({ value: p.id, label: p.nombre })),
+                    ] }]} />
                   </div>
                   <div style={{ marginBottom: 10 }}>
-                    <span style={label}>Tipo</span>
-                    <select value={formNovedad.tipo} style={{ ...input, width: '100%' }} onChange={(e) => setFormNovedad((f) => ({ ...f, tipo: e.target.value }))}>
-                      {TIPOS_NOVEDAD.map((t) => (
-                        <option key={t.value} value={t.value}>{t.label}</option>
-                      ))}
-                    </select>
+                    <Select label="Tipo" value={formNovedad.tipo} onChange={(v) => setFormNovedad((f) => ({ ...f, tipo: v }))} groups={[{ options: TIPOS_NOVEDAD.map((t) => ({ value: t.value, label: t.label })) }]} />
                   </div>
                   <div style={{ marginBottom: 10 }}>
                     <span style={label}>Periodo (AAAA-MM)</span>
@@ -1078,11 +1064,10 @@ export default function TalentoHumano() {
                   </div>
                   {campos.includes('modalidad') && (
                     <div style={{ marginBottom: 10 }}>
-                      <span style={label}>Modalidad</span>
-                      <select value={formNovedad.modalidad} style={{ ...input, width: '100%' }} onChange={(e) => setFormNovedad((f) => ({ ...f, modalidad: e.target.value }))}>
-                        <option value="no_remunerada">No remunerada</option>
-                        <option value="remunerada">Remunerada</option>
-                      </select>
+                      <Select label="Modalidad" value={formNovedad.modalidad} onChange={(v) => setFormNovedad((f) => ({ ...f, modalidad: v }))} groups={[{ options: [
+                        { value: 'no_remunerada', label: 'No remunerada' },
+                        { value: 'remunerada', label: 'Remunerada' },
+                      ] }]} />
                     </div>
                   )}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
@@ -1123,33 +1108,37 @@ export default function TalentoHumano() {
                 </form>
                 <div style={card}>
                   <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 10 }}>Novedades reportadas</div>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr>
-                        <th style={th}>Periodo</th>
-                        <th style={th}>Persona</th>
-                        <th style={th}>Tipo</th>
-                        <th style={th}>Estado</th>
-                        <th style={th}>Valor</th>
-                        <th style={th}>Descripción</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(novedades || []).map((n) => (
-                        <tr key={n.id}>
-                          <td style={td}>{n.periodo}</td>
-                          <td style={{ ...td, fontWeight: 600 }}>{n.nombre}</td>
-                          <td style={td}>{ETIQUETA_NOVEDAD[n.tipo] || n.tipo}</td>
-                          <td style={td}><EstadoBadge estado={n.estado} /></td>
-                          <td style={td}>${Number(n.valor || 0).toLocaleString('es-CO')}</td>
-                          <td style={td}>{n.descripcion || '—'}</td>
-                        </tr>
-                      ))}
-                      {(!novedades || novedades.length === 0) && (
-                        <tr><td colSpan={6} style={{ ...td, textAlign: 'center', color: '#9c988e' }}>Sin novedades reportadas</td></tr>
-                      )}
-                    </tbody>
-                  </table>
+                  {(!novedades || novedades.length === 0) && (
+                    <EstadoVacio mensaje="Sin novedades reportadas." />
+                  )}
+                  <div className="reg-lista">
+                    {(novedades || []).map((n) => (
+                      <div key={n.id} className="reg-card">
+                        <Avatar nombre={n.nombre} clase="av-orange" tamano={40} radio={20} />
+                        <div className="reg-id">
+                          <div className="reg-nombre">{n.nombre}</div>
+                          <div className="reg-sub">{n.periodo}</div>
+                        </div>
+                        <div className="reg-datos">
+                          <div className="reg-dato">
+                            <span className="reg-etq">Tipo</span>
+                            <span>{ETIQUETA_NOVEDAD[n.tipo] || n.tipo}</span>
+                          </div>
+                          <div className="reg-dato">
+                            <span className="reg-etq">Valor</span>
+                            <span style={{ fontWeight: 700 }}>${Number(n.valor || 0).toLocaleString('es-CO')}</span>
+                          </div>
+                          <div className="reg-dato">
+                            <span className="reg-etq">Descripción</span>
+                            <span>{n.descripcion || '—'}</span>
+                          </div>
+                        </div>
+                        <div className="reg-estado">
+                          <EstadoBadge estado={n.estado} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>

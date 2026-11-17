@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { menuForRole, NAV_SEC_STYLE, TAB_POR_DEFECTO } from '../config/navMenu';
 import Icon from './Icon';
 
-export default function Sidebar({ currentView, currentTab, onNavigate, isOpen, onClose }) {
+export default function Sidebar({ currentView, currentTab, onNavigate, isOpen, onClose, compactModuleNav = false, compactModuleLabel, compactModulePath = null, compactModuleView = null, collapseModuleNav = false, hideStudentSections = false, collapseSectionPath = null, seccionesOcultas = [] }) {
   const { user, logout, roleLabels } = useAuth();
   const navigate = useNavigate();
   const { pathname, search } = useLocation();
@@ -13,6 +13,7 @@ export default function Sidebar({ currentView, currentTab, onNavigate, isOpen, o
 
   const isRouteActive = (item) => {
     if (pathname !== item.to) return false;
+    if (item.key.startsWith('module-')) return true;
     if (!item.tab) return !search;
     // Entrar a /admisiones sin ?tab= abre la pestaña por defecto, no deja
     // el menú sin nada resaltado.
@@ -26,6 +27,65 @@ export default function Sidebar({ currentView, currentTab, onNavigate, isOpen, o
     }
     return currentView === view;
   };
+
+  const menuBase = menuForRole(user.role, user.estudiante);
+  /* El estudiante no ve el detalle del sidebar (Notas, Certificados, Pagos…):
+     solo la entrada principal del módulo y, al entrar, las pestañas quedan en
+     la barra superior, igual que los demás roles. */
+  const menuVisual = (user.role === 'estudiante' || user.role === 'profesor')
+    ? menuBase.map((sec) => {
+      if (sec.section === 'Académico') {
+        return {
+          section: sec.section,
+          items: [{ key: 'academico', label: sec.section, icon: 'notas', kind: 'view', view: 'academico' }],
+        };
+      }
+      if (sec.section === 'Campus Virtual') {
+        return {
+          section: sec.section,
+          items: [{ key: 'lms', label: sec.section, icon: 'cursos', kind: 'view', view: 'lms' }],
+        };
+      }
+      return sec;
+    })
+    : menuBase;
+  const sections = menuVisual
+    .map((sec) => {
+      if (!compactModuleNav) return sec;
+      /* Ruta que identifica la sección a colapsar (puede diferir de la ruta del
+     módulo actual, p. ej. en Consultar Pensum se colapsa Admisiones). */
+  const rutaColapso = collapseSectionPath || compactModulePath;
+  const isCurrentModule = sec.items.some((item) => (
+        (rutaColapso && item.kind === 'route' && item.to === rutaColapso)
+        ||
+        (!rutaColapso && compactModuleView && item.kind === 'view' && item.view === compactModuleView)
+        ||
+        (!rutaColapso && item.kind === 'route' && item.to === pathname && item.tab)
+        || (!rutaColapso && !compactModuleView && item.kind === 'view' && item.view === currentView)
+      ));
+      if (compactModulePath && isCurrentModule && collapseModuleNav) {
+        return {
+          ...sec,
+          items: [{
+            key: `module-summary-${compactModulePath || compactModuleView}`,
+            label: (collapseSectionPath && collapseSectionPath !== compactModulePath)
+              ? sec.section
+              : (compactModuleLabel || sec.section),
+            icon: 'admin-resumen',
+            kind: compactModuleView ? 'view' : 'route',
+            view: compactModuleView || undefined,
+            to: (collapseSectionPath && collapseSectionPath !== compactModulePath)
+              ? collapseSectionPath
+              : (compactModulePath || undefined),
+            tab: undefined,
+          }],
+        };
+      }
+      return sec;
+    })
+    .filter((sec) => !(hideStudentSections && ['Académico', 'Campus Virtual', 'Matrícula'].includes(sec.section)))
+    .filter((sec) => !(seccionesOcultas || []).includes(sec.section))
+    .filter((sec) => sec.items.length > 0);
 
   return (
     <>
@@ -43,7 +103,7 @@ export default function Sidebar({ currentView, currentTab, onNavigate, isOpen, o
       )}
 
       <aside className={`sidebar ${isOpen ? 'open' : ''}`} style={{
-        width: 268,
+        width: 210,
         background: 'radial-gradient(120% 60% at 100% 100%, rgba(0,169,255,.22) 0%, rgba(0,169,255,0) 55%), radial-gradient(90% 50% at 0% 0%, rgba(255,49,77,.14) 0%, rgba(255,49,77,0) 50%), linear-gradient(180deg,#00116f 0%,#000b47 60%,#00072e 100%)',
         borderRight: '1px solid rgba(255,255,255,.06)',
         height: '100vh',
@@ -106,9 +166,18 @@ export default function Sidebar({ currentView, currentTab, onNavigate, isOpen, o
             color: '#fff',
             fontWeight: 700,
             fontSize: 13,
-            flexShrink: 0
+            flexShrink: 0,
+            overflow: 'hidden',
+            padding: 0
           }}>
-            {user.avatar || 'CA'}
+            {user.avatar && (String(user.avatar).startsWith('http') || String(user.avatar).startsWith('data:image')) ? (
+              <img src={user.avatar} alt={user.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.6" />
+                <path d="M4 20c0-4 4-6 8-6s8 2 8 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              </svg>
+            )}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="s-name" style={{ color: '#fff', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -123,7 +192,7 @@ export default function Sidebar({ currentView, currentTab, onNavigate, isOpen, o
         {/* Menú de navegación dirigido por rol (src/config/navMenu.js). Para el
             estudiante la ficha define qué ve mientras está en ingreso. */}
         <nav className="sidebar-nav" style={{ flex: 1, padding: '10px 0' }}>
-          {menuForRole(user.role, user.estudiante).map((sec) => (
+          {sections.map((sec) => (
             <div key={sec.section}>
               <div className="nav-sec" style={{ ...NAV_SEC_STYLE, marginTop: 10 }}>
                 {sec.section.toUpperCase()}

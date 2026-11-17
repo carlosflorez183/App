@@ -7,9 +7,11 @@
    ============================================= */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Select from '../components/Select';
 import ModuleLayout from '../components/ModuleLayout';
 import Icon from '../components/Icon';
 import { useAuth } from '../context/AuthContext';
+import '../assets/css/registros.css';
 import {
   directorResumen,
   directorCursos,
@@ -166,6 +168,8 @@ export default function Director() {
       subtitle={resumen?.programa?.nombre || user?.program || 'Gestión del programa'}
       tabs={TABS}
       titleFromTab
+      colapsarSidebar
+      rutaModulo="/director"
     >
       {({ tab }) => {
         if (cargando) return <div style={card}>Cargando información del programa…</div>;
@@ -228,10 +232,7 @@ export default function Director() {
             <div className="fade-in">
               <div style={{ ...card, display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: 16 }}>
                 <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  Periodo
-                  <select style={{ ...input, minWidth: 160 }} value="2026-1" readOnly>
-                    <option value="2026-1">2026-1</option>
-                  </select>
+                  <Select label="Periodo" value="2026-1" groups={[{ options: [{ value: '2026-1', label: '2026-1' }] }]} />
                 </label>
                 <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600, display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 260 }}>
                   Programa
@@ -277,16 +278,15 @@ export default function Director() {
         if (tab === 'estudiantes') {
           return (
             <div className="fade-in">
-              <div style={{ ...card, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 14 }}>
+              <div className="admin-filter-bar" style={{ marginBottom: 14, flexWrap: 'wrap' }}>
                 <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  Situación
-                  <select value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value)} style={{ ...input, minWidth: 180 }}>
-                    <option value="">Todos los estados</option>
-                    <option value="activo">Activos</option>
-                    <option value="en_inscripcion">En inscripción</option>
-                    <option value="retirado">Retirados</option>
-                    <option value="graduado">Graduados</option>
-                  </select>
+                  <Select label="Situación" value={filtroEstado} onChange={setFiltroEstado} groups={[{ options: [
+                    { value: '', label: 'Todos los estados' },
+                    { value: 'activo', label: 'Activos' },
+                    { value: 'en_inscripcion', label: 'En inscripción' },
+                    { value: 'retirado', label: 'Retirados' },
+                    { value: 'graduado', label: 'Graduados' },
+                  ] }]} />
                 </label>
                 <input
                   placeholder="Buscar por nombre, documento o código…"
@@ -296,46 +296,46 @@ export default function Director() {
                 />
                 <span style={{ fontSize: 12, color: '#9c988e' }}>{visibles.length} de {estudiantes.length}</span>
               </div>
-
               <div style={card}>
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr>
-                        <th style={th}>Código</th>
-                        <th style={th}>Estudiante</th>
-                        <th style={th}>Sem.</th>
-                        <th style={th}>Estado</th>
-                        <th style={th}>Documentos</th>
-                        <th style={th}>Cuenta</th>
-                        <th style={th}>Situación de matrícula</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {visibles.map((e) => {
-                        const s = situacionTone(e.situacion);
-                        return (
-                          <tr key={e.id}>
-                            <td style={td}><code style={{ fontSize: 12, color: '#4e4a43' }}>{e.id}</code></td>
-                            <td style={td}><strong>{e.nombre}</strong><br /><span style={{ fontSize: 11, color: '#9c988e' }}>{e.documento}</span></td>
-                            <td style={td}>{e.semestre}</td>
-                            <td style={td}><Badge tone={e.estado === 'activo' ? 'green' : e.estado === 'retirado' ? 'slate' : 'amber'}>{e.estado}</Badge></td>
-                            <td style={td}><Badge tone={e.documentos === 'completo' ? 'green' : 'amber'}>{e.documentos}</Badge></td>
-                            <td style={td}>
-                              {e.usuario ? (
-                                <Badge tone={e.usuarioActivo ? 'blue' : 'red'}>{e.usuario}</Badge>
-                              ) : (
-                                <span style={{ fontSize: 11, color: '#9c988e' }}>sin cuenta</span>
-                              )}
-                            </td>
-                            <td style={td}><Badge tone={s.tone}>{s.label}</Badge></td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
                 {visibles.length === 0 && <div style={{ padding: 16, fontSize: 13, color: '#9c988e' }}>No hay estudiantes que coincidan.</div>}
+                <div className="reg-lista">
+                  {visibles.map((e) => {
+                    const s = situacionTone(e.situacion);
+                    return (
+                      <div key={e.id} className="reg-card">
+                        <div className="reg-id">
+                          <div className="reg-nombre">{e.nombre}</div>
+                          <div className="reg-sub"><code style={{ fontSize: 11 }}>{e.id}</code> · {e.documento}</div>
+                        </div>
+                        <div className="reg-datos">
+                          <div className="reg-dato">
+                            <span className="reg-etq">Sem.</span>
+                            <span>{e.semestre}</span>
+                          </div>
+                          <div className="reg-dato">
+                            <span className="reg-etq">Estado</span>
+                            <Badge tone={e.estado === 'activo' ? 'green' : e.estado === 'retirado' ? 'slate' : 'amber'}>{e.estado}</Badge>
+                          </div>
+                          <div className="reg-dato">
+                            <span className="reg-etq">Documentos</span>
+                            <Badge tone={e.documentos === 'completo' ? 'green' : 'amber'}>{e.documentos}</Badge>
+                          </div>
+                          <div className="reg-dato">
+                            <span className="reg-etq">Cuenta</span>
+                            {e.usuario ? (
+                              <Badge tone={e.usuarioActivo ? 'blue' : 'red'}>{e.usuario}</Badge>
+                            ) : (
+                              <span style={{ fontSize: 11, color: '#9c988e' }}>sin cuenta</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="reg-estado">
+                          <Badge tone={s.tone}>{s.label}</Badge>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           );
@@ -349,15 +349,10 @@ export default function Director() {
             <div className="fade-in">
               <div style={{ ...card, display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: 16 }}>
                 <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600, display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 260 }}>
-                  Curso a matricular
-                  <select
-                    value={matCurso?.id || ''}
-                    onChange={(e) => abrirMatricula(cursos.find((c) => c.id === Number(e.target.value)))}
-                    style={{ ...input, width: '100%' }}
-                  >
-                    <option value="">Selecciona un curso…</option>
-                    {cursos.map((c) => <option key={c.id} value={c.id}>S{c.semestre ?? '—'} · {c.codigo} — {c.nombre}</option>)}
-                  </select>
+                  <Select label="Curso a matricular" value={String(matCurso?.id || '')} onChange={(v) => abrirMatricula(cursos.find((c) => c.id === Number(v)))} groups={[{ options: [
+                    { value: '', label: 'Selecciona un curso…' },
+                    ...cursos.map((c) => ({ value: String(c.id), label: `S${c.semestre ?? '—'} · ${c.codigo} — ${c.nombre}` })),
+                  ] }]} />
                 </label>
                 {matCurso && <Badge tone="purple">{matInscritos.length} inscrito(s)</Badge>}
               </div>
@@ -424,33 +419,31 @@ export default function Director() {
                 <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 4 }}>Docentes del programa</div>
                 <div style={{ fontSize: 12, color: '#9c988e', marginBottom: 14 }}>Docentes con carga académica en los cursos de su programa.</div>
                 {docentesProg.length === 0 && <div style={{ fontSize: 13, color: '#9c988e' }}>No hay docentes asignados a cursos del programa.</div>}
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr>
-                        <th style={th}>Docente</th>
-                        <th style={th}>Área</th>
-                        <th style={th}>Título</th>
-                        <th style={th}>Correo</th>
-                        <th style={th}>Cursos</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {docentesProg.map((d) => (
-                        <tr key={d.id}>
-                          <td style={td}><strong>{d.nombre}</strong></td>
-                          <td style={td}>{d.area || '—'}</td>
-                          <td style={td}>{d.titulo || '—'}</td>
-                          <td style={td}>{d.email || '—'}</td>
-                          <td style={td}>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                              {(d.cursos || []).map((c) => <Badge key={c.id} tone="blue">{c.codigo}</Badge>)}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="reg-lista">
+                  {docentesProg.map((d) => (
+                    <div key={d.id} className="reg-card">
+                      <div className="reg-id">
+                        <div className="reg-nombre">{d.nombre}</div>
+                        <div className="reg-sub">{d.titulo || '—'}</div>
+                      </div>
+                      <div className="reg-datos">
+                        <div className="reg-dato">
+                          <span className="reg-etq">Área</span>
+                          <span>{d.area || '—'}</span>
+                        </div>
+                        <div className="reg-dato">
+                          <span className="reg-etq">Correo</span>
+                          <span>{d.email || '—'}</span>
+                        </div>
+                        <div className="reg-dato">
+                          <span className="reg-etq">Cursos</span>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                            {(d.cursos || []).map((c) => <Badge key={c.id} tone="blue">{c.codigo}</Badge>)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>

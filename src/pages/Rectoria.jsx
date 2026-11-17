@@ -4,14 +4,13 @@
    ============================================= */
 import React, { useCallback, useEffect, useState } from 'react';
 import ModuleLayout from '../components/ModuleLayout';
-import AsignacionDocentes from '../components/AsignacionDocentes';
 import { formatCurrency } from '../data/mockData';
 import { listarCobros } from '../api/client';
+import '../assets/css/registros.css';
 
 const TABS = [
   { key: 'indicadores', label: 'Indicadores', icon: 'grafica-barras' },
   { key: 'programas', label: 'Oferta académica', icon: 'graduacion' },
-  { key: 'docentes', label: 'Asignación docente', icon: 'usuario-config' },
   { key: 'admisiones', label: 'Admisiones', icon: 'objetivo' },
   { key: 'pagos', label: 'Pagos', icon: 'tarjeta-credito' },
   { key: 'sostenibilidad', label: 'Sostenibilidad', icon: 'hoja' },
@@ -49,7 +48,7 @@ export default function Rectoria() {
   }, [cargarCobros]);
 
   return (
-    <ModuleLayout title="Rectoría" subtitle="Indicadores institucionales y oferta académica" tabs={TABS}>
+    <ModuleLayout title="Rectoría" subtitle="Indicadores institucionales y oferta académica" tabs={TABS} colapsarSidebar rutaModulo="/rectoria">
       {({ tab, data }) => {
         const programas = data.matricula.programas;
         const adm = data.admisiones;
@@ -120,49 +119,47 @@ export default function Rectoria() {
 
         if (tab === 'programas') {
           return (
-            <div style={{ ...card, overflowX: 'auto' }}>
+            <div style={card}>
               <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 14 }}>Oferta académica</div>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr>
-                    <th style={th}>Programa</th><th style={th}>Modalidad</th><th style={th}>Nivel</th>
-                    <th style={th}>Sem.</th><th style={th}>Créditos</th><th style={th}>Matriculados</th><th style={th}>Ocupación</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {programas.map((p) => {
-                    const mod = data.matricula.modalidades.find((m) => m.id === p.modalidadId);
-                    const oc = Math.round((p.matriculados / p.cupo) * 100);
-                    return (
-                      <tr key={p.id}>
-                        <td style={td}><strong>{p.nombre}</strong><br /><span style={{ fontSize: 11, color: '#9c988e' }}>{p.facultad}</span></td>
-                        <td style={td}><Badge tone="blue">{mod?.nombre}</Badge></td>
-                        <td style={td}>{p.modalidadId === 2 ? 'Posgrado' : p.modalidadId === 3 ? 'Tecnológico' : 'Profesional'}</td>
-                        <td style={td}>{p.semestres}</td>
-                        <td style={td}>{p.creditos}</td>
-                        <td style={td}>{p.matriculados.toLocaleString('es-CO')}</td>
-                        <td style={td}><Badge tone={oc > 95 ? 'red' : oc > 85 ? 'amber' : 'green'}>{oc}%</Badge></td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          );
-        }
-
-        if (tab === 'docentes') {
-          /* La dirección reparte la carga académica. Es la misma tabla que ve
-             Administración: el componente vive aparte para que las dos
-             pantallas sean la misma información y no dos versiones. */
-          return (
-            <div>
-              <div style={{ fontSize: 13, color: '#4e4a43', marginBottom: 14 }}>
-                Como dirección de programa puede asignar qué docente dicta cada curso. El cambio queda
-                guardado de inmediato y es el docente asignado quien puede abrir el curso, registrar
-                notas y calificar entregas.
+              <div className="reg-lista">
+                {programas.map((p) => {
+                  const mod = data.matricula.modalidades.find((m) => m.id === p.modalidadId);
+                  const oc = Math.round((p.matriculados / p.cupo) * 100);
+                  return (
+                    <div key={p.id} className="reg-card">
+                      <div className="reg-id">
+                        <div className="reg-nombre">{p.nombre}</div>
+                        <div className="reg-sub">{p.facultad}</div>
+                      </div>
+                      <div className="reg-datos">
+                        <div className="reg-dato">
+                          <span className="reg-etq">Modalidad</span>
+                          <Badge tone="blue">{mod?.nombre}</Badge>
+                        </div>
+                        <div className="reg-dato">
+                          <span className="reg-etq">Nivel</span>
+                          <span>{p.modalidadId === 2 ? 'Posgrado' : p.modalidadId === 3 ? 'Tecnológico' : 'Profesional'}</span>
+                        </div>
+                        <div className="reg-dato">
+                          <span className="reg-etq">Sem.</span>
+                          <span>{p.semestres}</span>
+                        </div>
+                        <div className="reg-dato">
+                          <span className="reg-etq">Créditos</span>
+                          <span>{p.creditos}</span>
+                        </div>
+                        <div className="reg-dato">
+                          <span className="reg-etq">Matriculados</span>
+                          <span style={{ fontWeight: 700 }}>{p.matriculados.toLocaleString('es-CO')}</span>
+                        </div>
+                      </div>
+                      <div className="reg-estado">
+                        <Badge tone={oc > 95 ? 'red' : oc > 85 ? 'amber' : 'green'}>{oc}% ocupación</Badge>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              <AsignacionDocentes />
             </div>
           );
         }
@@ -219,35 +216,34 @@ export default function Rectoria() {
                 <div style={card}><div style={{ fontSize: 12, color: '#6f6b62' }}>En mora</div><div style={{ fontSize: 24, fontWeight: 800, color: '#c1122c' }}>{mora.length}</div></div>
                 <div style={card}><div style={{ fontSize: 12, color: '#6f6b62' }}>Total facturado</div><div style={{ fontSize: 24, fontWeight: 800 }}>{formatCurrency(recaudado + porCobrar)}</div></div>
               </div>
-              <div style={{ ...card, overflowX: 'auto' }}>
+              <div style={card}>
                 <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 12 }}>Estado de los cobros</div>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr>
-                      <th style={th}>Concepto</th>
-                      <th style={th}>Estudiante</th>
-                      <th style={th}>Límite</th>
-                      <th style={th}>Valor</th>
-                      <th style={th}>Estado</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {cobros.map((p) => (
-                      <tr key={p.id}>
-                        <td style={td}>{p.concepto}</td>
-                        <td style={td}>{typeof p.estudiante === 'string' ? p.estudiante : p.estudiante?.nombre}</td>
-                        <td style={td}>{p.fecha_limite || p.fechaLimite}</td>
-                        <td style={td}>{formatCurrency(p.valor)}</td>
-                        <td style={td}>
-                          <Badge tone={p.estado === 'pagado' ? 'green' : p.estado === 'vencido' ? 'red' : 'amber'}>
-                            {p.estado === 'pagado' ? 'Pagado' : p.estado === 'vencido' ? 'Vencido' : 'Pendiente'}
-                          </Badge>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {cobros.length === 0 && <div style={{ fontSize: 12, color: '#9c988e', padding: '10px 0' }}>Sin cobros registrados.</div>}
+                {cobros.length === 0 && <div style={{ fontSize: 12, color: '#9c988e' }}>Sin cobros registrados.</div>}
+                <div className="reg-lista">
+                  {cobros.map((p) => (
+                    <div key={p.id} className="reg-card">
+                      <div className="reg-id">
+                        <div className="reg-nombre">{typeof p.estudiante === 'string' ? p.estudiante : p.estudiante?.nombre}</div>
+                        <div className="reg-sub">{p.concepto}</div>
+                      </div>
+                      <div className="reg-datos">
+                        <div className="reg-dato">
+                          <span className="reg-etq">Límite</span>
+                          <span>{p.fecha_limite || p.fechaLimite}</span>
+                        </div>
+                        <div className="reg-dato">
+                          <span className="reg-etq">Valor</span>
+                          <span style={{ fontWeight: 700 }}>{formatCurrency(p.valor)}</span>
+                        </div>
+                      </div>
+                      <div className="reg-estado">
+                        <Badge tone={p.estado === 'pagado' ? 'green' : p.estado === 'vencido' ? 'red' : 'amber'}>
+                          {p.estado === 'pagado' ? 'Pagado' : p.estado === 'vencido' ? 'Vencido' : 'Pendiente'}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           );

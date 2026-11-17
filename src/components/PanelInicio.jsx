@@ -88,6 +88,7 @@ function PanelAdmisiones({ data, go }) {
         <Tarjeta titulo="Accesos rápidos">
           <div className="qa-grid">
             {[
+              { l: 'Estudiantes', ic: 'graduacion', c: '#00116f', to: 'estudiantes' },
               { l: 'Aspirantes', ic: 'users', c: '#0a84ff', to: 'aspirantes' },
               { l: 'Procesos', ic: 'calendario-dias', c: '#0e7c86', to: 'procesos' },
               { l: 'Documentos', ic: 'archivo', c: '#c2560f', to: 'documentos' },

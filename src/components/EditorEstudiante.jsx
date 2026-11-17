@@ -7,6 +7,7 @@
    ============================================= */
 import React, { useEffect, useState } from 'react';
 import Icon from './Icon';
+import Select from './Select';
 
 const ESTADOS = ['activo', 'matriculado', 'en_inscripcion', 'retirado', 'graduado', 'bloqueado'];
 const JORNADAS = ['diurna', 'nocturna', 'sabado-matutina'];
@@ -39,6 +40,7 @@ export default function EditorEstudiante({
     nombre: '', documento: '', correo: '', telefono: '', direccion: '',
     programaId: '', semestre: 1, jornada: 'diurna', estado: 'activo',
     fechaIngreso: '', usuario: '',
+    financiacion: '', cupoBrilla: false, tieneCajaCompensacion: false, observacionFinanciera: '',
   });
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -58,6 +60,10 @@ export default function EditorEstudiante({
       estado: estudiante.estado || 'activo',
       fechaIngreso: (estudiante.fechaIngreso || '').slice(0, 10),
       usuario: cuenta?.usuario || '',
+      financiacion: estudiante.financiacion || '',
+      cupoBrilla: !!estudiante.cupoBrilla,
+      tieneCajaCompensacion: !!estudiante.tieneCajaCompensacion,
+      observacionFinanciera: estudiante.observacionFinanciera || '',
     });
     setPassword('');
     setError('');
@@ -179,32 +185,68 @@ export default function EditorEstudiante({
               <input value={f.direccion} onChange={(e) => set('direccion', e.target.value)} style={campo} />
             </label>
             <label style={etiqueta}>
-              Programa
-              <select value={f.programaId} onChange={(e) => set('programaId', e.target.value)} style={campo}>
-                {programas.map((p) => (
-                  <option key={p.id} value={p.id}>{p.nombre}</option>
-                ))}
-              </select>
+              <Select
+                label="Programa"
+                value={String(f.programaId)}
+                onChange={(v) => set('programaId', v)}
+                groups={[{ options: programas.map((p) => ({ value: String(p.id), label: p.nombre })) }]}
+              />
             </label>
             <label style={etiqueta}>
               Semestre
               <input type="number" min={1} max={12} value={f.semestre} onChange={(e) => set('semestre', e.target.value)} style={campo} />
             </label>
             <label style={etiqueta}>
-              Jornada
-              <select value={f.jornada} onChange={(e) => set('jornada', e.target.value)} style={campo}>
-                {JORNADAS.map((j) => <option key={j} value={j}>{j}</option>)}
-              </select>
+              <Select
+                label="Jornada"
+                value={f.jornada}
+                onChange={(v) => set('jornada', v)}
+                groups={[{ options: JORNADAS.map((j) => ({ value: j, label: j })) }]}
+              />
             </label>
             <label style={etiqueta}>
-              Estado
-              <select value={f.estado} onChange={(e) => set('estado', e.target.value)} style={campo}>
-                {ESTADOS.map((s) => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
-              </select>
+              <Select
+                label="Estado"
+                value={f.estado}
+                onChange={(v) => set('estado', v)}
+                groups={[{ options: ESTADOS.map((s) => ({ value: s, label: s.replace('_', ' ') })) }]}
+              />
             </label>
             <label style={etiqueta}>
               Fecha de ingreso
               <input type="date" value={f.fechaIngreso} onChange={(e) => set('fechaIngreso', e.target.value)} style={campo} />
+            </label>
+          </div>
+
+          <div style={{ fontSize: 13, fontWeight: 800, color: '#211d17', margin: '0 0 10px' }}>
+            Financiación / Beneficios
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 22 }}>
+            <label style={etiqueta}>
+              <Select
+                label="Financiación"
+                value={f.financiacion}
+                onChange={(v) => set('financiacion', v)}
+                groups={[{ options: [
+                  { value: '', label: 'Sin financiación' },
+                  { value: 'BRILLA', label: 'BRILLA' },
+                  { value: 'ICETEX', label: 'ICETEX' },
+                  { value: 'PROPIO', label: 'Propio' },
+                  { value: 'OTRO', label: 'Otro' },
+                ] }]}
+              />
+            </label>
+            <label style={{ ...etiqueta, display: 'flex', alignItems: 'center', gap: 8, marginTop: 18 }}>
+              <input type="checkbox" checked={!!f.cupoBrilla} onChange={(e) => set('cupoBrilla', e.target.checked)} />
+              Tiene cupo BRILLA
+            </label>
+            <label style={{ ...etiqueta, display: 'flex', alignItems: 'center', gap: 8, marginTop: 18 }}>
+              <input type="checkbox" checked={!!f.tieneCajaCompensacion} onChange={(e) => set('tieneCajaCompensacion', e.target.checked)} />
+              Tiene Caja de Compensación
+            </label>
+            <label style={{ ...etiqueta, gridColumn: '1 / -1' }}>
+              Observación financiera
+              <input value={f.observacionFinanciera} onChange={(e) => set('observacionFinanciera', e.target.value)} style={campo} placeholder="Vigencia, resolución, observaciones..." />
             </label>
           </div>
 

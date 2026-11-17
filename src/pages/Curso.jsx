@@ -1,9 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import Select from '../components/Select';
 import Icon from '../components/Icon';
+import ModuleLayout from '../components/ModuleLayout';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { formatDate, formatDateTime } from '../data/mockData';
 import { usePersistentData } from '../hooks/usePersistentData';
+import '../assets/css/registros.css';
 import {
   abrirAsistencia,
   calificarActividad,
@@ -674,55 +677,26 @@ export default function Curso() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f7f6f3' }}>
-      {/* ═══════ TOPBAR EXACTO ═══════ */}
-      <div className="pg-top">
-        <div className="pg-top-inner">
-          <button className="back-btn" onClick={() => navigate('/dashboard')}>
-            ← Volver
-          </button>
-          <div className="sep" />
-          <div className="breadcrumb">
-            <span
-              onClick={() => navigate('/dashboard')}
-              style={{ cursor: 'pointer', color: '#6f6b62' }}
-            >
-              Inicio
-            </span>
-            <span>›</span>
-            <span
-              onClick={() => navigate('/dashboard')}
-              style={{ cursor: 'pointer', color: '#6f6b62' }}
-            >
-              Campus Virtual
-            </span>
-            <span>›</span>
-            <strong>{curso.nombre}</strong>
-          </div>
-          <div className="hdr-right">
-            <span className="hdr-pill">2026-1</span>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 7,
-              background: '#f0eee9',
-              border: '1px solid #e5e2da',
-              borderRadius: 8,
-              padding: '5px 12px'
-            }}>
-              <div className="hdr-av av-blue">
-                {user?.avatar || 'CA'}
-              </div>
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#3a3630' }}>
-                {user?.name ? user.name.split(' ')[0] : 'Carlos'}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ═══════ HERO BANNER PURPURA EXACTO ═══════ */}
-      <div className="curso-hero" style={{ background: curso.color || 'linear-gradient(135deg,#5a37ad,#8a5cf0)' }}>
+    <ModuleLayout title={curso?.nombre || 'Curso'} subtitle={`${curso?.codigo || ''} · Grupo ${curso?.grupo || ''}`} hideTabs flush>
+      <button
+        type="button"
+        className="curso-shell-back"
+        onClick={() => {
+          if (user?.role === 'admin') navigate('/admin?tab=cursos');
+          else if (user?.role === 'director') navigate('/director?tab=cursos');
+          else navigate('/dashboard?view=lms&tab=cursos');
+        }}
+      >
+        ← Volver a cursos
+      </button>
+      {/* El color propio del curso entra como backgroundImage para no pisar
+          los halos y la base que define .curso-hero en el CSS. */}
+      <div
+        className="curso-hero"
+        style={{
+          backgroundImage: `radial-gradient(90% 120% at 100% 0%, rgba(0,169,255,.5) 0%, rgba(0,169,255,0) 55%), ${curso.color || 'linear-gradient(135deg,#5a37ad,#8a5cf0)'}`,
+        }}
+      >
         <div className="hero-inner">
           <div className="hero-top">
             <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
@@ -730,7 +704,7 @@ export default function Curso() {
                   `icono`. Sin las dos opciones el ícono desaparece al cargar
                   los datos reales. */}
               <div className="hero-ic-box">
-                {curso.icono || curso.icon || 'libro'}
+                <Icon name={curso.icono || curso.icon || 'libro'} size={32} color="#7c3aed" />
               </div>
               <div className="hero-info">
                 <div className="hero-tags">
@@ -1444,22 +1418,19 @@ export default function Curso() {
                         placeholder="Ej. Taller de consultas SQL"
                       />
                     </div>
-                    <div>
-                      <label style={labelCss} htmlFor="ac-tipo">Tipo</label>
-                      <select
-                        id="ac-tipo"
-                        style={inputCss}
-                        value={formActividad.tipo}
-                        onChange={(e) => setFormActividad({ ...formActividad, tipo: e.target.value })}
-                      >
-                        <option value="tarea">Tarea</option>
-                        <option value="actividad">Actividad</option>
-                        <option value="taller">Taller</option>
-                        <option value="proyecto">Proyecto</option>
-                        <option value="informe">Informe</option>
-                        <option value="quiz">Quiz</option>
-                      </select>
-                    </div>
+                    <Select
+                      label="Tipo"
+                      value={formActividad.tipo}
+                      onChange={(v) => setFormActividad({ ...formActividad, tipo: v })}
+                      groups={[{ options: [
+                        { value: 'tarea', label: 'Tarea' },
+                        { value: 'actividad', label: 'Actividad' },
+                        { value: 'taller', label: 'Taller' },
+                        { value: 'proyecto', label: 'Proyecto' },
+                        { value: 'informe', label: 'Informe' },
+                        { value: 'quiz', label: 'Quiz' },
+                      ] }]}
+                    />
                     <div>
                       <label style={labelCss} htmlFor="ac-puntos">Puntos</label>
                       <input
@@ -2025,21 +1996,11 @@ export default function Curso() {
                 <strong> Crear</strong>.
               </p>
             ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                <thead>
-                  <tr style={{ background: '#f7f6f3', color: '#6f6b62', borderBottom: '1px solid #e5e2da', textAlign: 'left' }}>
-                    <th style={{ padding: '10px 14px' }}>Actividad</th>
-                    <th style={{ padding: '10px 14px' }}>Corte</th>
-                    <th style={{ padding: '10px 14px', textAlign: 'center' }}>Puntaje</th>
-                    <th style={{ padding: '10px 14px', textAlign: 'center' }}>Entregadas</th>
-                    <th style={{ padding: '10px 14px', textAlign: 'center' }}>Calificadas</th>
-                    <th style={{ padding: '10px 14px', textAlign: 'right' }}>Ver estudiantes</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {resumenEntregas.map((a) => (
-                    <tr key={a.id} style={{ borderBottom: '1px solid #f0eee9' }}>
-                      <td style={{ padding: '12px 14px', fontWeight: 600 }}>
+              <div className="reg-lista" style={{ marginTop: 10 }}>
+                {resumenEntregas.map((a) => (
+                  <div key={a.id} className="reg-card">
+                    <div className="reg-id">
+                      <div className="reg-nombre">
                         <button
                           type="button"
                           data-testid={`notas-abrir-${a.id}`}
@@ -2048,34 +2009,45 @@ export default function Curso() {
                         >
                           {a.titulo}
                         </button>
-                        <div style={{ fontSize: 11, color: '#9c988e', fontWeight: 400 }}>
-                          {a.tipo}
-                          {a.preguntas ? ` · ${a.preguntas} preguntas` : ''}
-                          {a.fechaEntrega ? ` · entrega ${formatDate(a.fechaEntrega)}` : ''}
-                        </div>
-                      </td>
-                      <td style={{ padding: '12px 14px', color: '#6f6b62' }}>Corte {a.corte}</td>
-                      <td style={{ padding: '12px 14px', textAlign: 'center', color: '#6f6b62' }}>{a.puntos}</td>
-                      <td style={{ padding: '12px 14px', textAlign: 'center' }}>{a.entregadas}/{a.total}</td>
-                      <td style={{ padding: '12px 14px', textAlign: 'center' }}>
+                      </div>
+                      <div className="reg-sub">
+                        {a.tipo}{a.preguntas ? ` · ${a.preguntas} preguntas` : ''}{a.fechaEntrega ? ` · entrega ${formatDate(a.fechaEntrega)}` : ''}
+                      </div>
+                    </div>
+                    <div className="reg-datos">
+                      <div className="reg-dato">
+                        <span className="reg-etq">Corte</span>
+                        <span>{a.corte}</span>
+                      </div>
+                      <div className="reg-dato">
+                        <span className="reg-etq">Puntaje</span>
+                        <span>{a.puntos}</span>
+                      </div>
+                      <div className="reg-dato">
+                        <span className="reg-etq">Entregadas</span>
+                        <span>{a.entregadas}/{a.total}</span>
+                      </div>
+                      <div className="reg-dato">
+                        <span className="reg-etq">Calificadas</span>
                         <span className={`bs ${a.calificadas === a.entregadas && a.entregadas ? 'bg-g' : a.calificadas ? 'bg-y' : 'bg-b'}`}>
                           {a.calificadas}
                         </span>
-                      </td>
-                      <td style={{ padding: '12px 14px', textAlign: 'right' }}>
-                        <button
-                          type="button"
-                          data-testid={`notas-calificar-${a.id}`}
-                          onClick={() => abrirActividad(a)}
-                          style={{ background: '#06468c', color: '#fff', border: 0, borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
-                        >
-                          Calificar →
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </div>
+                    </div>
+                    <div className="reg-estado" />
+                    <div className="reg-acciones">
+                      <button
+                        type="button"
+                        data-testid={`notas-calificar-${a.id}`}
+                        onClick={() => abrirActividad(a)}
+                        style={{ background: '#06468c', color: '#fff', border: 0, borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        Calificar →
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         )}
@@ -2201,57 +2173,19 @@ export default function Curso() {
                       )}
                     </div>
 
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                      <thead>
-                        <tr>
-                          <th style={th}>Estudiante</th>
-                          <th style={{ ...th, textAlign: 'center' }}>Estado</th>
-                          <th style={th}>Justificación</th>
-                          <th style={{ ...th, textAlign: 'center' }}>% Total</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {borrador.registros.map((r) => {
-                          const pct = porcentaje(r.estudianteId);
-                          return (
-                            <tr key={r.estudianteId}>
-                              <td style={{ ...td, fontWeight: 600 }}>
-                                {r.estudiante?.nombre || r.estudianteId}
-                                <div style={{ fontSize: 11, color: '#9c988e', fontWeight: 400 }}>{r.estudiante?.documento}</div>
-                              </td>
-                              <td style={{ ...td, textAlign: 'center' }}>
-                                {puedeEditar ? (
-                                  <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
-                                    {ESTADOS.map(([valor, texto, color, bg]) => (
-                                      <button
-                                        key={valor}
-                                        type="button"
-                                        data-testid={`marcar-${valor}-${r.estudianteId}`}
-                                        onClick={() => marcar(r.estudianteId, valor)}
-                                        title={texto}
-                                        style={{
-                                          background: r.estado === valor ? bg : '#fff',
-                                          color: r.estado === valor ? color : '#9c988e',
-                                          border: `1px solid ${r.estado === valor ? color : '#e5e2da'}`,
-                                          borderRadius: 6, padding: '4px 9px', fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                                        }}
-                                      >
-                                        {texto[0]}
-                                      </button>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <span style={{
-                                    background: ESTADOS.find(([v]) => v === r.estado)?.[3] || '#f0eee9',
-                                    color: ESTADOS.find(([v]) => v === r.estado)?.[2] || '#6f6b62',
-                                    padding: '3px 9px', borderRadius: 6, fontSize: 11, fontWeight: 700,
-                                  }}>
-                                    {ESTADOS.find(([v]) => v === r.estado)?.[1] || r.estado}
-                                  </span>
-                                )}
-                              </td>
-                              <td style={td}>
-                                {puedeEditar && r.estado !== 'presente' ? (
+                    <div className="reg-lista">
+                      {borrador.registros.map((r) => {
+                        const pct = porcentaje(r.estudianteId);
+                        return (
+                          <div key={r.estudianteId} className="reg-card">
+                            <div className="reg-id">
+                              <div className="reg-nombre">{r.estudiante?.nombre || r.estudianteId}</div>
+                              <div className="reg-sub">{r.estudiante?.documento}</div>
+                            </div>
+                            <div className="reg-datos">
+                              {puedeEditar && r.estado !== 'presente' && (
+                                <div className="reg-dato" style={{ minWidth: 200 }}>
+                                  <span className="reg-etq">Justificación</span>
                                   <input
                                     style={inputCss}
                                     data-testid={`justificar-${r.estudianteId}`}
@@ -2259,20 +2193,57 @@ export default function Curso() {
                                     value={r.justificacion || ''}
                                     onChange={(e) => justificar(r.estudianteId, e.target.value)}
                                   />
-                                ) : (
-                                  <span style={{ fontSize: 12, color: r.justificacion ? '#4e4a43' : '#cdc9bf' }}>
-                                    {r.justificacion || (r.estado === 'presente' ? '—' : 'Sin justificar')}
-                                  </span>
-                                )}
-                              </td>
-                              <td style={{ ...td, textAlign: 'center', fontWeight: 800, color: pct === null ? '#cdc9bf' : pct >= 70 ? '#0a6e4b' : '#c1122c' }}>
-                                {pct === null ? '—' : `${pct}%`}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                                </div>
+                              )}
+                              {(!puedeEditar || r.estado === 'presente') && r.justificacion && (
+                                <div className="reg-dato">
+                                  <span className="reg-etq">Justificación</span>
+                                  <span style={{ fontSize: 12 }}>{r.justificacion}</span>
+                                </div>
+                              )}
+                              <div className="reg-dato">
+                                <span className="reg-etq">% Total</span>
+                                <span style={{ fontWeight: 800, color: pct === null ? '#cdc9bf' : pct >= 70 ? '#0a6e4b' : '#c1122c' }}>
+                                  {pct === null ? '—' : `${pct}%`}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="reg-estado">
+                              {!puedeEditar && (
+                                <span style={{
+                                  background: ESTADOS.find(([v]) => v === r.estado)?.[3] || '#f0eee9',
+                                  color: ESTADOS.find(([v]) => v === r.estado)?.[2] || '#6f6b62',
+                                  padding: '3px 9px', borderRadius: 6, fontSize: 11, fontWeight: 700,
+                                }}>
+                                  {ESTADOS.find(([v]) => v === r.estado)?.[1] || r.estado}
+                                </span>
+                              )}
+                            </div>
+                            {puedeEditar && (
+                              <div className="reg-acciones">
+                                {ESTADOS.map(([valor, texto, color, bg]) => (
+                                  <button
+                                    key={valor}
+                                    type="button"
+                                    data-testid={`marcar-${valor}-${r.estudianteId}`}
+                                    onClick={() => marcar(r.estudianteId, valor)}
+                                    title={texto}
+                                    style={{
+                                      background: r.estado === valor ? bg : '#fff',
+                                      color: r.estado === valor ? color : '#9c988e',
+                                      border: `1px solid ${r.estado === valor ? color : '#e5e2da'}`,
+                                      borderRadius: 6, padding: '4px 9px', fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                                    }}
+                                  >
+                                    {texto[0]}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </>
@@ -2564,6 +2535,6 @@ export default function Curso() {
           </div>
         )}
       </div>
-    </div>
+    </ModuleLayout>
   );
 }

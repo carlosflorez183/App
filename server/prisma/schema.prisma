@@ -36,6 +36,8 @@ model Usuario {
   activo      Boolean  @default(true)
   /// Cuentas generadas (matrícula o alta manual) nacen con contraseña temporal.
   debeCambiarPassword Boolean @default(false)
+  /// Superadmin: control total. No puede ser bloqueado ni borrado por otros admins.
+  esSuperadmin Boolean @default(false)
   creadoEn    DateTime @default(now())
 
 programa      Programa?  @relation(fields: [programaId], references: [id])
@@ -120,12 +122,20 @@ model Materia {
 model Horario {
   id      Int    @id @default(autoincrement())
   materiaId Int
+  cursoId   Int?
+  grupo     String?
   dia     String
   bloque  String
+  horaInicio String?
+  horaFin   String?
+  aula      String?
+  docente   String?
 
   materia Materia @relation(fields: [materiaId], references: [id], onDelete: Cascade)
+  curso   Curso?   @relation(fields: [cursoId], references: [id], onDelete: SetNull)
 
   @@index([materiaId])
+  @@index([cursoId])
   @@map("horarios")
 }
 
@@ -189,6 +199,10 @@ model Estudiante {
   fechaIngreso  DateTime
   aspiranteId   Int?    @unique
   usuarioId     Int?    @unique
+  financiacion String?
+  cupoBrilla    Boolean @default(false)
+  tieneCajaCompensacion Boolean @default(false)
+  observacionFinanciera String?
 
   programa  Programa  @relation(fields: [programaId], references: [id])
   aspirante Aspirante? @relation(fields: [aspiranteId], references: [id])
@@ -290,6 +304,10 @@ model Nota {
 /// `modoAcceso` define quién inscribe al estudiante:
 ///   - 'auto':   el propio estudiante se matricula en el curso (respetando cupo).
 ///   - 'manual': solo director/profesor/admin inscriben.
+///
+/// El valor por defecto es 'auto': al matricular y pagar, el estudiante entra
+/// al curso automáticamente. El director puede cambiarlo a 'manual' desde
+/// "Usuarios matriculados" cuando necesite controlar la inscripción.
 model Curso {
   id            Int      @id @default(autoincrement())
   nombre        String
@@ -306,7 +324,7 @@ model Curso {
   programaId    Int?
   semestre      Int?
   materiaId     Int?
-  modoAcceso    String   @default("manual")
+  modoAcceso    String   @default("auto")
   cupo          Int?
   periodo       String   @default("2026-1")
   activo        Boolean  @default(true)
@@ -332,6 +350,7 @@ model Curso {
   mensajes      ForoMensaje[]
   inscripciones Inscripcion[]
   secciones     CursoSeccion[]
+  horarios      Horario[]
 
   @@map("cursos")
 }

@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { formatCurrency, formatDate, notificacionesDeRol } from '../data/mockData';
 import { certificadoDescargable } from '../data/registro';
 import { usePersistentData } from '../hooks/usePersistentData';
+import Select from '../components/Select';
 import Icon, { Ico } from '../components/Icon';
 import {
   descargarCertificado,
@@ -16,15 +17,13 @@ import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
 import PanelInicio, { tienePanelPropio } from '../components/PanelInicio';
 import DocumentosIngreso from './DocumentosIngreso';
+import RegistroNotas from '../components/RegistroNotas';
+import TarjetasRegistro from '../components/TarjetasRegistro';
+import Avatar from '../components/Avatar';
 import { menuForRole } from '../config/navMenu';
 
 export default function Dashboard() {
-  const { user: sesion, roleLabels, logout, updateProfile, refrescarSesion } = useAuth();
-  /* `user` puede llegar nulo mientras se valida la sesión, y también se queda
-     nulo si el token vence a media pantalla (p. ej. al cambiar de cuenta en
-     otra pestaña). Leer user.role a mano reventaba la página entera con
-     "cannot read properties of null"; con un usuario vacío el enrutador
-     muestra el login y no se pierde nada. */
+  const { user: sesion, roleLabels, logout, updateProfile, refrescarSesion, guardarPerfil, cambiarFoto, quitarFoto } = useAuth();
   const user = sesion || {
     name: '', role: '', code: '', username: '', email: '', phone: '', address: '',
     avatar: '', avatarClass: 'av-blue', program: '', department: '', semester: null,
@@ -51,6 +50,8 @@ export default function Dashboard() {
     () => urlParams.get('view') || vistaPorDefecto
   );
   const [currentTab, setCurrentTab] = useState(() => urlParams.get('tab') || '');
+  // Curso elegido en la pestaña Registro de notas del docente.
+  const [cursoRegistro, setCursoRegistro] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [data, setData, { recargar }] = usePersistentData();
 
@@ -62,6 +63,7 @@ export default function Dashboard() {
 
   // Modales
   const [modalCert, setModalCert] = useState(null);
+  const [certDestino, setCertDestino] = useState('Uso personal');
   const [modalVolante, setModalVolante] = useState(null);
   const [modalEntrega, setModalEntrega] = useState(null);
   /* Datos de la entrega que se está armando en el modal de tareas. */
@@ -89,12 +91,9 @@ export default function Dashboard() {
   const [editando, setEditando] = useState(false);
   const [perfilDraft, setPerfilDraft] = useState(() => toDraft(user));
   const [perfilMsg, setPerfilMsg] = useState(null);
+  const [guardandoFoto, setGuardandoFoto] = useState(false);
+  const [avisoFoto, setAvisoFoto] = useState(null);
 
-  /* Bandeja "Por Calificar" del docente: lo que sus estudiantes entregaron y
-     sigue sin nota. Se pide al servidor y no se arma con el estado de la
-     actividad, porque una actividad puede tener 30 entregas y ninguna
-     calificada. Va antes del corte por `user` para no romper el orden de los
-     hooks en los reintentos de autenticacion. */
   const esDocente = user?.role === 'profesor';
   const [porCalificar, setPorCalificar] = useState([]);
   const [errorBandeja, setErrorBandeja] = useState('');
@@ -135,7 +134,7 @@ export default function Dashboard() {
     setEditando(true);
   };
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
     const name = perfilDraft.name.trim();
     const email = perfilDraft.email.trim();
     const phone = perfilDraft.phone.trim();
@@ -153,10 +152,72 @@ export default function Dashboard() {
       setPerfilMsg({ ok: false, text: 'No hay cambios pendientes por guardar.' });
       return;
     }
-    updateProfile({ name, email, phone, address });
+    // El perfil se guarda en el servidor: así se ve igual en todas las pantallas.
+    try {
+      await guardarPerfil({ nombre: name, email, telefono: phone, direccion: address });
+    } catch (err) {
+      setPerfilMsg({ ok: false, text: err.message || 'No se pudo guardar el perfil.' });
+      return;
+    }
     setPerfilDraft({ name, email, phone, address });
     setPerfilMsg({ ok: true, text: 'Perfil actualizado correctamente.' });
     setEditando(false);
+  };
+
+  /* Foto de perfil: se redimensiona en el navegador (cuadrado de 256 px, JPEG)
+     para que pese poco; el servidor vuelve a validar tipo y tamaño. */
+  const reducirFoto = (archivo) => new Promise((resolver, rechazar) => {
+    const lector = new FileReader();
+    lector.onerror = () => rechazar(new Error('No se pudo leer la imagen'));
+    lector.onload = () => {
+      const img = new Image();
+      img.onerror = () => rechazar(new Error('El archivo no es una imagen válida'));
+      img.onload = () => {
+        const lado = 256;
+        const corte = Math.min(img.width, img.height);
+        const x = (img.width - corte) / 2;
+        const y = (img.height - corte) / 2;
+        const canvas = document.createElement('canvas');
+        canvas.width = lado;
+        canvas.height = lado;
+        canvas.getContext('2d').drawImage(img, x, y, corte, corte, 0, 0, lado, lado);
+        resolver(canvas.toDataURL('image/jpeg', 0.85));
+      };
+      img.src = lector.result;
+    };
+    lector.readAsDataURL(archivo);
+  });
+
+  const subirFotoPerfil = async (archivo) => {
+    if (!archivo) return;
+    if (!/^image\/(jpeg|png|webp)$/.test(archivo.type)) {
+      setAvisoFoto({ ok: false, texto: 'La foto debe ser JPEG, PNG o WebP.' });
+      return;
+    }
+    setGuardandoFoto(true);
+    setAvisoFoto(null);
+    try {
+      const imagen = await reducirFoto(archivo);
+      await cambiarFoto(imagen);
+      setAvisoFoto({ ok: true, texto: 'Foto actualizada.' });
+    } catch (err) {
+      setAvisoFoto({ ok: false, texto: err.message || 'No se pudo subir la foto.' });
+    } finally {
+      setGuardandoFoto(false);
+    }
+  };
+
+  const quitarFotoPerfil = async () => {
+    setGuardandoFoto(true);
+    setAvisoFoto(null);
+    try {
+      await quitarFoto();
+      setAvisoFoto({ ok: true, texto: 'Foto eliminada.' });
+    } catch (err) {
+      setAvisoFoto({ ok: false, texto: err.message || 'No se pudo quitar la foto.' });
+    } finally {
+      setGuardandoFoto(false);
+    }
   };
 
   const handleResetProfile = () => {
@@ -185,7 +246,7 @@ export default function Dashboard() {
       ...prev,
       notificaciones: prev.notificaciones.map((n) => (n.id === id ? { ...n, leida: true } : n)),
     }));
-    marcarNotificacionLeida(id).catch(() => {}).finally(recargar);
+    marcarNotificacionLeida(id).catch(() => { }).finally(recargar);
   };
 
   const handleOpenNotif = (n) => {
@@ -275,7 +336,7 @@ export default function Dashboard() {
       ...prev,
       certificados: [nuevo, ...prev.certificados],
     }));
-    solicitarCertificado(tipo).catch(() => {}).finally(recargar);
+    solicitarCertificado(tipo).catch(() => { }).finally(recargar);
     setModalCert(null);
     alert(`Solicitud de ${tipo} enviada correctamente. Disponible en 2 a 5 días hábiles.`);
   };
@@ -308,8 +369,8 @@ export default function Dashboard() {
     tareasFiltro === 'todas'
       ? data.actividades
       : data.actividades.filter((a) =>
-          tareasFiltro === 'pendientes' ? a.estado_est === 'pendiente' : a.estado_est !== 'pendiente'
-        );
+        tareasFiltro === 'pendientes' ? a.estado_est === 'pendiente' : a.estado_est !== 'pendiente'
+      );
   const tasaEntrega = data.actividades.length
     ? Math.round((tareasEntregadas.length / data.actividades.length) * 100)
     : 0;
@@ -352,12 +413,30 @@ export default function Dashboard() {
     topbarSub = 'Información y credenciales';
   }
 
+  const moduleByRole = {
+    admin: ['/admin', 'Panel de Administración'],
+    asistente: ['/admin', 'Panel de Administración'],
+    rectoria: ['/rectoria', 'Rectoría e Indicadores'],
+    admisiones: ['/admisiones', 'Admisiones y Registro'],
+    profesor: ['/docente', 'Mi Cátedra'],
+    director: ['/director', 'Dirección de Programa'],
+    talento_humano: ['/talento-humano', 'Talento Humano'],
+    contabilidad: ['/contabilidad', 'Contabilidad'],
+  };
+  const [modulePath, moduleLabel] = moduleByRole[user.role] || [null, null];
+
   return (
-    <div className="app-wrap">
+    <div className="app-wrap admin-shell">
       {/* ── BARRA LATERAL ── */}
       <Sidebar
         currentView={currentView}
         currentTab={currentTab}
+        compactModuleNav={!!modulePath}
+        compactModuleLabel={moduleLabel}
+        compactModulePath={modulePath}
+        compactModuleView={null}
+        collapseModuleNav={!!modulePath}
+        hideStudentSections={false}
         onNavigate={handleNavigate}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -370,12 +449,12 @@ export default function Dashboard() {
           subtitle={topbarSub}
           onNavigate={handleNavigate}
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-          notifications={notificacionesDeRol(data.notificaciones, user.role)}
+          notifications={notificacionesDeRol(data.notificaciones, user.role, user?.estudiante?.estado)}
           onMarkNotifRead={handleMarkNotifRead}
           onOpenNotif={handleOpenNotif}
         />
 
-        <div className="main-content">
+        <div className={`main-content${['academico', 'lms'].includes(currentView) ? ' dashboard-tabs-shell' : ''}`}>
           {/* ========================================================= */}
           {/* VISTA 1: HOME (PANEL PRINCIPAL)                           */}
           {/* ========================================================= */}
@@ -457,6 +536,33 @@ export default function Dashboard() {
                         </div>
                       </button>
                     </div>
+                  ) : enIngreso ? (
+                    /* Estudiante en proceso de inscripción: sin materias ni pagos aún */
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 20 }}>
+                      <div className="stat-card">
+                        <div className="stat-ic" style={{ background: '#e3f1ff' }}><Icon name="archivo" size={18} /></div>
+                        <div>
+                          <div className="stat-v" style={{ fontSize: 14, color: '#0a5cae' }}>En revisión</div>
+                          <div className="stat-l">Estado de tu solicitud</div>
+                        </div>
+                      </div>
+                      <div className="stat-card">
+                        <div className="stat-ic" style={{ background: '#d8f0e5' }}><Icon name="check" size={18} /></div>
+                        <div>
+                          <div className="stat-v" style={{ fontSize: 14, color: '#0a6e4b' }}>
+                            {user?.estudiante?.documentos === 'completo' ? 'Completos' : 'Pendientes'}
+                          </div>
+                          <div className="stat-l">Documentos de admisión</div>
+                        </div>
+                      </div>
+                      <div className="stat-card">
+                        <div className="stat-ic" style={{ background: '#fbefd6' }}><Icon name="calendario" size={18} /></div>
+                        <div>
+                          <div className="stat-v" style={{ fontSize: 13, color: '#99610e' }}>2026-2</div>
+                          <div className="stat-l">Período al que aspiras</div>
+                        </div>
+                      </div>
+                    </div>
                   ) : (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 20 }}>
                       <button
@@ -514,93 +620,94 @@ export default function Dashboard() {
                     </div>
                   )}
 
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
-                <div className="card">
-                  <div className="card-hd"><span className="card-ttl"> Accesos Rápidos</span></div>
-                  <div className="card-bd">
-                    <div className="qa-grid">
-                      {/* Notas y Pagos son del alumno: el docente abre su
+                  {/* Accesos rápidos y eventos: solo para estudiantes activos y docentes */}
+                  {!enIngreso && (<div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
+                    <div className="card">
+                      <div className="card-hd"><span className="card-ttl"> Accesos Rápidos</span></div>
+                      <div className="card-bd">
+                        <div className="qa-grid">
+                          {/* Notas y Pagos son del alumno: el docente abre su
                           registro de notas, no un promedio que no gestiona. */}
-                      {esDocente ? (
-                        <button onClick={() => navigate('/docente?tab=notas')} className="qa-btn">
-                          <div className="qa-ic" style={{ background: '#0a84ff' }}><Icon name="cuaderno" size={18} /></div>
-                          <span className="qa-lbl">Registro Notas</span>
-                        </button>
-                      ) : (
-                        <button onClick={() => handleNavigate('academico', 'notas')} className="qa-btn">
-                          <div className="qa-ic" style={{ background: '#0a84ff' }}><Icon name="estrella" size={18} /></div>
-                          <span className="qa-lbl">Mis Notas</span>
-                        </button>
-                      )}
-                      {esDocente && (
-                        <button onClick={() => handleNavigate('lms', 'tareas')} className="qa-btn">
-                          <div className="qa-ic" style={{ background: '#0e8a5f' }}><Icon name="mensaje" size={18} /></div>
-                          <span className="qa-lbl">Foros</span>
-                        </button>
-                      )}
-                      {!esDocente && (
-                        <button onClick={() => handleNavigate('academico', 'pagos')} className="qa-btn">
-                          <div className="qa-ic" style={{ background: '#0e8a5f' }}><Icon name="tarjeta-credito" size={18} /></div>
-                          <span className="qa-lbl">Pagos</span>
-                        </button>
-                      )}
-                      <button onClick={() => handleNavigate('academico', 'certificados')} className="qa-btn">
-                        <div className="qa-ic" style={{ background: '#c77e12' }}><Icon name="certificado" size={18} /></div>
-                        <span className="qa-lbl">Certificados</span>
-                      </button>
-                      <button onClick={() => handleNavigate('lms', 'cursos')} className="qa-btn">
-                        <div className="qa-ic" style={{ background: '#6d4ac4' }}><Icon name="libro" size={18} /></div>
-                        <span className="qa-lbl">Mis Cursos</span>
-                      </button>
-                      <button onClick={() => handleNavigate('lms', 'tareas')} className="qa-btn">
-                        <div className="qa-ic" style={{ background: '#c2560f' }}>{esDocente ? <><Icon name="cuaderno" size={18} /></> : <><Icon name="check" size={18} /></>}</div>
-                        <span className="qa-lbl">{esDocente ? 'Por Calificar' : 'Tareas'}</span>
-                      </button>
-                      {!esDocente && (
-                        <button onClick={() => navigate('/matricula')} className="qa-btn">
-                          <div className="qa-ic" style={{ background: '#0a2fb0' }}><Icon name="cuaderno" size={18} /></div>
-                          <span className="qa-lbl">Matrícula</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="card">
-                  <div className="card-hd"><span className="card-ttl"><Icon name="calendario" size={16} /> Próximos eventos</span></div>
-                  <div>
-                    {data.eventos.map((ev, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: '1px solid #f0eee9' }}>
-                        <div style={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: 10,
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: 11,
-                          fontWeight: 700,
-                          flexShrink: 0,
-                          background: ev.tipo === 'tarea' ? '#fbe9d8' : '#e3f1ff',
-                          color: ev.tipo === 'tarea' ? '#9c4710' : '#06468c'
-                        }}>
-                          <span style={{ fontSize: 17, lineHeight: 1 }}>{ev.fecha}</span>
-                          <span>ago</span>
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: 13, fontWeight: 600, color: '#211d17', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {ev.titulo}
-                          </p>
-                          <p style={{ fontSize: 11, color: '#9c988e', margin: '2px 0 0' }}>
-                            {ev.tipo === 'tarea' ? 'Entrega' : 'Clase'}
-                          </p>
+                          {esDocente ? (
+                            <button onClick={() => navigate('/docente?tab=notas')} className="qa-btn">
+                              <div className="qa-ic" style={{ background: '#0a84ff' }}><Icon name="cuaderno" size={18} /></div>
+                              <span className="qa-lbl">Registro Notas</span>
+                            </button>
+                          ) : (
+                            <button onClick={() => handleNavigate('academico', 'notas')} className="qa-btn">
+                              <div className="qa-ic" style={{ background: '#0a84ff' }}><Icon name="estrella" size={18} /></div>
+                              <span className="qa-lbl">Mis Notas</span>
+                            </button>
+                          )}
+                          {esDocente && (
+                            <button onClick={() => handleNavigate('lms', 'tareas')} className="qa-btn">
+                              <div className="qa-ic" style={{ background: '#0e8a5f' }}><Icon name="mensaje" size={18} /></div>
+                              <span className="qa-lbl">Foros</span>
+                            </button>
+                          )}
+                          {!esDocente && (
+                            <button onClick={() => handleNavigate('academico', 'pagos')} className="qa-btn">
+                              <div className="qa-ic" style={{ background: '#0e8a5f' }}><Icon name="tarjeta-credito" size={18} /></div>
+                              <span className="qa-lbl">Pagos</span>
+                            </button>
+                          )}
+                          <button onClick={() => handleNavigate('academico', 'certificados')} className="qa-btn">
+                            <div className="qa-ic" style={{ background: '#c77e12' }}><Icon name="certificado" size={18} /></div>
+                            <span className="qa-lbl">Certificados</span>
+                          </button>
+                          <button onClick={() => handleNavigate('lms', 'cursos')} className="qa-btn">
+                            <div className="qa-ic" style={{ background: '#6d4ac4' }}><Icon name="libro" size={18} /></div>
+                            <span className="qa-lbl">Mis Cursos</span>
+                          </button>
+                          <button onClick={() => handleNavigate('lms', 'tareas')} className="qa-btn">
+                            <div className="qa-ic" style={{ background: '#c2560f' }}>{esDocente ? <><Icon name="cuaderno" size={18} /></> : <><Icon name="check" size={18} /></>}</div>
+                            <span className="qa-lbl">{esDocente ? 'Por Calificar' : 'Tareas'}</span>
+                          </button>
+                          {!esDocente && (
+                            <button onClick={() => navigate('/matricula')} className="qa-btn">
+                              <div className="qa-ic" style={{ background: '#0a2fb0' }}><Icon name="cuaderno" size={18} /></div>
+                              <span className="qa-lbl">Matrícula</span>
+                            </button>
+                          )}
                         </div>
                       </div>
-                    ))}
-                </div>
-              </div>
-            </div>
+                    </div>
+
+                    <div className="card">
+                      <div className="card-hd"><span className="card-ttl"><Icon name="calendario" size={16} /> Próximos eventos</span></div>
+                      <div>
+                        {data.eventos.map((ev, i) => (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: '1px solid #f0eee9' }}>
+                            <div style={{
+                              width: 40,
+                              height: 40,
+                              borderRadius: 10,
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: 11,
+                              fontWeight: 700,
+                              flexShrink: 0,
+                              background: ev.tipo === 'tarea' ? '#fbe9d8' : '#e3f1ff',
+                              color: ev.tipo === 'tarea' ? '#9c4710' : '#06468c'
+                            }}>
+                              <span style={{ fontSize: 17, lineHeight: 1 }}>{ev.fecha}</span>
+                              <span>ago</span>
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <p style={{ fontSize: 13, fontWeight: 600, color: '#211d17', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {ev.titulo}
+                              </p>
+                              <p style={{ fontSize: 11, color: '#9c988e', margin: '2px 0 0' }}>
+                                {ev.tipo === 'tarea' ? 'Entrega' : 'Clase'}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>)}
                 </div>
               )}
             </div>
@@ -691,7 +798,7 @@ export default function Dashboard() {
                       <span className="card-ttl"><Icon name="reloj" size={16} /> Mis Solicitudes</span>
                     </div>
                     <div className="overflow-x">
-                      <table className="tbl">
+                      <table className="tabla-datos">
                         <thead>
                           <tr>
                             <th>TIPO</th>
@@ -733,9 +840,6 @@ export default function Dashboard() {
                         </tbody>
                       </table>
                     </div>
-                    {/* Lo que pasó al pedir el archivo. Sin esto el botón
-                        "funcionaba" y nadie sabía por qué a veces no bajaba
-                        nada: un 409 o un token vencido se veían igual. */}
                     {avisoDescargas && (
                       <div
                         role="status"
@@ -814,57 +918,56 @@ export default function Dashboard() {
                           No hay recibos que coincidan con este filtro.
                         </div>
                       ) : (
-                      <table className="tbl">
-                        <thead>
-                          <tr>
-                            <th>CONCEPTO</th>
-                            <th>VALOR</th>
-                            <th>FECHA LÍMITE</th>
-                            <th>FECHA PAGO</th>
-                            <th>ESTADO</th>
-                            <th>ACCIÓN</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {pagosVisibles.map((p) => (
-                            <tr key={p.id}>
-                              <td style={{ fontWeight: 600 }}>{p.concepto}</td>
-                              <td style={{ fontWeight: 700 }}>{formatCurrency(p.valor)}</td>
-                              <td>{formatDate(p.fecha_limite)}</td>
-                              <td>{formatDate(p.fecha_pago)}</td>
-                              <td>
-                                <span className={`bs ${p.estado === 'pagado' ? 'bg-g' : 'bg-r'}`}>
-                                  {p.estado === 'pagado' ? <><Icon name="check" size={18} /> Pagado</> : <><Icon name="x" size={14} /> Pendiente</>}
-                                </span>
-                              </td>
-                              <td>
-                                {p.estado === 'pagado' ? (
-                                  <button
-                                    onClick={() => alert(`Imprimiendo comprobante de ${p.concepto}...`)}
-                                    className="btn b-secondary b-sm"
-                                  >
-                                    <Icon name="recibo" size={18} /> Comprobante
-                                  </button>
-                                ) : (
-                                  <button
-                                    onClick={() => setModalVolante(p)}
-                                    className="btn b-primary b-sm"
-                                  >
-                                    <Icon name="archivo" size={16} /> Volante
-                                  </button>
-                                )}
-                              </td>
+                        <table className="tabla-datos">
+                          <thead>
+                            <tr>
+                              <th>CONCEPTO</th>
+                              <th>VALOR</th>
+                              <th>FECHA LÍMITE</th>
+                              <th>FECHA PAGO</th>
+                              <th>ESTADO</th>
+                              <th>ACCIÓN</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody>
+                            {pagosVisibles.map((p) => (
+                              <tr key={p.id}>
+                                <td style={{ fontWeight: 600 }}>{p.concepto}</td>
+                                <td style={{ fontWeight: 700 }}>{formatCurrency(p.valor)}</td>
+                                <td>{formatDate(p.fecha_limite)}</td>
+                                <td>{formatDate(p.fecha_pago)}</td>
+                                <td>
+                                  <span className={`bs ${p.estado === 'pagado' ? 'bg-g' : 'bg-r'}`}>
+                                    {p.estado === 'pagado' ? <><Icon name="check" size={18} /> Pagado</> : <><Icon name="x" size={14} /> Pendiente</>}
+                                  </span>
+                                </td>
+                                <td>
+                                  {p.estado === 'pagado' ? (
+                                    <button
+                                      onClick={() => alert(`Imprimiendo comprobante de ${p.concepto}...`)}
+                                      className="btn b-secondary b-sm"
+                                    >
+                                      <Icon name="recibo" size={18} /> Comprobante
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={() => setModalVolante(p)}
+                                      className="btn b-primary b-sm"
+                                    >
+                                      <Icon name="archivo" size={16} /> Volante
+                                    </button>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       )}
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* ── SUBPESTAÑA: HORARIO (CONSERVADO DE LA MIGRACIÓN) ── */}
               {tabAcademico === 'horario' && (
                 <div className="card" style={{ padding: 24 }}>
                   <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 16, color: '#211d17' }}>
@@ -897,25 +1000,25 @@ export default function Dashboard() {
                 <div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 16 }}>
                     <div className="stat-card">
-                    <div className="stat-ic" style={{ background: '#e3f1ff', flexShrink: 0, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}><Icon name="estrella" size={18} /></div>
-                    <div style={{ minWidth: 0, overflow: 'hidden' }}>
-                      <div className="stat-v">4.2</div>
-                      <div className="stat-l" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Promedio 2026-1</div>
-                    </div>
-                  </div>
-                  <div className="stat-card">
-                    <div className="stat-ic" style={{ background: '#d8f0e5', flexShrink: 0, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}><Icon name="libro" size={18} /></div>
-                    <div style={{ minWidth: 0, overflow: 'hidden' }}>
-                      <div className="stat-v">{data.materias.filter(m => m.periodo === '2026-1').length}</div>
-                      <div className="stat-l" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Materias activas</div>
-                    </div>
+                      <div className="stat-ic" style={{ background: '#e3f1ff', flexShrink: 0, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}><Icon name="estrella" size={18} /></div>
+                      <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                        <div className="stat-v">4.2</div>
+                        <div className="stat-l" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Promedio 2026-1</div>
+                      </div>
                     </div>
                     <div className="stat-card">
-                    <div className="stat-ic" style={{ background: '#efe9fb', flexShrink: 0, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}><Icon name="graduacion" size={18} /></div>
-                    <div style={{ minWidth: 0, overflow: 'hidden' }}>
-                      <div className="stat-v">82</div>
-                      <div className="stat-l" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Créditos acumulados</div>
+                      <div className="stat-ic" style={{ background: '#d8f0e5', flexShrink: 0, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}><Icon name="libro" size={18} /></div>
+                      <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                        <div className="stat-v">{data.materias.filter(m => m.periodo === '2026-1').length}</div>
+                        <div className="stat-l" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Materias activas</div>
+                      </div>
                     </div>
+                    <div className="stat-card">
+                      <div className="stat-ic" style={{ background: '#efe9fb', flexShrink: 0, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}><Icon name="graduacion" size={18} /></div>
+                      <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                        <div className="stat-v">82</div>
+                        <div className="stat-l" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Créditos acumulados</div>
+                      </div>
                     </div>
                   </div>
 
@@ -924,7 +1027,7 @@ export default function Dashboard() {
                       <span className="card-ttl"><Icon name="estrella" size={18} /> Materias — Semestre 2026-1</span>
                     </div>
                     <div className="overflow-x">
-                      <table className="tbl">
+                      <table className="tabla-datos">
                         <thead>
                           <tr>
                             <th>Código</th>
@@ -963,6 +1066,15 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </div>
+              )}
+
+              {/* ── SUBPESTAÑA: REGISTRO DE NOTAS (docente) ── */}
+              {tabAcademico === 'registro' && esDocente && (
+                <RegistroNotas
+                  cursos={data.cursos}
+                  cursoId={cursoRegistro ?? data.cursos[0]?.id ?? null}
+                  onCambiarCurso={setCursoRegistro}
+                />
               )}
             </div>
           )}
@@ -1059,11 +1171,11 @@ export default function Dashboard() {
                             <span className={`bs ${e.calificada ? 'bg-g' : 'bg-y'}`}>
                               {e.calificada ? `Nota ${e.nota}` : 'Sin calificar'}
                             </span>
-                        <button
-                          type="button"
-                          className="btn b-primary b-sm"
-                          onClick={() => navigate(`/curso/${e.cursoId}?tab=entrega&id=${e.actividadId}&est=${e.estudianteId}&volver=actividad`)}
-                        >
+                            <button
+                              type="button"
+                              className="btn b-primary b-sm"
+                              onClick={() => navigate(`/curso/${e.cursoId}?tab=entrega&id=${e.actividadId}&est=${e.estudianteId}&volver=actividad`)}
+                            >
                               {e.calificada ? 'Ver hoja' : 'Revisar y calificar'}
                             </button>
                           </div>
@@ -1134,62 +1246,62 @@ export default function Dashboard() {
                           No hay actividades que coincidan con este filtro.
                         </div>
                       ) : (
-                      tareasVisibles.map((a) => {
-                        const cursoObj = data.cursos.find((c) => c.id === a.cursoId);
-                        const tcol = {
-                          taller: { bg: '#e3f1ff', color: '#06468c' },
-                          quiz: { bg: '#fbefd6', color: '#99610e' },
-                          proyecto: { bg: '#efe9fb', color: '#5a37ad' },
-                          informe: { bg: '#d8f0e5', color: '#0a6e4b' },
-                        }[a.tipo] || { bg: '#f0eee9', color: '#4e4a43' };
+                        tareasVisibles.map((a) => {
+                          const cursoObj = data.cursos.find((c) => c.id === a.cursoId);
+                          const tcol = {
+                            taller: { bg: '#e3f1ff', color: '#06468c' },
+                            quiz: { bg: '#fbefd6', color: '#99610e' },
+                            proyecto: { bg: '#efe9fb', color: '#5a37ad' },
+                            informe: { bg: '#d8f0e5', color: '#0a6e4b' },
+                          }[a.tipo] || { bg: '#f0eee9', color: '#4e4a43' };
 
-                        return (
-                          <div key={a.id} style={{ padding: '16px 20px', borderBottom: '1px solid #f0eee9' }}>
-                            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-                              <div style={{ flex: 1 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
-                                  <span style={{
-                                    background: tcol.bg,
-                                    color: tcol.color,
-                                    padding: '2px 10px',
-                                    borderRadius: 20,
-                                    fontSize: 11,
-                                    fontWeight: 600
-                                  }}>
-                                    {a.tipo}
-                                  </span>
-                                  <span style={{ fontSize: 12, color: '#9c988e' }}>{cursoObj?.nombre || ''}</span>
+                          return (
+                            <div key={a.id} style={{ padding: '16px 20px', borderBottom: '1px solid #f0eee9' }}>
+                              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
+                                    <span style={{
+                                      background: tcol.bg,
+                                      color: tcol.color,
+                                      padding: '2px 10px',
+                                      borderRadius: 20,
+                                      fontSize: 11,
+                                      fontWeight: 600
+                                    }}>
+                                      {a.tipo}
+                                    </span>
+                                    <span style={{ fontSize: 12, color: '#9c988e' }}>{cursoObj?.nombre || ''}</span>
+                                  </div>
+                                  <p style={{ fontWeight: 700, color: '#211d17', fontSize: 14, margin: '0 0 2px' }}>{a.titulo}</p>
+                                  <p style={{ fontSize: 13, color: '#6f6b62', margin: '0 0 6px' }}>{a.descripcion}</p>
+                                  <p style={{ fontSize: 11, color: '#9c988e', margin: 0 }}>
+                                    <Icon name="calendario" size={16} /> {formatDate(a.fechaEntrega)} · <Icon name="estrella" size={18} /> {a.puntos} pts · Corte {a.corte || '?'}
+                                  </p>
                                 </div>
-                                <p style={{ fontWeight: 700, color: '#211d17', fontSize: 14, margin: '0 0 2px' }}>{a.titulo}</p>
-                                <p style={{ fontSize: 13, color: '#6f6b62', margin: '0 0 6px' }}>{a.descripcion}</p>
-                                <p style={{ fontSize: 11, color: '#9c988e', margin: 0 }}>
-                                  <Icon name="calendario" size={16} /> {formatDate(a.fechaEntrega)} · <Icon name="estrella" size={18} /> {a.puntos} pts · Corte {a.corte || '?'}
-                                </p>
-                              </div>
-                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flexShrink: 0 }}>
-                                <span className={`bs ${a.estado_est === 'calificado' ? 'bg-g' : (a.estado_est === 'entregado' ? 'bg-b' : 'bg-r')}`}>
-                                  {a.estado_est === 'calificado' ? <><Icon name="check" size={14} />{a.nota}/{a.puntos}</> : (a.estado_est === 'entregado' ? 'Entregado' : 'Pendiente')}
-                                </span>
-                                {a.estado_est === 'pendiente' && (
-                                  <button
-                                    onClick={() => {
-                                      /* Cada entrega arranca limpia: sin el archivo ni
-                                         el comentario de la tarea anterior. */
-                                      setEntregaArchivo(null);
-                                      setEntregaComentario('');
-                                      setEntregaError(null);
-                                      setModalEntrega(a);
-                                    }}
-                                    className="btn b-primary b-sm"
-                                  >
-                                    <Icon name="subir" size={14} /> Entregar
-                                  </button>
-                                )}
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flexShrink: 0 }}>
+                                  <span className={`bs ${a.estado_est === 'calificado' ? 'bg-g' : (a.estado_est === 'entregado' ? 'bg-b' : 'bg-r')}`}>
+                                    {a.estado_est === 'calificado' ? <><Icon name="check" size={14} />{a.nota}/{a.puntos}</> : (a.estado_est === 'entregado' ? 'Entregado' : 'Pendiente')}
+                                  </span>
+                                  {a.estado_est === 'pendiente' && (
+                                    <button
+                                      onClick={() => {
+                                        /* Cada entrega arranca limpia: sin el archivo ni
+                                           el comentario de la tarea anterior. */
+                                        setEntregaArchivo(null);
+                                        setEntregaComentario('');
+                                        setEntregaError(null);
+                                        setModalEntrega(a);
+                                      }}
+                                      className="btn b-primary b-sm"
+                                    >
+                                      <Icon name="subir" size={14} /> Entregar
+                                    </button>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })
+                          );
+                        })
                       )}
                     </div>
                   </div>
@@ -1312,15 +1424,32 @@ export default function Dashboard() {
                   </span>
                 </div>
                 <div className="card-bd">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
-                    <div className={`s-avatar ${user.avatarClass || 'av-blue'}`} style={{ width: 60, height: 60, fontSize: 21, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, flexShrink: 0 }}>
-                      {user.avatar}
-                    </div>
-                    <div style={{ minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20, flexWrap: 'wrap' }}>
+                    <Avatar nombre={user.name} foto={user.avatar} clase={user.avatarClass} tamano={72} radio={36} />
+                    <div style={{ minWidth: 0, flex: 1 }}>
                       <h3 style={{ fontSize: 19, fontWeight: 700, margin: 0 }}>{user.name}</h3>
                       <p style={{ fontSize: 12, color: '#6f6b62', margin: '4px 0 0' }}>
                         Código institucional: <strong>{user.code}</strong>
                       </p>
+                      <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                        <label className="btn b-secondary" style={{ cursor: 'pointer', fontSize: 12, padding: '6px 12px' }}>
+                          {user.avatar ? 'Cambiar foto' : 'Subir foto'}
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            style={{ display: 'none' }}
+                            onChange={(e) => { subirFotoPerfil(e.target.files?.[0]); e.target.value = ''; }}
+                          />
+                        </label>
+                        {user.avatar && (
+                          <button type="button" className="btn b-secondary" style={{ fontSize: 12, padding: '6px 12px' }} onClick={quitarFotoPerfil} disabled={guardandoFoto}>
+                            Quitar foto
+                          </button>
+                        )}
+                      </div>
+                      {avisoFoto && (
+                        <p style={{ fontSize: 12, marginTop: 6, color: avisoFoto.ok ? '#0a6e4b' : '#c1122c' }}>{avisoFoto.texto}</p>
+                      )}
                     </div>
                   </div>
 
@@ -1521,13 +1650,19 @@ export default function Dashboard() {
                 <Icon name="info" size={14} /> Disponible en <strong>2 a 5 días hábiles</strong> después de la solicitud.
               </div>
               <div className="f-group">
-                <label className="f-label">Destino</label>
-                <select className="f-ctrl">
-                  <option>Uso personal</option>
-                  <option>Entidad financiera</option>
-                  <option>Empresa / Empleador</option>
-                  <option>Otro</option>
-                </select>
+                <Select
+                  label="Destino"
+                  value={certDestino}
+                  onChange={setCertDestino}
+                  groups={[{
+                    options: [
+                      { value: 'Uso personal', label: 'Uso personal' },
+                      { value: 'Entidad financiera', label: 'Entidad financiera' },
+                      { value: 'Empresa / Empleador', label: 'Empresa / Empleador' },
+                      { value: 'Otro', label: 'Otro' },
+                    ]
+                  }]}
+                />
               </div>
               <div className="f-group">
                 <label className="f-label">Número de copias</label>

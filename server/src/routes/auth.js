@@ -10,22 +10,16 @@ import {
   documentoLimpio,
   siguienteCodigoEstudiante,
 } from '../cuentas.js';
+import { notificarInscripcionRecibida } from '../email.js';
 
-/* Intentos de login permitidos por cuenta y por minuto. En producción el valor
-   seguro es bajo (5); el stack demo lo sube por las corridas de verificación. */
 const LIMITE_LOGIN = Number(process.env.RATE_LIMIT_LOGIN_MAX ?? 5) || 5;
 
-/* Acceso rápido de demostración (botones de "entrar como..."). La lista y el
-   ingreso salen de la BASE DE DATOS: la contraseña nunca viaja al navegador ni
-   vive en el código. Está apagado por defecto y solo se enciende con
-   DEMO_QUICK_LOGIN=1 (stack de demostración). */
 const DEMO_RAPIDO = ['1', 'true'].includes(
   String(process.env.DEMO_QUICK_LOGIN || '').toLowerCase()
 );
 const ORDEN_DEMO = USUARIOS_DEMO.map((u) => u.usuario);
 const ES_DEMO = new Set(ORDEN_DEMO);
 
-/* Firma el token de sesión para un usuario ya validado. */
 const crearSesion = (app, u) => ({
   token: app.jwt.sign({ sub: u.usuario, role: u.role }, { expiresIn: '12h' }),
   usuario: publico(u),
@@ -36,7 +30,6 @@ export default async function rutasAuth(app) {
     '/auth/login',
     {
       config: {
-        /* Freno a la fuerza bruta: pocos intentos por minuto y por cuenta. */
         rateLimit: { max: LIMITE_LOGIN, timeWindow: '1 minute' },
       },
       schema: {
@@ -51,34 +44,30 @@ export default async function rutasAuth(app) {
       },
     },
     async (req, reply) => {
-    const { usuario, password } = req.body || {};
-    if (!usuario || !password) {
-      return reply.code(400).send({ error: 'Faltan usuario y contraseña' });
-    }
+      const { usuario, password } = req.body || {};
+      if (!usuario || !password) {
+        return reply.code(400).send({ error: 'Faltan usuario y contraseña' });
+      }
 
-    const u = await prisma.usuario.findUnique({
-      where: { usuario },
-      include: {
-        programa: true,
-        estudiante: { select: { id: true, estado: true, documentos: true } },
-      },
+      const u = await prisma.usuario.findUnique({
+        where: { usuario },
+        include: {
+          programa: true,
+          estudiante: { select: { id: true, estado: true, documentos: true, financiacion: true, cupoBrilla: true, tieneCajaCompensacion: true } },
+        },
+      });
+      if (!u || !verificar(password, u.password)) {
+        return reply.code(401).send({ error: 'Credenciales inválidas' });
+      }
+      if (!u.activo) {
+        return reply.code(403).send({ error: 'El usuario está inactivo' });
+      }
+
+      return crearSesion(app, u);
     });
-    // Mismo mensaje para usuario inexistente y contraseña incorrecta, para no
-    // revelar qué cuentas existen.
-    if (!u || !verificar(password, u.password)) {
-      return reply.code(401).send({ error: 'Credenciales inválidas' });
-    }
-    if (!u.activo) {
-      return reply.code(403).send({ error: 'El usuario está inactivo' });
-    }
 
-    return crearSesion(app, u);
-  });
-
-  /* Datos públicos del formulario de inscripción: programas activos y si hay
-     un proceso abierto. No requiere sesión. */
   app.get('/auth/inscripcion', async () => {
-    const [programas, proceso] = await Promise.all([
+    const [programas, proceso, requisitos] = await Promise.all([
       prisma.programa.findMany({
         where: { activo: true },
         orderBy: { nombre: 'asc' },
@@ -88,16 +77,15 @@ export default async function rutasAuth(app) {
         where: { procesoAbierto: true },
         select: { id: true, nombre: true },
       }),
+      prisma.requisitoDocumento.findMany({
+        where: { vigente: true },
+        orderBy: { id: 'asc' },
+        select: { id: true, clave: true, nombre: true, obligatorio: true },
+      }),
     ]);
-    return { programas, procesoAbierto: !!proceso, proceso: proceso || null };
+    return { programas, procesoAbierto: !!proceso, proceso: proceso || null, requisitos };
   });
 
-  /* Registro público de aspirantes. Cualquier persona puede inscribirse sin
-     tener cuenta: se crea el aspirante, su ficha de estudiante (estado
-     'en_inscripcion', documentos 'pendiente') y una cuenta ACTIVA con
-     contraseña temporal = documento, para que pueda entrar y subir los
-     documentos del expediente. El usuario de ingreso y la contraseña temporal
-     son el número de documento. */
   app.post(
     '/auth/registro',
     {
@@ -111,15 +99,28 @@ export default async function rutasAuth(app) {
             documento: { type: 'string', minLength: 4, maxLength: 30 },
             programaId: { type: 'integer' },
             email: { type: 'string', maxLength: 120 },
-            telefono: { type: 'string', maxLength: 40 },
+            telefono: { type: 'string', pattern: '^$|^[0-9]{7,15}$', maxLength: 15 },
             direccion: { type: 'string', maxLength: 160 },
             esMenorDeEdad: { type: 'boolean' },
             responsableParentesco: { type: 'string', maxLength: 60 },
             responsableNombre: { type: 'string', maxLength: 120 },
             responsableTipoDoc: { type: 'string', maxLength: 20 },
             responsableDocumento: { type: 'string', maxLength: 30 },
-            responsableTelefono: { type: 'string', maxLength: 40 },
+            responsableTelefono: { type: 'string', pattern: '^$|^[0-9]{7,15}$', maxLength: 15 },
             responsableEmail: { type: 'string', maxLength: 120 },
+            documentos: {
+              type: 'array',
+              items: {
+                type: 'object',
+                required: ['requisitoId', 'archivoB64', 'archivo'],
+                properties: {
+                  requisitoId: { type: 'integer' },
+                  archivoB64: { type: 'string' },
+                  archivo: { type: 'string', maxLength: 200 },
+                  archivoMime: { type: 'string', maxLength: 100 },
+                },
+              },
+            },
           },
         },
       },
@@ -129,6 +130,7 @@ export default async function rutasAuth(app) {
         nombre, documento, programaId, email, telefono, direccion,
         esMenorDeEdad, responsableParentesco, responsableNombre,
         responsableTipoDoc, responsableDocumento, responsableTelefono, responsableEmail,
+        documentos,
       } = req.body || {};
 
       if (esMenorDeEdad && (!responsableNombre || !responsableDocumento || !responsableTelefono)) {
@@ -137,9 +139,21 @@ export default async function rutasAuth(app) {
         });
       }
 
+      if (telefono && !/^\d{7,15}$/.test(String(telefono).trim())) {
+        return reply.code(400).send({
+          error: 'El teléfono debe contener únicamente números (entre 7 y 15 dígitos)',
+        });
+      }
+
+      if (esMenorDeEdad && !/^\d{7,15}$/.test(String(responsableTelefono).trim())) {
+        return reply.code(400).send({
+          error: 'El teléfono del responsable debe contener únicamente números (entre 7 y 15 dígitos)',
+        });
+      }
+
       const doc = documentoLimpio(documento);
-      if (doc.length < 4) {
-        return reply.code(400).send({ error: 'El documento no es válido' });
+      if (doc.length < 4 || !/^\d{4,20}$/.test(doc)) {
+        return reply.code(400).send({ error: 'El documento de identidad debe contener únicamente números (mínimo 4 dígitos)' });
       }
 
       const programa = await prisma.programa.findUnique({ where: { id: Number(programaId) } });
@@ -182,9 +196,6 @@ export default async function rutasAuth(app) {
           },
         });
 
-        /* Cuenta activa desde ya: la persona entra con su documento y sube los
-           documentos del expediente. `asegurarCuentaEstudiante` reutiliza la
-           cuenta pendiente que hubiera de un intento anterior. */
         const { cuenta } = await asegurarCuentaEstudiante(tx, {
           nombre: limpio,
           documento: doc,
@@ -195,8 +206,6 @@ export default async function rutasAuth(app) {
           semestre: 1,
         });
 
-        /* Ficha de estudiante en proceso de ingreso: sin documentos validados
-           no ve cursos ni puede matricular. */
         const codigo = await siguienteCodigoEstudiante(tx);
         const estudiante = await tx.estudiante.create({
           data: {
@@ -217,8 +226,35 @@ export default async function rutasAuth(app) {
             usuarioId: cuenta.id,
           },
         });
+
+        if (Array.isArray(documentos) && documentos.length > 0) {
+          for (const d of documentos) {
+            if (d.requisitoId && d.archivoB64) {
+              await tx.documentoIngreso.create({
+                data: {
+                  estudianteId: codigo,
+                  requisitoId: Number(d.requisitoId),
+                  nombre: d.archivo || 'documento.pdf',
+                  mime: d.archivoMime || 'application/pdf',
+                  tamano: d.archivoB64.length,
+                  contenidoB64: d.archivoB64,
+                  estado: 'pendiente',
+                },
+              });
+            }
+          }
+        }
+
         return { aspirante, estudiante, usuario, password: usuario };
       });
+
+      // Notificación automática por correo electrónico institucional
+      notificarInscripcionRecibida({
+        email: emailLimpio,
+        nombre: resultado.aspirante.nombre,
+        documento: resultado.aspirante.documento,
+        programa: programa?.nombre,
+      }).catch((err) => console.error('Error al enviar email de inscripción:', err));
 
       return {
         ok: true,
@@ -238,8 +274,6 @@ export default async function rutasAuth(app) {
     }
   );
 
-  /* Lista de cuentas para el acceso rápido: solo metadatos (usuario, nombre y
-     rol), nunca contraseñas. */
   app.get('/auth/demo', async (req, reply) => {
     if (!DEMO_RAPIDO) return reply.code(404).send({ error: 'No disponible' });
     const usuarios = await prisma.usuario.findMany({
@@ -250,8 +284,6 @@ export default async function rutasAuth(app) {
     return { usuarios };
   });
 
-  /* Entra como una cuenta de demostración sin pedir contraseña. Solo funciona
-     con las cuentas sembradas y con DEMO_QUICK_LOGIN encendido. */
   app.post(
     '/auth/demo',
     {
@@ -274,7 +306,7 @@ export default async function rutasAuth(app) {
         where: { usuario },
         include: {
           programa: true,
-          estudiante: { select: { id: true, estado: true, documentos: true } },
+          estudiante: { select: { id: true, estado: true, documentos: true, financiacion: true, cupoBrilla: true, tieneCajaCompensacion: true } },
         },
       });
       if (!u || !u.activo) {
@@ -285,6 +317,67 @@ export default async function rutasAuth(app) {
   );
 
   app.get('/auth/yo', { preHandler: [app.autenticar] }, async (req) => publico(req.usuario));
+
+  /* Perfil propio: cada usuario edita sus datos de contacto. No puede cambiar
+     su rol ni su usuario de ingreso desde aquí. */
+  app.patch('/auth/perfil', { preHandler: [app.autenticar] }, async (req, reply) => {
+    const { nombre, email, telefono, direccion } = req.body || {};
+    const data = {};
+    if (nombre !== undefined) {
+      const limpio = String(nombre).trim();
+      if (!limpio) return reply.code(400).send({ error: 'El nombre no puede quedar vacío' });
+      data.nombre = limpio.slice(0, 120);
+    }
+    if (email !== undefined) {
+      const limpio = String(email).trim();
+      if (limpio && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(limpio)) {
+        return reply.code(400).send({ error: 'El correo electrónico no tiene un formato válido' });
+      }
+      data.email = limpio || null;
+    }
+    if (telefono !== undefined) data.telefono = String(telefono).trim().slice(0, 30) || null;
+    if (direccion !== undefined) data.direccion = String(direccion).trim().slice(0, 200) || null;
+    if (!Object.keys(data).length) return reply.code(400).send({ error: 'No hay cambios que aplicar' });
+
+    const actualizado = await prisma.usuario.update({
+      where: { id: req.usuario.id },
+      data,
+      include: { programa: true, estudiante: { select: { id: true, estado: true, documentos: true, financiacion: true, cupoBrilla: true, tieneCajaCompensacion: true } } },
+    });
+    return publico(actualizado);
+  });
+
+  /* Foto de perfil. Llega como imagen en base64 ya redimensionada desde el
+     navegador. Se valida aquí el tipo real y el tamaño, sin confiar en el
+     cliente. Solo se aceptan JPEG, PNG y WebP. */
+  app.put('/auth/avatar', { preHandler: [app.autenticar], bodyLimit: 600_000 }, async (req, reply) => {
+    const { imagen } = req.body || {};
+    const m = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/.exec(String(imagen || ''));
+    if (!m) return reply.code(400).send({ error: 'La foto debe ser JPEG, PNG o WebP' });
+    const buffer = Buffer.from(m[2], 'base64');
+    if (buffer.length > 300_000) return reply.code(400).send({ error: 'La foto supera 300 KB' });
+    // Firma del archivo: impide disfrazar otro tipo de contenido como imagen.
+    const esJpeg = buffer[0] === 0xff && buffer[1] === 0xd8;
+    const esPng = buffer[0] === 0x89 && buffer[1] === 0x50;
+    const esWebp = buffer.slice(0, 4).toString() === 'RIFF' && buffer.slice(8, 12).toString() === 'WEBP';
+    if (!esJpeg && !esPng && !esWebp) return reply.code(400).send({ error: 'El archivo no es una imagen válida' });
+
+    const actualizado = await prisma.usuario.update({
+      where: { id: req.usuario.id },
+      data: { avatar: imagen },
+      include: { programa: true, estudiante: { select: { id: true, estado: true, documentos: true, financiacion: true, cupoBrilla: true, tieneCajaCompensacion: true } } },
+    });
+    return publico(actualizado);
+  });
+
+  app.delete('/auth/avatar', { preHandler: [app.autenticar] }, async (req) => {
+    const actualizado = await prisma.usuario.update({
+      where: { id: req.usuario.id },
+      data: { avatar: null },
+      include: { programa: true, estudiante: { select: { id: true, estado: true, documentos: true, financiacion: true, cupoBrilla: true, tieneCajaCompensacion: true } } },
+    });
+    return publico(actualizado);
+  });
 
   app.post('/auth/password', { preHandler: [app.autenticar] }, async (req, reply) => {
     const { actual, nueva } = req.body || {};

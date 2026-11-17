@@ -1,0 +1,139 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --cul-navy: #0a1f44;
+  --cul-navy-deep: #061330;
+  --cul-blue: #12408a;
+  --cul-blue-600: #0b3a8f;
+  --cul-orange: #f28c1e;
+  --cul-orange-soft: rgba(242, 140, 30, 0.22);
+  --cul-red: #ff314d;
+}
+
+body {
+  font-family: 'Montserrat', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* Sidebar con identidad CUL */
+.sidebar {
+  background: radial-gradient(120% 120% at 50% 0%, rgba(255, 165, 58, 0.12) 0%, transparent 60%),
+    linear-gradient(180deg, var(--cul-navy) 0%, var(--cul-navy-deep) 100%) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-nav .nav-link:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.sidebar-nav .nav-link.active {
+  background: linear-gradient(90deg, rgba(242, 140, 30, 0.25) 0%, transparent 100%);
+  border-left: 2px solid var(--cul-orange);
+  color: #fff;
+}
+
+/* Topbar con acento naranja */
+.topbar::after {
+  background: linear-gradient(90deg, var(--cul-navy) 0%, var(--cul-blue) 35%, #1e5abe 65%, var(--cul-orange) 100%) !important;
+  opacity: 0.95;
+}
+
+/* Botones primarios */
+.b-primary,
+.btn-primary,
+.btn.b-primary {
+  background: linear-gradient(90deg, var(--cul-navy), var(--cul-blue)) !important;
+  color: #fff !important;
+  border: none !important;
+  box-shadow: 0 6px 18px -10px rgba(18, 64, 138, 0.7);
+  transition: all 0.25s ease;
+}
+
+.b-primary:hover,
+.btn-primary:hover,
+.btn.b-primary:hover {
+  box-shadow: 0 10px 26px -10px rgba(18, 64, 138, 0.8);
+  transform: translateY(-1px);
+}
+
+.b-primary:active,
+.btn-primary:active,
+.btn.b-primary:active {
+  transform: translateY(-1px) scale(0.99);
+}
+
+/* Avatares */
+.av-blue,
+.tb-av,
+.s-avatar.av-blue {
+  background: linear-gradient(135deg, var(--cul-navy), var(--cul-blue)) !important;
+}
+
+/* Hero banners */
+.hero-banner,
+.hero {
+  background:
+    radial-gradient(90% 120% at 100% 0%, rgba(30, 90, 190, 0.5) 0%, transparent 55%),
+    radial-gradient(60% 80% at 0% 100%, rgba(242, 140, 30, 0.25) 0%, transparent 60%),
+    linear-gradient(120deg, var(--cul-navy) 0%, var(--cul-blue) 55%, #0b3a8f 120%) !important;
+}
+
+/* Tarjetas con acento sutil */
+.card-hd {
+  border-bottom: 1px solid rgba(10, 31, 68, 0.08);
+}
+
+/* Focus states */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--cul-orange);
+  outline-offset: 2px;
+}
+
+/* Animaciones globales para botones */
+.btn,
+button:not(.btn-text) {
+  transition: all 0.25s ease;
+}
+
+.btn:hover:not(:disabled),
+button:hover:not(:disabled):not(.btn-text) {
+  transform: translateY(-1px);
+}
+
+.btn:active:not(:disabled),
+button:active:not(:disabled):not(.btn-text) {
+  transform: translateY(-1px) scale(0.99);
+}
+
+/* Tablas más limpias */
+table thead th {
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  color: #0f172a;
+  font-weight: 700;
+  border-bottom: 2px solid rgba(10, 31, 68, 0.12);
+}
+
+table tbody tr {
+  transition: all 0.2s ease;
+}
+
+table tbody tr:hover {
+  background: rgba(18, 64, 138, 0.02);
+  box-shadow: inset 3px 0 0 var(--cul-orange);
+}
+
+/* Inputs y selects */
+input,
+select,
+textarea {
+  transition: all 0.2s ease;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--cul-blue);
+  box-shadow: 0 0 0 3px rgba(18, 64, 138, 0.08);
+}

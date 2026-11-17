@@ -6,6 +6,9 @@ import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
+import fastifyStatic from '@fastify/static';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 import { prisma, PUERTO, ORIGENES } from './config.js';
 import { autenticar, requiereRoles, requiereModulo } from './auth.js';
@@ -19,6 +22,7 @@ import rutasAcademico from './routes/academico.js';
 import rutasAdmin from './routes/admin.js';
 import rutasDocumentosIngreso from './routes/documentos.js';
 import rutasDirector from './routes/director.js';
+import rutasUploads from './routes/uploads.js';
 
 const app = Fastify({
   logger: process.env.LOG_LEVEL
@@ -38,7 +42,22 @@ if (!process.env.JWT_SECRET) {
 }
 
 /* Cabeceras de seguridad (se desactiva CSP: la API solo sirve JSON y PDF). */
-await app.register(helmet, { contentSecurityPolicy: false });
+/* CSP activa: si algún contenido inyectado llegara a renderizarse, el
+   navegador no ejecuta scripts de origen externo ni en línea. La API solo
+   sirve JSON y archivos, así que la política es estricta. */
+await app.register(helmet, {
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", 'data:', 'https:'],
+      connectSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      frameAncestors: ["'none'"],
+    },
+  },
+});
 
 /* Límite global amplio; el login aplica uno más estricto por cuenta. */
 await app.register(rateLimit, {
@@ -55,6 +74,14 @@ await app.register(rateLimit, {
 
 await app.register(cors, { origin: ORIGENES, credentials: true });
 await app.register(jwt, { secret: SECRETO });
+
+/* Servir archivos subidos (portadas, banners, imágenes de curso). */
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+await app.register(fastifyStatic, {
+  root: path.join(__dirname, '../uploads'),
+  prefix: '/uploads/',
+});
 
 /* Decora la instancia para que las rutas usen app.autenticar / app.requiereRoles. */
 app.decorate('autenticar', autenticar);
@@ -79,6 +106,7 @@ await app.register(
     await rutasAdmin(scope);
     await rutasDocumentosIngreso(scope);
     await rutasDirector(scope);
+    await rutasUploads(scope);
   },
   { prefix: '/api' }
 );

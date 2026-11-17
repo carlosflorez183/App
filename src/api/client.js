@@ -82,6 +82,9 @@ export const login = (usuario, password) =>
   api('/auth/login', { method: 'POST', body: { usuario, password } });
 
 export const yo = () => api('/auth/yo');
+export const guardarPerfilServidor = (datos) => api('/auth/perfil', { method: 'PATCH', body: datos });
+export const subirAvatar = (imagen) => api('/auth/avatar', { method: 'PUT', body: { imagen } });
+export const quitarAvatar = () => api('/auth/avatar', { method: 'DELETE' });
 
 /* Acceso rápido de demostración: la lista y el ingreso los sirve el backend
    desde la base de datos (la contraseña nunca llega al navegador). */
@@ -117,8 +120,8 @@ export const actualizarAspirante = (id, cambios) =>
   api(`/admisiones/aspirantes/${id}`, { method: 'PATCH', body: cambios });
 
 /* Matricula al aspirante: crea la ficha de estudiante y su cuenta de acceso. */
-export const matricularAspirante = (id) =>
-  api(`/admisiones/aspirantes/${id}/matricular`, { method: 'POST' });
+export const matricularAspirante = (id, body = {}) =>
+  api(`/admisiones/aspirantes/${id}/matricular`, { method: 'POST', body });
 
 export const actualizarEstudiante = (id, cambios) =>
   api(`/admisiones/estudiantes/${id}`, { method: 'PATCH', body: cambios });
@@ -296,6 +299,9 @@ export const actualizarDocente = (id, cambios) =>
 /* Configuración de un curso del campus (datos + modo de acceso). */
 export const actualizarCurso = (id, cambios) =>
   api(`/cursos/${id}`, { method: 'PATCH', body: cambios });
+
+export const crearCurso = (datos) =>
+  api('/cursos', { method: 'POST', body: datos });
 
 export const listarNominas = () => api('/talento-humano/nominas');
 /* La nómina la genera Contabilidad; Talento Humano solo la consulta. */

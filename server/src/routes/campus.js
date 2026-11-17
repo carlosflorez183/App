@@ -5,15 +5,17 @@
 import { prisma } from '../config.js';
 import { PERIODO_CAMPUS } from '../periodos.js';
 import { corteDesdeEntregas, cortesDe, definitivaDe, estadoDe, resumenCorte } from '../calificaciones.js';
+import { sanearHtml } from '../sanitizar.js';
 
 export default async function rutasCampus(app) {
-  const guard = { preHandler: [app.autenticar, app.requiereRoles('estudiante', 'profesor', 'admin')] };
+  const guard = { preHandler: [app.autenticar, app.requiereRoles('estudiante', 'profesor', 'admin', 'asistente')] };
 
   app.get('/cursos', guard, async (req) => {
     const where = {};
     if (req.usuario.role === 'profesor' && req.usuario.id) {
+      /* Sin registro de docente vinculado no se ve ningun curso. */
       const docente = await prisma.docente.findFirst({ where: { usuarioId: req.usuario.id } });
-      if (docente) where.docenteId = docente.id;
+      where.docenteId = docente?.id ?? '__ninguno__';
     } else if (req.usuario.role === 'estudiante' && req.usuario.id) {
       /* Un estudiante solo ve los cursos en los que está inscrito. Sin este
          filtro, una cuenta recién creada veía las asignaturas de todos, como
@@ -35,6 +37,52 @@ export default async function rutasCampus(app) {
     return cursos;
   });
 
+  /* Crear un curso. Lo hacen el superadmin y los asistentes. El código del
+     curso debe ser único; el docente se puede asignar aquí o después. */
+  app.post('/cursos', { preHandler: [app.autenticar, app.requiereRoles('admin', 'asistente')] }, async (req, reply) => {
+    const { codigo, nombre, grupo, programaId, cupo, semestre, periodo, docenteId, resumen, descripcion, modoAcceso, formato } = req.body || {};
+    const codigoLimpio = String(codigo || '').trim().toUpperCase();
+    const nombreLimpio = String(nombre || '').trim();
+    if (!codigoLimpio) return reply.code(400).send({ error: 'El código del curso es obligatorio' });
+    if (!nombreLimpio) return reply.code(400).send({ error: 'El nombre del curso es obligatorio' });
+
+    const repetido = await prisma.curso.findFirst({
+      where: { codigo: codigoLimpio, grupo: grupo || 'A', periodo: periodo || PERIODO_CAMPUS },
+      select: { id: true },
+    });
+    if (repetido) {
+      return reply.code(409).send({ error: `Ya existe el curso ${codigoLimpio} grupo ${grupo || 'A'} en el periodo ${periodo || PERIODO_CAMPUS}` });
+    }
+
+    let docente = null;
+    if (docenteId) {
+      docente = await prisma.docente.findUnique({ where: { id: String(docenteId) } });
+      if (!docente) return reply.code(400).send({ error: 'El docente indicado no existe' });
+    }
+
+    const creado = await prisma.curso.create({
+      data: {
+        codigo: codigoLimpio,
+        nombre: nombreLimpio,
+        grupo: grupo || 'A',
+        ...(programaId ? { programa: { connect: { id: Number(programaId) } } } : {}),
+        cupo: cupo ? Number(cupo) : 30,
+        semestre: semestre ? Number(semestre) : null,
+        periodo: periodo || PERIODO_CAMPUS,
+        ...(docente ? { docente: { connect: { id: docente.id } } } : {}),
+        // `profesor` es obligatorio en el modelo: sin docente queda como pendiente.
+        profesor: docente?.nombre || 'Por asignar',
+        resumen: resumen ? sanearHtml(resumen) : null,
+        descripcion: descripcion ? sanearHtml(descripcion) : null,
+        modoAcceso: modoAcceso || 'auto',
+        formato: formato || 'secciones',
+        activo: true,
+        visible: true,
+      },
+    });
+    return reply.code(201).send(creado);
+  });
+
   /* El detalle de curso también se blinda: si es profesor, debe ser su curso. */
   app.get('/cursos/:id', guard, async (req, reply) => {
     const id = Number(req.params.id);
@@ -51,7 +99,9 @@ export default async function rutasCampus(app) {
     if (!curso) return reply.code(404).send({ error: 'Curso no encontrado' });
     if (req.usuario.role === 'profesor' && req.usuario.id) {
       const docente = await prisma.docente.findFirst({ where: { usuarioId: req.usuario.id } });
-      if (docente && curso.docenteId && curso.docenteId !== docente.id) {
+      /* Un profesor solo ve cursos que tenga asignados. Un curso sin docente
+         no es visible para profesores. */
+      if (!docente || curso.docenteId !== docente.id) {
         return reply.code(403).send({ error: 'Este curso no le fue asignado' });
       }
     }
@@ -88,7 +138,7 @@ export default async function rutasCampus(app) {
   /* Los estudiantes consultan; solo profesor y admin escriben. Un profesor
      solo puede escribir en SUS cursos, no en los de otro docente. */
   async function esTitular(req, cursoId) {
-    if (req.usuario.role === 'admin') return true;
+    if (req.usuario.role === 'admin' || req.usuario.role === 'asistente') return true;
     if (req.usuario.role !== 'profesor') return false;
     const docente = await prisma.docente.findFirst({ where: { usuarioId: req.usuario.id } });
     if (!docente) return false;
@@ -115,7 +165,7 @@ export default async function rutasCampus(app) {
      decírselo a nadie. Ahora la asignan el administrador y la dirección
      (rectoría), que es quien reparte la carga académica. */
   const puedeAsignarDocente = {
-    preHandler: [app.autenticar, app.requiereRoles('admin', 'rectoria')],
+    preHandler: [app.autenticar, app.requiereRoles('admin', 'asistente', 'rectoria')],
   };
 
   /* Todos los cursos con su docente, para la pantalla de reparto. La lista no
@@ -211,8 +261,8 @@ export default async function rutasCampus(app) {
     if (bannerUrl !== undefined) data.bannerUrl = bannerUrl || null;
     if (imagenUrl !== undefined) data.imagenUrl = imagenUrl || null;
     if (formato !== undefined) data.formato = formato;
-    if (resumen !== undefined) data.resumen = resumen;
-    if (descripcion !== undefined) data.descripcion = descripcion;
+    if (resumen !== undefined) data.resumen = sanearHtml(resumen);
+    if (descripcion !== undefined) data.descripcion = sanearHtml(descripcion);
     if (visible !== undefined) data.visible = !!visible;
     if (activo !== undefined) data.activo = !!activo;
     if (fechaInicio !== undefined) data.fechaInicio = fechaInicio ? new Date(fechaInicio) : null;
@@ -317,7 +367,7 @@ export default async function rutasCampus(app) {
         titulo: String(titulo).trim(),
         tipo,
         corte: Number(corte) || 1,
-        descripcion: descripcion ? String(descripcion).trim() : null,
+        descripcion: descripcion ? sanearHtml(String(descripcion).trim()) : null,
         puntos: puntaje,
         fechaEntrega: entrega,
         fechaInicio: apertura,
@@ -361,7 +411,7 @@ export default async function rutasCampus(app) {
      alumno se encontraba con la lista vacía y sin ninguna fecha, sin
      explicación de por qué. */
   const lecturaAsistencia = {
-    preHandler: [app.autenticar, app.requiereRoles('estudiante', 'profesor', 'admin'), puedeVerRoster],
+    preHandler: [app.autenticar, app.requiereRoles('estudiante', 'profesor', 'admin', 'asistente'), puedeVerRoster],
   };
 
   app.get('/cursos/:cursoId/asistencias', lecturaAsistencia, async (req, reply) => {
@@ -513,7 +563,7 @@ export default async function rutasCampus(app) {
   /* El docente consulta; el estudiante entrega en SU actividad; el docente
      titular califica. Cada ruta repite el filtro de titular cuando hace
      falta, porque no todas pasan por el preHandler `docente`. */
-  const lectura = { preHandler: [app.autenticar, app.requiereRoles('estudiante', 'profesor', 'admin')] };
+  const lectura = { preHandler: [app.autenticar, app.requiereRoles('estudiante', 'profesor', 'admin', 'asistente')] };
 
   /* El base64 del archivo pesa y la interfaz nunca lo necesita: la UI pide el
      contenido por separado a .../entregas/:estudianteId/archivo. */
@@ -914,7 +964,7 @@ export default async function rutasCampus(app) {
   }
 
   const lecturaRoster = {
-    preHandler: [app.autenticar, app.requiereRoles('estudiante', 'profesor', 'admin'), puedeVerRoster],
+    preHandler: [app.autenticar, app.requiereRoles('estudiante', 'profesor', 'admin', 'asistente'), puedeVerRoster],
   };
 
   /* La lista de alumnos del curso con sus notas. Solo el docente titular: el
@@ -1328,7 +1378,7 @@ export default async function rutasCampus(app) {
   });
 
   /* Buscador unificado estilo Moodle: buscar por nombre, correo o documento. */
-  app.get('/usuarios/buscar', { preHandler: [app.autenticar, app.requiereRoles('admin', 'director')] }, async (req) => {
+  app.get('/usuarios/buscar', { preHandler: [app.autenticar, app.requiereRoles('admin', 'asistente', 'director')] }, async (req) => {
     const q = String(req.query?.q || '').trim().toLowerCase();
     const cursoId = req.query?.cursoId ? Number(req.query.cursoId) : null;
     if (!q || q.length < 2 || q.length > 80) return [];
@@ -1446,7 +1496,7 @@ export default async function rutasCampus(app) {
   });
 
   /* Configuración completa del curso para configcurso (director/admin). */
-  app.get('/cursos/:id/configcurso', { preHandler: [app.autenticar, app.requiereRoles('admin', 'director')] }, async (req, reply) => {
+  app.get('/cursos/:id/configcurso', { preHandler: [app.autenticar, app.requiereRoles('admin', 'asistente', 'director')] }, async (req, reply) => {
     const id = Number(req.params.id);
     const curso = await prisma.curso.findUnique({ where: { id }, include: { programa: true } });
     if (!curso) return reply.code(404).send({ error: 'Curso no encontrado' });
@@ -1543,7 +1593,7 @@ export default async function rutasCampus(app) {
   });
 
   /* Inscribir usuario unificado: estudiante o docente titular. */
-  app.post('/cursos/:id/inscribir-usuario', { preHandler: [app.autenticar, app.requiereRoles('admin', 'director')] }, async (req, reply) => {
+  app.post('/cursos/:id/inscribir-usuario', { preHandler: [app.autenticar, app.requiereRoles('admin', 'asistente', 'director')] }, async (req, reply) => {
     const id = Number(req.params.id);
     const curso = await prisma.curso.findUnique({ where: { id } });
     if (!curso) return reply.code(404).send({ error: 'Curso no encontrado' });

@@ -80,4 +80,7 @@ export const ACCESO_POR_ROL = {
   talento_humano: ['talento-humano', 'notificaciones', 'perfil'],
   contabilidad: ['contabilidad', 'notificaciones', 'perfil'],
   director: ['director', 'notificaciones', 'perfil'],
+  /* Asistente de sistemas / auxiliar: gestiona cursos, usuarios y soporte.
+     No tiene acceso a la configuración protegida del superadmin. */
+  asistente: ['admin', 'notificaciones', 'perfil'],
 };

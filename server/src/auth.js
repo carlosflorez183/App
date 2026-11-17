@@ -28,7 +28,7 @@ export const publico = (u) => ({
      alumno está en proceso de ingreso (sin documentos validados) o ya es
      matriculado, y con eso arma el menú y habilita la matrícula. */
   estudiante: u.estudiante
-    ? { id: u.estudiante.id, estado: u.estudiante.estado, documentos: u.estudiante.documentos }
+    ? { id: u.estudiante.id, estado: u.estudiante.estado, documentos: u.estudiante.documentos, financiacion: u.estudiante.financiacion, cupoBrilla: u.estudiante.cupoBrilla, tieneCajaCompensacion: u.estudiante.tieneCajaCompensacion }
     : null,
 });
 
@@ -36,13 +36,13 @@ export const publico = (u) => ({
 export async function autenticar(req) {
   try {
     const payload = await req.jwtVerify();
-    const u = await prisma.usuario.findUnique({
-      where: { usuario: payload.sub },
-      include: {
-        programa: true,
-        estudiante: { select: { id: true, estado: true, documentos: true } },
-      },
-    });
+      const u = await prisma.usuario.findUnique({
+        where: { usuario: payload.sub },
+        include: {
+          programa: true,
+          estudiante: { select: { id: true, estado: true, documentos: true, financiacion: true, cupoBrilla: true, tieneCajaCompensacion: true } },
+        },
+      });
     if (!u || !u.activo) throw new Error('Usuario inactivo');
     req.usuario = u;
   } catch {

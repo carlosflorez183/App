@@ -263,8 +263,16 @@ img { max-width: 100%; }
 .form-label { display:block;font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:5px; }
 .form-control { width:100%;border:1.5px solid var(--line-strong);border-radius:10px;padding:9px 12px;font-size:13.5px;color:var(--ink);background:var(--surface);transition:border-color .2s,box-shadow .2s;outline:none; }
 .form-control:focus { border-color:var(--cul-blue);box-shadow:0 0 0 3px rgba(6,70,140,.12); }
-.form-control::placeholder { color:var(--muted-2); }
-select.form-control { appearance:auto; }
+select.form-control {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300116f' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 15px;
+  padding-right: 36px;
+}
 
 /* ============================================================
    BADGES / STATUS

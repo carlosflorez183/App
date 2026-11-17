@@ -25,8 +25,17 @@ export default function ModuleLayout({
   // Cuando la navegación vive en el Sidebar, el módulo no dibuja la barra de
   // pestañas: solo la usa como lista de secciones válidas.
   hideTabs = false,
+  // Contenido a sangre completa (pega con el sidebar y la Topbar). Las páginas
+  // que lo usan se encargan de su propio aire interior.
+  flush = false,
   // Muestra el nombre de la sección activa como subtítulo del Topbar.
   titleFromTab = false,
+  // Dentro del módulo, el sidebar muestra una sola entrada (el módulo) en
+  // lugar de todas sus secciones. Solo lo usa el Panel de Administración.
+  colapsarSidebar = false,
+  rutaModulo = null,
+  seccionColapso = null,
+  seccionesOcultas = [],
 }) {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -99,10 +108,17 @@ export default function ModuleLayout({
   const markRead = (n) => marcarLeida(n);
 
   return (
-    <div className="app-wrap">
+    <div className="app-wrap admin-shell">
       <Sidebar
         currentView=""
         currentTab=""
+        compactModuleNav={colapsarSidebar || (tabs.length > 0 && !hideTabs)}
+        compactModuleLabel={title}
+        compactModulePath={colapsarSidebar ? rutaModulo : null}
+        collapseModuleNav={colapsarSidebar}
+        collapseSectionPath={colapsarSidebar ? seccionColapso : null}
+        seccionesOcultas={seccionesOcultas}
+        hideStudentSections={false}
         onNavigate={handleNavigate}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -123,46 +139,61 @@ export default function ModuleLayout({
           onOpenNotif={handleOpenNotif}
         />
 
-        <div className="main-content">
-          {tabs.length > 0 && !hideTabs && (
-            <div
-              className="t-tabs"
-              role="tablist"
-              aria-label={`Secciones de ${title}`}
-              style={{ display: 'flex', gap: 6, marginBottom: 18, flexWrap: 'wrap' }}
-            >
-              {tabs.map((t, idx) => (
-                <button
-                  key={t.key}
-                  id={`tab-${t.key}`}
-                  type="button"
-                  role="tab"
-                  aria-selected={current === t.key}
-                  aria-controls={`panel-${t.key}`}
-                  tabIndex={current === t.key ? 0 : -1}
-                  className={`t-btn ${current === t.key ? 'active' : ''}`}
-                  onClick={() => setTab(t.key)}
-                  onKeyDown={(e) => moverTab(e, idx)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+        <div className={`main-content${tabs.length > 0 && !hideTabs ? ' has-admin-tabs' : ''}${flush ? ' module-flush' : ''}`}>
+          {tabs.length > 0 && !hideTabs ? (
+            <div className="admin-modern">
+              <header className="admin-modern-top">
+                <div className="admin-modern-inner">
+                  <nav
+                    className="admin-modern-tabs"
+                    role="tablist"
+                    aria-label={`Secciones de ${title}`}
+                  >
+                    {tabs.map((t, idx) => (
+                      <button
+                        key={t.key}
+                        id={`tab-${t.key}`}
+                        type="button"
+                        role="tab"
+                        aria-selected={current === t.key}
+                        aria-controls={`panel-${t.key}`}
+                        tabIndex={current === t.key ? 0 : -1}
+                        className={`admin-modern-tab${current === t.key ? ' is-active' : ''}`}
+                        onClick={() => setTab(t.key)}
+                        onKeyDown={(e) => moverTab(e, idx)}
+                      >
+                        {t.icon ? <Icon name={t.icon} size={16} /> : null}
+                        {t.label}
+                      </button>
+                    ))}
+                  </nav>
+                </div>
+              </header>
+
+              <main className="admin-modern-main admin-modern-inner">
+                <div
+                  role="tabpanel"
+                  id={`panel-${current}`}
+                  aria-labelledby={`tab-${current}`}
                 >
-                   {t.icon ? <Icon name={t.icon} size={15} /> : null}
-                  {t.label}
-                </button>
-              ))}
+                  {typeof children === 'function'
+                    ? children({ tab: current, setTab, data, setData, recargar })
+                    : children}
+                </div>
+              </main>
             </div>
+          ) : (
+            <>
+              <div>
+                {typeof children === 'function'
+                  ? children({ tab: current, setTab, data, setData, recargar })
+                  : children}
+              </div>
+              {aside}
+            </>
           )}
 
-          <div
-            role={tabs.length > 0 && !hideTabs ? 'tabpanel' : undefined}
-            id={tabs.length > 0 && !hideTabs ? `panel-${current}` : undefined}
-            aria-labelledby={tabs.length > 0 && !hideTabs ? `tab-${current}` : undefined}
-          >
-            {typeof children === 'function'
-              ? children({ tab: current, setTab, data, setData, recargar })
-              : children}
-          </div>
-
-          {aside}
+          {tabs.length > 0 && !hideTabs ? null : aside}
         </div>
       </div>
 

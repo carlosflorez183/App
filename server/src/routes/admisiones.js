@@ -8,6 +8,7 @@
    ============================================= */
 import { prisma } from '../config.js';
 import { asegurarCuentaEstudiante, siguienteCodigoEstudiante } from '../cuentas.js';
+import { notificarAspiranteAdmitido } from '../email.js';
 
 /* Suma los contadores de un groupBy de Prisma. */
 const sumar = (rows) => rows.reduce((a, r) => a + r._count._all, 0);
@@ -135,6 +136,11 @@ export default async function rutasAdmisiones(app) {
       where: { id: Number(req.params.id) },
       include: { estudiante: true },
     });
+    const body = req.body || {};
+    const financiacion = body.financiacion !== undefined ? body.financiacion : undefined;
+    const cupoBrilla = body.cupoBrilla !== undefined ? !!body.cupoBrilla : undefined;
+    const tieneCajaCompensacion = body.tieneCajaCompensacion !== undefined ? !!body.tieneCajaCompensacion : undefined;
+    const observacionFinanciera = body.observacionFinanciera !== undefined ? (body.observacionFinanciera || null) : undefined;
     if (!aspirante) return reply.code(404).send({ error: 'Aspirante no encontrado' });
 
     /* Caso más frecuente: el registro público ya dejó la ficha en
@@ -152,9 +158,14 @@ export default async function rutasAdmisiones(app) {
         programaId: ficha.programaId,
         semestre: ficha.semestre,
       });
+      const dataUpdate = { estado: 'matriculado' };
+      if (financiacion !== undefined) dataUpdate.financiacion = financiacion || null;
+      if (cupoBrilla !== undefined) dataUpdate.cupoBrilla = cupoBrilla;
+      if (tieneCajaCompensacion !== undefined) dataUpdate.tieneCajaCompensacion = tieneCajaCompensacion;
+      if (observacionFinanciera !== undefined) dataUpdate.observacionFinanciera = observacionFinanciera;
       const estudiante = await prisma.estudiante.update({
         where: { id: ficha.id },
-        data: { estado: 'matriculado' },
+        data: dataUpdate,
       });
       return {
         ok: true,
@@ -197,11 +208,30 @@ export default async function rutasAdmisiones(app) {
           fechaIngreso: new Date(),
           aspiranteId: aspirante.id,
           usuarioId: cuenta.id,
+          financiacion: financiacion || null,
+          cupoBrilla: !!cupoBrilla,
+          tieneCajaCompensacion: !!tieneCajaCompensacion,
+          observacionFinanciera: observacionFinanciera || null,
         },
         include: { programa: { select: { id: true, nombre: true } } },
       });
       return { estudiante, usuario, password };
     });
+
+    // Notificación por correo al admitir/matricular
+    const cuentaEmail = await prisma.usuario.findUnique({
+      where: { usuario: resultado.usuario },
+      select: { email: true },
+    }).catch(() => null);
+
+    if (cuentaEmail?.email) {
+      notificarAspiranteAdmitido({
+        email: cuentaEmail.email,
+        nombre: aspirante.nombre,
+        programa: aspirante.programa?.nombre,
+        codigo: resultado.estudiante.id,
+      }).catch((err) => console.error('Error enviando correo de admisión:', err));
+    }
 
     return {
       ok: true,
@@ -487,15 +517,32 @@ export default async function rutasAdmisiones(app) {
       return reply.code(409).send({ error: 'El estudiante está retirado. Solo admite constancia de retiro.' });
     }
 
+    const existente = await prisma.certificadoEmitido.findFirst({
+      where: {
+        estudianteId,
+        tipo,
+        estado: 'en_proceso',
+      },
+      orderBy: { id: 'desc' },
+    });
+
+    if (existente) {
+      const actualizado = await prisma.certificadoEmitido.update({
+        where: { id: existente.id },
+        data: { estado: 'entregado', fecha: new Date() },
+      });
+      return actualizado;
+    }
+
     const creado = await prisma.certificadoEmitido.create({
-      data: { estudianteId, matricula: e.id, tipo, estado: 'entregado', fecha: new Date() },
+      data: { estudianteId, matricula: e.id, tipo, estado: 'entregado', fecha: new Date(), solicitado: new Date() },
     });
     return reply.code(201).send(creado);
   });
 
   /* ── Estudiantes: estado, documentos y datos básicos ────────────────── */
   app.patch('/admisiones/estudiantes/:id', guard, async (req, reply) => {
-    const { estado, documentos, promedio, semestre } = req.body || {};
+    const { estado, documentos, promedio, semestre, financiacion, cupoBrilla, tieneCajaCompensacion, observacionFinanciera } = req.body || {};
     const existe = await prisma.estudiante.findUnique({ where: { id: req.params.id } });
     if (!existe) return reply.code(404).send({ error: 'Estudiante no encontrado' });
 
@@ -504,6 +551,10 @@ export default async function rutasAdmisiones(app) {
     if (documentos !== undefined) data.documentos = documentos;
     if (promedio !== undefined) data.promedio = promedio;
     if (semestre !== undefined) data.semestre = semestre;
+    if (financiacion !== undefined) data.financiacion = financiacion || null;
+    if (cupoBrilla !== undefined) data.cupoBrilla = !!cupoBrilla;
+    if (tieneCajaCompensacion !== undefined) data.tieneCajaCompensacion = !!tieneCajaCompensacion;
+    if (observacionFinanciera !== undefined) data.observacionFinanciera = observacionFinanciera || null;
 
     /* Al pasar un estudiante sin cuenta a matriculado/activo se le genera la
        cuenta de acceso y se devuelven las credenciales temporales una vez. */

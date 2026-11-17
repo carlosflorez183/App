@@ -10,6 +10,9 @@
    ============================================= */
 import React, { useCallback, useEffect, useState } from 'react';
 import { asignarDocenteCurso, listarAsignacionDocentes } from '../api/client';
+import Select from './Select';
+import Avatar from './Avatar';
+import TarjetasRegistro from './TarjetasRegistro';
 
 const th = { textAlign: 'left', padding: '10px 12px', fontSize: 12, fontWeight: 700, color: '#6f6b62', borderBottom: '1px solid #e5e2da' };
 const td = { padding: '10px 12px', fontSize: 13, borderBottom: '1px solid #f0eee9' };
@@ -102,7 +105,7 @@ export default function AsignacionDocentes() {
 
       {cursos && cursos.length > 0 && (
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table className="tabla-datos">
             <thead>
               <tr>
                 <th style={th}>Curso</th>

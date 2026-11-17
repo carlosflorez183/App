@@ -2,6 +2,9 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import {
   login as loginApi,
   yo as yoApi,
+  guardarPerfilServidor,
+  subirAvatar,
+  quitarAvatar,
   cuentasDemo as cuentasDemoApi,
   loginDemo as loginDemoApi,
   cambiarPasswordPropia,
@@ -13,7 +16,8 @@ import {
 export const ROLE_LABELS = {
   estudiante: 'Estudiante',
   profesor: 'Docente',
-  admin: 'Administrador',
+  admin: 'Superadministrador',
+  asistente: 'Asistente de sistemas',
   rectoria: 'Rectoría',
   talento_humano: 'Talento Humano',
   contabilidad: 'Contabilidad',
@@ -49,6 +53,7 @@ const sesionDeServidor = (u) => {
     programaId: u.programaId ?? null,
     semester: u.semestre,
     department: u.departamento,
+    avatar: u.avatar || null,
     avatarClass: u.avatarClass,
     debeCambiarPassword: !!u.debeCambiarPassword,
     /* Ficha del estudiante (o null). El menú la usa para saber si está en
@@ -260,7 +265,11 @@ export const AuthProvider = ({ children }) => {
     setUser((prev) => {
       if (!prev) return prev;
       const next = { ...prev, ...patch };
-      if (patch.name) next.avatar = initialsOf(patch.name);
+      if (patch.avatar !== undefined) {
+        next.avatar = patch.avatar;
+      } else if (patch.name && (!prev.avatar || prev.avatar.length <= 4)) {
+        next.avatar = initialsOf(patch.name);
+      }
       guardarSesion(next);
       return next;
     });
@@ -282,11 +291,25 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  /* Guarda el perfil y la foto en el servidor. Como el servidor es la fuente
+     de verdad, la sesión se toma de su respuesta: así la foto nueva aparece en
+     la topbar y en todas las tablas sin recargar. */
+  const aplicarUsuarioServidor = (u) => {
+    const session = sesionDeServidor(u);
+    guardarSesion(session);
+    setUser(session);
+    return session;
+  };
+  const guardarPerfil = async (datos) => aplicarUsuarioServidor(await guardarPerfilServidor(datos));
+  const cambiarFoto = async (imagen) => aplicarUsuarioServidor(await subirAvatar(imagen));
+  const quitarFoto = async () => aplicarUsuarioServidor(await quitarAvatar());
+
   return (
     <AuthContext.Provider
       value={{
         user, token, offline, login, loginDemo, demoUsers, logout, updateProfile,
         cambiarPassword, refrescarSesion, roleLabels: ROLE_LABELS,
+        guardarPerfil, cambiarFoto, quitarFoto,
       }}
     >
       {children}

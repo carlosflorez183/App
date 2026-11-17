@@ -40,8 +40,10 @@ export default async function rutasBootstrap(app) {
        ven el total, como antes. */
     let filtroCursos = {};
     if (req.usuario.role === 'profesor') {
+      /* Sin registro de docente vinculado no se ve ningun curso (antes veia
+         todos). */
       const docente = await prisma.docente.findFirst({ where: { usuarioId: req.usuario.id } });
-      if (docente) filtroCursos = { docenteId: docente.id };
+      filtroCursos = { docenteId: docente?.id ?? '__ninguno__' };
     } else if (req.usuario.role === 'estudiante') {
       /* Un estudiante solo ve los cursos en los que está inscrito. Una cuenta
          nueva (o en el ciclo de admisión) no tiene inscripciones, así que su
@@ -379,6 +381,10 @@ export default async function rutasBootstrap(app) {
         usuarioId: e.usuarioId || null,
         usuario: e.usuario?.usuario || null,
         usuarioActivo: e.usuario?.activo ?? null,
+        financiacion: e.financiacion || null,
+        cupoBrilla: !!e.cupoBrilla,
+        tieneCajaCompensacion: !!e.tieneCajaCompensacion,
+        observacionFinanciera: e.observacionFinanciera || null,
         pagos: e.pagos.map((p) => ({
           id: p.id,
           concepto: p.concepto,

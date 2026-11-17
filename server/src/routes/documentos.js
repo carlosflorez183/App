@@ -9,9 +9,8 @@
    ============================================= */
 import { prisma } from '../config.js';
 
-/* Tope de un archivo subido: ~4 MB. Es el mismo criterio que usa el campus
-   para el material de las actividades. */
-const MAX_B64 = 5_600_000;
+/* Tope de un archivo subido: 10 MB. */
+const MAX_B64 = 14_500_000;
 
 /* Ficha del estudiante dueño de la sesión. */
 async function estudianteDe(req, reply) {
@@ -76,7 +75,7 @@ export default async function rutasDocumentosIngreso(app) {
      el de 4 MB que valida el handler. */
   app.post('/mis-documentos/:requisitoId', {
     ...soloEstudiante,
-    bodyLimit: 8_000_000,
+    bodyLimit: 16_000_000,
   }, async (req, reply) => {
     const estudiante = await estudianteDe(req, reply);
     if (!estudiante) return;
@@ -92,7 +91,7 @@ export default async function rutasDocumentosIngreso(app) {
       return reply.code(400).send({ error: 'Falta el archivo (archivoB64)' });
     }
     if (archivoB64.length > MAX_B64) {
-      return reply.code(413).send({ error: 'El archivo supera el máximo de 4 MB' });
+      return reply.code(413).send({ error: 'El archivo supera el máximo permitido de 10 MB' });
     }
 
     /* Al volver a subir se limpia la observación y el veredicto anterior:

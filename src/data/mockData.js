@@ -347,7 +347,7 @@ export const INITIAL_DATA = {
     /* Ubicación académica: los tres son asignaturas de 6º semestre de
        Ingeniería de Sistemas (programaId 1). `modoAcceso` define quién
        inscribe; `cupo` limita la matrícula automática. */
-    { id:1, nombre:'Ingeniería de Software',       codigo:'IS-602', profesor:'Dra. Laura Sánchez', grupo:'A', estudiantes:32, icon:'cohete', color:'linear-gradient(135deg,#6d28d9,#8b5cf6)', progreso:50, programaId:1, semestre:6, materiaId:606, modoAcceso:'manual', cupo:32 },
+    { id:1, nombre:'Ingeniería de Software',       codigo:'IS-602', profesor:'Dra. Laura Sánchez', grupo:'A', estudiantes:32, icon:'laptop', color:'linear-gradient(135deg,#6d28d9,#8b5cf6)', progreso:50, programaId:1, semestre:6, materiaId:606, modoAcceso:'manual', cupo:32 },
     { id:2, nombre:'Redes Computacionales I',     codigo:'IS-603', profesor:'Ing. Suárez',   grupo:'B', estudiantes:28, icon:'globo', color:'linear-gradient(135deg,#0369a1,#0ea5e9)', progreso:65, programaId:1, semestre:6, materiaId:607, modoAcceso:'manual', cupo:28 },
     { id:3, nombre:'Arquitectura del Computador',  codigo:'IS-601', profesor:'Dr. Ramírez',   grupo:'A', estudiantes:30, icon:'portatil', color:'linear-gradient(135deg,#065f46,#10b981)', progreso:100, programaId:1, semestre:6, materiaId:601, modoAcceso:'auto', cupo:30 },
   ],
@@ -395,11 +395,14 @@ export const INITIAL_DATA = {
   //   destino.vista/tab -> vista del Dashboard, destino.ruta/tab -> ruta propia del módulo,
   //   destino.cursoId -> detalle de un curso.
   notificaciones: [
-    /* ---------- Estudiante ---------- */
-    { id:101, roles:['estudiante'], titulo:'Nota publicada', msg:'Quiz SQL: 27/30 puntos', tipo:'success', tiempo:'Hace 2 horas', leida:false, destino:{ vista:'academico', tab:'notas' } },
-    { id:102, roles:['estudiante'], titulo:'Tarea por vencer', msg:'Taller Normalización 3FN vence el 25 ago', tipo:'warning', tiempo:'Hace 5 horas', leida:false, destino:{ vista:'lms', tab:'tareas', filtroTareas:'pendientes' } },
-    { id:103, roles:['estudiante'], titulo:'Nuevo anuncio', msg:'Ingeniería de Software: Cambio de horario', tipo:'info', tiempo:'Hace 1 día', leida:false, destino:{ cursoId:1 } },
-    { id:104, roles:['estudiante'], titulo:'Volante disponible', msg:'Matrícula 2026-2 ya está disponible', tipo:'info', tiempo:'Hace 3 días', leida:true, destino:{ vista:'academico', tab:'pagos', filtroPagos:'pendientes' } },
+    /* ---------- Estudiante activo (ya matriculado) ---------- */
+    { id:101, roles:['estudiante_activo'], titulo:'Nota publicada', msg:'Quiz SQL: 27/30 puntos', tipo:'success', tiempo:'Hace 2 horas', leida:false, destino:{ vista:'academico', tab:'notas' } },
+    { id:102, roles:['estudiante_activo'], titulo:'Tarea por vencer', msg:'Taller Normalización 3FN vence el 25 ago', tipo:'warning', tiempo:'Hace 5 horas', leida:false, destino:{ vista:'lms', tab:'tareas', filtroTareas:'pendientes' } },
+    { id:103, roles:['estudiante_activo'], titulo:'Nuevo anuncio', msg:'Ingeniería de Software: Cambio de horario', tipo:'info', tiempo:'Hace 1 día', leida:false, destino:{ cursoId:1 } },
+    { id:104, roles:['estudiante_activo'], titulo:'Volante disponible', msg:'Matrícula 2026-2 ya está disponible', tipo:'info', tiempo:'Hace 3 días', leida:true, destino:{ vista:'academico', tab:'pagos', filtroPagos:'pendientes' } },
+
+    /* ---------- Aspirante / inscrito (en proceso de admisión) ---------- */
+    { id:111, roles:['estudiante_inscrito'], titulo:'Solicitud recibida', msg:'Tu inscripción ha sido registrada correctamente. Te notificaremos el resultado.', tipo:'success', tiempo:'Reciente', leida:false, destino:{} },
 
     /* ---------- Profesor ---------- */
     { id:201, roles:['profesor'], titulo:'Entregas por calificar', msg:'3 submissions sin nota en Bases de Datos', tipo:'warning', tiempo:'Hace 1 hora', leida:false, destino:{ vista:'lms', tab:'tareas', filtroTareas:'entregadas' } },
@@ -599,8 +602,20 @@ export const formatDate = (dateStr) => {
     };
 
 /* Cada rol ve únicamente su propia bandeja. `roles: '*'` (o ausente) hace que la
-   notificación se muestre a todos los roles. */
-export const notificacionesDeRol = (lista, rol) =>
-  (lista || []).filter(
-    (n) => !n.roles || n.roles === '*' || n.roles.includes(rol)
+   notificación se muestre a todos los roles.
+   Para 'estudiante' se distingue entre activo (matriculado) e inscrito (en proceso):
+   - estudiante activo  → roles: ['estudiante_activo']
+   - aspirante inscrito → roles: ['estudiante_inscrito']  (solo ve su notif de bienvenida)
+   El rol real siempre es 'estudiante'; el sub-estado viene de user.estudiante.estado. */
+export const notificacionesDeRol = (lista, rol, estadoEstudiante) => {
+  // Calcular el rol efectivo para notificaciones
+  let rolEfectivo = rol;
+  if (rol === 'estudiante') {
+    rolEfectivo = estadoEstudiante === 'en_inscripcion'
+      ? 'estudiante_inscrito'
+      : 'estudiante_activo';
+  }
+  return (lista || []).filter(
+    (n) => !n.roles || n.roles === '*' || n.roles.includes(rolEfectivo)
   );
+};

@@ -14,3 +14,11 @@ backups
 
 # El build de la API copia server/ y src/data explícitamente.
 server/node_modules
+
+# Archivos de prueba/CI — bloqueados en nginx, no necesarios en la imagen
+smoke.html
+prueba-acciones.html
+src/smoke.jsx
+src/prueba-acciones.jsx
+scripts/smoke.mjs
+scripts/acciones.mjs

@@ -1,15 +1,10 @@
-/* =============================================
-   Módulo de Admisiones y Registro.
-   Cubre el ciclo completo del estudiante: admisión,
-   inscripción/matrícula, expediente, estado de
-   cuenta y emisión de certificados.
-   Los cambios se guardan en el localStorage
-   compartido del demo.
-   ============================================= */
 import React, { useState } from 'react';
 import Icon, { Ico } from '../components/Icon';
 import ModuleLayout from '../components/ModuleLayout';
 import { EstadoVacio } from '../components/Estado';
+import Select from '../components/Select';
+import Avatar from '../components/Avatar';
+import TarjetasRegistro from '../components/TarjetasRegistro';
 import {
   actualizarAspirante,
   actualizarEstudiante,
@@ -59,12 +54,49 @@ const input = {
   fontSize: 13, background: '#fff', color: '#14110c',
 };
 
+/* Helper: iniciales de un nombre para avatar chips */
+const initials = (nombre) => {
+  if (!nombre) return '?';
+  const parts = nombre.trim().split(' ').filter(Boolean);
+  if (parts.length === 1) return parts[0][0].toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+};
+
+/* Helper: color del avatar según hash simple del nombre */
+const avColors = ['av-blue','av-green','av-purple','av-red','av-amber','av-teal','av-indigo','av-orange'];
+const avColor = (str) => avColors[(str || '').split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % avColors.length];
+
+/* FinBadge — badge moderno de financiación */
+const FinBadge = ({ financiacion, cupoBrilla, tieneCajaCompensacion, observacion }) => {
+  const esBrilla  = cupoBrilla || /brilla/i.test(financiacion || '');
+  const esIcetex  = /icetex/i.test(financiacion || '');
+  const esCaja    = tieneCajaCompensacion || /caja/i.test(financiacion || '');
+  const esBeca    = /beca|convenio/i.test(financiacion || '');
+  const esPropio  = !esBrilla && !esIcetex && !esCaja && !esBeca && financiacion && !/sin|no/i.test(financiacion);
+  const sinDef    = !esBrilla && !esIcetex && !esCaja && !esBeca && !esPropio;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
+      {esBrilla  && <span className="fin-badge fin-brilla">🔥 Brilla</span>}
+      {esIcetex  && <span className="fin-badge fin-icetex">🎓 ICETEX</span>}
+      {esCaja    && <span className="fin-badge fin-caja">🏢 Caja Comp.</span>}
+      {esBeca    && <span className="fin-badge fin-beca">🏅 Beca/Convenio</span>}
+      {esPropio  && <span className="fin-badge fin-propio">💵 {financiacion}</span>}
+      {sinDef    && <span className="fin-badge fin-empty">⚠️ Sin definir</span>}
+      {observacion && (
+        <span style={{ fontSize: 10, color: '#6f6b62', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={observacion}>
+          💬 {observacion}
+        </span>
+      )}
+    </div>
+  );
+};
+
 const TONES = {
-  slate:  ['#f0eee9', '#4e4a43'],
-  green:  ['#d8f0e5', '#0a6e4b'],
-  amber:  ['#fbefd6', '#99610e'],
-  red:    ['#ffe0e5', '#c1122c'],
-  blue:   ['#e3f1ff', '#06468c'],
+  slate: ['#f0eee9', '#4e4a43'],
+  green: ['#d8f0e5', '#0a6e4b'],
+  amber: ['#fbefd6', '#99610e'],
+  red: ['#ffe0e5', '#c1122c'],
+  blue: ['#e3f1ff', '#06468c'],
   purple: ['#efe9fb', '#5a37ad'],
 };
 
@@ -115,9 +147,6 @@ const DOC_TONE = { completo: 'green', pendiente: 'amber', incompleto: 'red' };
 const PAGO_TONE = { pagado: 'green', pendiente: 'amber', vencido: 'red' };
 const PAGO_LABEL = { pagado: 'Pagado', pendiente: 'Pendiente', vencido: 'Vencido' };
 
-/* Situación de matrícula del estudiante, para que Admisiones detecte de un
-   vistazo por qué alguien no puede matricularse. Prioriza los bloqueos duros
-   (documentos, cuenta) sobre el financiero. */
 const situacionMatricula = (e) => {
   if (e.estado === 'en_inscripcion' && e.documentos !== 'completo') {
     return { key: 'bloqueado', label: 'Bloqueado por documentos', tone: 'red', motivo: 'Falta validar el expediente de ingreso.' };
@@ -146,10 +175,10 @@ export default function Admisiones() {
   const [estPrograma, setEstPrograma] = useState('todos');
   const [estSemestre, setEstSemestre] = useState('todos');
   const [estSituacion, setEstSituacion] = useState('todas');
+  const [estFinanciacion, setEstFinanciacion] = useState('todas');
+  const [modalFinanciero, setModalFinanciero] = useState(null); // { id, nombre, financiacion, cupoBrilla, tieneCajaCompensacion, observacionFinanciera }
+  const [guardandoFinanciero, setGuardandoFinanciero] = useState(false);
 
-  /* Expediente de documentos de UN inscrito, abierto desde la pestaña
-     Documentos: lo que el alumno subió, el veredicto de cada archivo y la
-     observación que él ve en su portal. */
   const [expediente, setExpediente] = useState(null);   // { estudiante, archivos }
   const [cargandoExpediente, setCargandoExpediente] = useState(false);
   const [obsDraft, setObsDraft] = useState({});         // archivoId -> texto
@@ -159,8 +188,9 @@ export default function Admisiones() {
       title="Admisiones y Registro"
       subtitle="Admisión, inscripción, expedientes, cartera y certificaciones"
       tabs={TABS}
-      hideTabs
       titleFromTab
+      colapsarSidebar
+      rutaModulo="/admisiones"
     >
       {({ tab, setTab, data, setData, recargar }) => {
         const adm = data.admisiones;
@@ -168,9 +198,6 @@ export default function Admisiones() {
         const programas = data.matricula.programas;
         const nombreProg = (id) => programas.find((p) => p.id === id)?.nombre || '—';
         const estudiantePorId = (id) => estudiantes.find((e) => e.id === id);
-        /* Lo que el alumno pidió y todavía no se le entregó. Una solicitud
-           entra como "en_proceso" y el seed viejo usaba "solicitado": cuentan
-           las dos, si no el contador miente y Registro no ve trabajo pendiente. */
         const pendientesCertificado = data.certificadosEmitidos.filter(
           (c) => c.estado === 'solicitado' || c.estado === 'en_proceso',
         ).length;
@@ -231,7 +258,7 @@ export default function Admisiones() {
               aspirantes: d.admisiones.aspirantes.map((a) => (a.id === id ? { ...a, ...cambios } : a)),
             },
           }));
-          actualizarAspirante(id, cambios).catch(() => {}).finally(recargar);
+          actualizarAspirante(id, cambios).catch(() => { }).finally(recargar);
         };
 
         /* ---------- revisión de documentos subidos por los inscritos ---------- */
@@ -269,9 +296,6 @@ export default function Admisiones() {
           }
         };
 
-        /* Marca el expediente completo: es lo que habilita la matrícula del
-           estudiante. El servidor exige que todos los obligatorios estén
-           aprobados. */
         const validarExpediente = async (completo) => {
           try {
             const res = await validarDocumentosEstudiante(expediente.estudiante.id, completo);
@@ -283,8 +307,6 @@ export default function Admisiones() {
           }
         };
 
-        /* Matricula a un aspirante admitido: crea su ficha de estudiante y su
-           cuenta de acceso. Las credenciales temporales se muestran una vez. */
         const matricular = async (a) => {
           try {
             const res = await matricularAspiranteApi(a.id);
@@ -311,7 +333,7 @@ export default function Admisiones() {
               ),
             },
           }));
-          alternarRequisito(doc.id, vigente).catch(() => {}).finally(recargar);
+          alternarRequisito(doc.id, vigente).catch(() => { }).finally(recargar);
         };
 
         const completarInscripcion = async (est) => {
@@ -346,9 +368,6 @@ export default function Admisiones() {
               (c ? `Usuario: ${c.usuario}\nContraseña temporal: ${c.password}\n\nDeberá cambiarla al primer ingreso.` : '')
             );
           } catch (err) {
-            /* No se simula la cuenta: si la API falla, el alta no quedó en la
-               base y mostrarla aquí daría una falsa sensación de éxito que
-               desaparece al recargar. Se informa el error real. */
             setAviso({ ok: false, text: `No se pudo crear la cuenta: ${err.message}` });
           } finally {
             recargar();
@@ -363,16 +382,16 @@ export default function Admisiones() {
             estudiantes: d.estudiantes.map((e) =>
               e.id === estId
                 ? {
-                    ...e,
-                    pagos: e.pagos.map((p) =>
-                      p.id === pagoId ? { ...p, estado: 'pagado', fecha_pago, referencia } : p
-                    ),
-                  }
+                  ...e,
+                  pagos: e.pagos.map((p) =>
+                    p.id === pagoId ? { ...p, estado: 'pagado', fecha_pago, referencia } : p
+                  ),
+                }
                 : e
             ),
           }));
           registrarPagoApi(pagoId, { estado: 'pagado', referencia, fechaPago: fecha_pago })
-            .catch(() => {})
+            .catch(() => { })
             .finally(recargar);
         };
 
@@ -388,9 +407,7 @@ export default function Admisiones() {
             setAviso({ ok: false, text: chequeo.motivo });
             return;
           }
-          /* La tabla se recarga con lo que devuelve la API en vez de inventar una fila
-           aquí: el folio y el id los pone el servidor, y un id inventado haría
-           fallar la descarga del PDF (la ruta busca por id). */
+
           emitirCertificadoApi(est.id, tipo.nombre)
             .then(() => recargar())
             .catch((err) =>
@@ -399,9 +416,6 @@ export default function Admisiones() {
           setAviso({ ok: true, text: `${tipo.nombre} emitido a ${est.nombre} (${est.id}).` });
         };
 
-        /* Descarga desde el registro de Admisiones. El PDF lo arma el servidor
-           con los datos del estudiante, así que lo que se entrega al alumno
-           después es exactamente este documento. */
         const descargarDesdeRegistro = async (certificado) => {
           try {
             const nombre = await descargarCertificado(certificado.id);
@@ -508,91 +522,95 @@ export default function Admisiones() {
 
               <div style={{ ...card, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
                 <input placeholder="Buscar por nombre o documento…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={{ ...input, minWidth: 240 }} />
-                <select value={prog} onChange={(e) => setProg(e.target.value)} style={input}>
-                  <option value="todos">Todos los programas</option>
-                  {programas.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-                </select>
-                <select value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value)} style={input}>
-                  <option value="todos">Todos los estados</option>
-                  <option value="admitido">Admitidos</option>
-                  <option value="en_proceso">En proceso</option>
-                  <option value="rechazado">Rechazados</option>
-                </select>
+                <Select
+                  label="Programa"
+                  value={prog}
+                  onChange={setProg}
+                  groups={[{ options: [
+                    { value: 'todos', label: 'Todos los programas' },
+                    ...programas.map((p) => ({ value: String(p.id), label: p.nombre })),
+                  ] }]}
+                />
+                <Select
+                  label="Estado"
+                  value={filtroEstado}
+                  onChange={setFiltroEstado}
+                  groups={[{ options: [
+                    { value: 'todos', label: 'Todos los estados' },
+                    { value: 'admitido', label: 'Admitidos' },
+                    { value: 'en_proceso', label: 'En proceso' },
+                    { value: 'rechazado', label: 'Rechazados' },
+                  ] }]}
+                />
                 <span style={{ fontSize: 12, color: '#9c988e' }}>{filtrados.length} resultados</span>
               </div>
 
-              <div style={card}>
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr>
-                        <th style={th}>Aspirante</th>
-                        <th style={th}>Programa</th>
-                        <th style={th}>ICFES</th>
-                        <th style={th}>Examen</th>
-                        <th style={th}>Prom.</th>
-                        <th style={th}>Puntaje final</th>
-                        <th style={th}>Documentos</th>
-                        <th style={th}>Estado</th>
-                        <th style={th}>Decisión</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filtrados.map((a) => {
-                        const est = estudiantes.find((e) => e.admisioId === a.id);
-                        return (
-                          <tr key={a.id}>
-                            <td style={td}>
-                              <strong>{a.nombre}</strong><br />
-                              <span style={{ fontSize: 11, color: '#9c988e' }}>{a.documento} · {a.id}</span>
-                              {a.esMenorDeEdad && (
-                                <div style={{ fontSize: 11, marginTop: 4 }}>
-                                  <Badge tone="purple">Menor de edad</Badge>
-                                  {a.responsableNombre && (
-                                    <div style={{ color: '#556a8a', marginTop: 2, fontSize: 10.5 }}>
-                                      {a.responsableParentesco || 'Acudiente'}: {a.responsableNombre} ({a.responsableTelefono})
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                            </td>
-                            <td style={td}>{nombreProg(a.programaId)}</td>
-                            <td style={td}>{a.puntajeIcfes}</td>
-                            <td style={td}>{a.examen}</td>
-                            <td style={td}>{a.promedio.toFixed(2)}</td>
-                            <td style={td}><strong>{puntajeFinal(a)}</strong></td>
-                            <td style={td}><Badge tone={DOC_TONE[a.documentos]}>{a.documentos}</Badge></td>
-                            <td style={td}>
-                              <Badge tone={ESTADO_ASP[a.estado].tone}>{ESTADO_ASP[a.estado].label}</Badge>
-                              {est && <div style={{ fontSize: 11, color: '#0a6e4b', marginTop: 4 }}>Matriculado {est.id}</div>}
-                            </td>
-                            <td style={td}>
-                              <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                                {a.estado === 'admitido' && !est && (
-                                  <button
-                                    className="btn"
-                                    style={{ padding: '5px 9px', fontSize: 11, background: '#d8f0e5', color: '#0a6e4b', border: 'none' }}
-                                    onClick={() => matricular(a)}
-                                  >
-                                    <Icon name="graduacion" size={14} /> Matricular
-                                  </button>
-                                )}
-                                <button className="btn" style={{ padding: '5px 9px', fontSize: 11 }} onClick={() => setAspirante(a.id, { estado: 'admitido' })}>Admitir</button>
-                                <button className="btn" style={{ padding: '5px 9px', fontSize: 11 }} onClick={() => setAspirante(a.id, { estado: 'en_proceso' })}>Proceso</button>
-                                <button className="btn" style={{ padding: '5px 9px', fontSize: 11 }} onClick={() => setAspirante(a.id, { estado: 'rechazado' })}>Rechazar</button>
-                                <button className="btn" style={{ padding: '5px 9px', fontSize: 11 }} onClick={() => setAspirante(a.id, { documentos: a.documentos === 'completo' ? 'pendiente' : 'completo' })}>
-                                  {a.documentos === 'completo' ? <><Icon name="reloj" size={14} /> Docs</> : <>Docs <Icon name="check" size={14} /></>}
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-                {filtrados.length === 0 && <Vacio>Sin resultados para el filtro aplicado.</Vacio>}
+              <div className="reg-lista" style={{ marginTop: 10 }}>
+                {filtrados.map((a) => {
+                  const est = estudiantes.find((e) => e.admisioId === a.id);
+                  return (
+                    <div key={a.id} className="reg-card">
+                      <Avatar nombre={a.nombre} clase={avColor(a.nombre)} tamano={44} radio={22} />
+                      <div className="reg-id">
+                        <div className="reg-nombre">
+                          {a.nombre}
+                          {a.esMenorDeEdad && <Badge tone="purple" style={{ marginLeft: 6 }}>Menor de edad</Badge>}
+                        </div>
+                        <div className="reg-sub">{a.documento} · {a.id}</div>
+                        {a.esMenorDeEdad && a.responsableNombre && (
+                          <div style={{ fontSize: 11, color: '#556a8a', marginTop: 2 }}>
+                            {a.responsableParentesco || 'Acudiente'}: {a.responsableNombre} ({a.responsableTelefono})
+                          </div>
+                        )}
+                      </div>
+                      <div className="reg-datos">
+                        <div className="reg-dato">
+                          <span className="reg-etq">Programa</span>
+                          <span>{nombreProg(a.programaId)}</span>
+                        </div>
+                        <div className="reg-dato">
+                          <span className="reg-etq">ICFES</span>
+                          <span style={{ fontWeight: 700 }}>{a.puntajeIcfes}</span>
+                        </div>
+                        <div className="reg-dato">
+                          <span className="reg-etq">Puntaje</span>
+                          <span style={{ fontWeight: 900, color: puntajeFinal(a) >= 70 ? '#0a6e4b' : puntajeFinal(a) >= 50 ? '#99610e' : '#c1122c' }}>
+                            {puntajeFinal(a)}
+                          </span>
+                        </div>
+                        <div className="reg-dato">
+                          <span className="reg-etq">Documentos</span>
+                          <Badge tone={DOC_TONE[a.documentos]}>{a.documentos}</Badge>
+                        </div>
+                      </div>
+                      <div className="reg-estado">
+                        <Badge tone={ESTADO_ASP[a.estado].tone}>{ESTADO_ASP[a.estado].label}</Badge>
+                        {est && <div style={{ fontSize: 11, color: '#0a6e4b', marginTop: 4 }}>✓ Matriculado {est.id}</div>}
+                      </div>
+                      <div className="reg-acciones">
+                        {a.estado === 'admitido' && !est && (
+                          <button className="btn b-success b-sm" onClick={() => matricular(a)}>
+                            <Icon name="graduacion" size={13} /> Matricular
+                          </button>
+                        )}
+                        <button className="btn b-secondary b-sm" onClick={() => setAspirante(a.id, { estado: 'admitido' })}>Admitir</button>
+                        <button className="btn b-secondary b-sm" onClick={() => setAspirante(a.id, { estado: 'en_proceso' })}>Proceso</button>
+                        <button className="btn b-secondary b-sm" onClick={() => setAspirante(a.id, { estado: 'rechazado' })}>Rechazar</button>
+                        <button className="btn b-secondary b-sm" onClick={() => setAspirante(a.id, { documentos: a.documentos === 'completo' ? 'pendiente' : 'completo' })}>
+                          {a.documentos === 'completo' ? <>Docs ✗</> : <>Docs ✓</>}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
+              {filtrados.length === 0 && (
+                <div className="empty-state">
+                  <div className="empty-state__icon">🔍</div>
+                  <div className="empty-state__title">Sin resultados</div>
+                  <div className="empty-state__sub">No hay aspirantes que coincidan con los filtros aplicados.</div>
+                </div>
+              )}
             </div>
           );
         }
@@ -644,38 +662,44 @@ export default function Admisiones() {
                 ))}
               </div>
 
-              <div style={{ ...card, marginTop: 16, overflowX: 'auto' }}>
+              <div style={{ marginTop: 16 }}>
                 <Encabezado titulo="Convocatorias" sub="Calendario de los procesos de admisión" />
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr>
-                      <th style={th}>Proceso</th>
-                      <th style={th}>Apertura</th>
-                      <th style={th}>Cierre</th>
-                      <th style={th}>Resultados</th>
-                      <th style={th}>Inscripción</th>
-                      <th style={th}>Cupos</th>
-                      <th style={th}>Estado</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {adm.periodos.map((p) => (
-                      <tr key={p.id}>
-                        <td style={td}><strong>{p.nombre}</strong></td>
-                        <td style={td}>{formatDate(p.fechaApertura)}</td>
-                        <td style={td}>{formatDate(p.fechaCierre)}</td>
-                        <td style={td}>{formatDate(p.fechaResultados)}</td>
-                        <td style={td}>{formatDate(p.fechaInscripcion)}</td>
-                        <td style={td}>{p.cuposTotales.toLocaleString('es-CO')}</td>
-                        <td style={td}>
-                          <Badge tone={p.estado === 'inscripciones' ? 'green' : p.estado === 'convocatoria' ? 'amber' : 'slate'}>
-                            {p.estado === 'inscripciones' ? 'Inscripciones' : p.estado === 'convocatoria' ? 'Convocatoria' : 'Planificado'}
-                          </Badge>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <div className="reg-lista">
+                  {adm.periodos.map((p) => (
+                    <div key={p.id} className="reg-card">
+                      <div className="reg-id">
+                        <div className="reg-nombre">{p.nombre}</div>
+                      </div>
+                      <div className="reg-datos">
+                        <div className="reg-dato">
+                          <span className="reg-etq">Apertura</span>
+                          <span>{formatDate(p.fechaApertura)}</span>
+                        </div>
+                        <div className="reg-dato">
+                          <span className="reg-etq">Cierre</span>
+                          <span>{formatDate(p.fechaCierre)}</span>
+                        </div>
+                        <div className="reg-dato">
+                          <span className="reg-etq">Resultados</span>
+                          <span>{formatDate(p.fechaResultados)}</span>
+                        </div>
+                        <div className="reg-dato">
+                          <span className="reg-etq">Inscripción</span>
+                          <span>{formatDate(p.fechaInscripcion)}</span>
+                        </div>
+                        <div className="reg-dato">
+                          <span className="reg-etq">Cupos</span>
+                          <span>{p.cuposTotales.toLocaleString('es-CO')}</span>
+                        </div>
+                      </div>
+                      <div className="reg-estado">
+                        <Badge tone={p.estado === 'inscripciones' ? 'green' : p.estado === 'convocatoria' ? 'amber' : 'slate'}>
+                          {p.estado === 'inscripciones' ? 'Inscripciones' : p.estado === 'convocatoria' ? 'Convocatoria' : 'Planificado'}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           );
@@ -737,39 +761,30 @@ export default function Admisiones() {
                   inscritos.length === 0
                     ? <Vacio>No hay inscritos esperando documentación.</Vacio>
                     : (
-                      <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                          <thead>
-                            <tr>
-                              <th style={th}>Código</th>
-                              <th style={th}>Inscrito</th>
-                              <th style={th}>Expediente</th>
-                              <th style={th}>Acción</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {inscritos.map((e) => (
-                              <tr key={e.id}>
-                                <td style={td}><strong>{e.id}</strong></td>
-                                <td style={td}>
-                                  <strong>{e.nombre}</strong><br />
-                                  <span style={{ fontSize: 11, color: '#9c988e' }}>{e.documento}</span>
-                                </td>
-                                <td style={td}><Badge tone={DOC_TONE[e.documentos]}>{e.documentos}</Badge></td>
-                                <td style={td}>
-                                  <button
-                                    className="btn"
-                                    style={{ padding: '5px 9px', fontSize: 11 }}
-                                    data-testid={`revisar-docs-${e.id}`}
-                                    onClick={() => abrirExpediente(e)}
-                                  >
-                                    <Icon name="ojo" size={14} /> Revisar documentos
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                      <div className="reg-lista">
+                        {inscritos.map((e) => (
+                          <div key={e.id} className="reg-card">
+                            <Avatar nombre={e.nombre} clase={avColor(e.nombre)} tamano={40} radio={20} />
+                            <div className="reg-id">
+                              <div className="reg-nombre">{e.nombre}</div>
+                              <div className="reg-sub">{e.id} · {e.documento}</div>
+                            </div>
+                            <div className="reg-datos" />
+                            <div className="reg-estado">
+                              <Badge tone={DOC_TONE[e.documentos]}>{e.documentos}</Badge>
+                            </div>
+                            <div className="reg-acciones">
+                              <button
+                                className="btn"
+                                style={{ padding: '6px 10px', fontSize: 12 }}
+                                data-testid={`revisar-docs-${e.id}`}
+                                onClick={() => abrirExpediente(e)}
+                              >
+                                <Icon name="ojo" size={14} /> Revisar documentos
+                              </button>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     )
                 )}
@@ -869,7 +884,7 @@ export default function Admisiones() {
                 )}
               </div>
 
-              
+
             </div>
           );
         }
@@ -887,9 +902,9 @@ export default function Admisiones() {
           const semestresProg = estPrograma === 'todos'
             ? []
             : Array.from(
-                { length: programas.find((p) => p.id === Number(estPrograma))?.semestres || 0 },
-                (_, i) => i + 1,
-              );
+              { length: programas.find((p) => p.id === Number(estPrograma))?.semestres || 0 },
+              (_, i) => i + 1,
+            );
 
           const enJerarquia = estudiantes.filter((e) => {
             const prog = programas.find((p) => p.id === e.programaId);
@@ -897,115 +912,275 @@ export default function Admisiones() {
             if (estPrograma !== 'todos' && e.programaId !== Number(estPrograma)) return false;
             if (estSemestre !== 'todos' && e.semestre !== Number(estSemestre)) return false;
             if (estSituacion !== 'todas' && situacionMatricula(e).key !== estSituacion) return false;
+            if (estFinanciacion !== 'todas') {
+              if (estFinanciacion === 'brilla' && !e.cupoBrilla && e.financiacion?.toLowerCase() !== 'brilla') return false;
+              if (estFinanciacion === 'caja' && !e.tieneCajaCompensacion && !/caja/i.test(e.financiacion || '')) return false;
+              if (estFinanciacion === 'icetex' && !/icetex/i.test(e.financiacion || '')) return false;
+              if (estFinanciacion === 'propio' && e.financiacion && !/propio|ninguna|contado/i.test(e.financiacion)) return false;
+              if (estFinanciacion === 'sin_definir' && (e.financiacion || e.cupoBrilla || e.tieneCajaCompensacion)) return false;
+            }
             return true;
           });
           const visibles = enJerarquia.filter(enFiltro);
           const conteo = (key) => estudiantes.filter((e) => situacionMatricula(e).key === key).length;
+          const conteoBrilla = estudiantes.filter((e) => e.cupoBrilla || e.financiacion?.toLowerCase() === 'brilla').length;
+          const conteoIcetex = estudiantes.filter((e) => /icetex/i.test(e.financiacion || '')).length;
+
+          const guardarFinanciero = async () => {
+            if (!modalFinanciero) return;
+            setGuardandoFinanciero(true);
+            try {
+              await actualizarEstudiante(modalFinanciero.id, {
+                financiacion: modalFinanciero.financiacion || null,
+                cupoBrilla: !!modalFinanciero.cupoBrilla,
+                tieneCajaCompensacion: !!modalFinanciero.tieneCajaCompensacion,
+                observacionFinanciera: modalFinanciero.observacionFinanciera || null,
+              });
+              setData((prev) => ({
+                ...prev,
+                estudiantes: prev.estudiantes.map((est) =>
+                  est.id === modalFinanciero.id
+                    ? {
+                        ...est,
+                        financiacion: modalFinanciero.financiacion || null,
+                        cupoBrilla: !!modalFinanciero.cupoBrilla,
+                        tieneCajaCompensacion: !!modalFinanciero.tieneCajaCompensacion,
+                        observacionFinanciera: modalFinanciero.observacionFinanciera || null,
+                      }
+                    : est
+                ),
+              }));
+              setAviso({ ok: true, text: `Financiación actualizada para ${modalFinanciero.nombre}` });
+              setModalFinanciero(null);
+            } catch (err) {
+              setAviso({ ok: false, text: `Error al guardar financiación: ${err.message}` });
+            } finally {
+              setGuardandoFinanciero(false);
+              recargar();
+            }
+          };
 
           return (
             <div className="fade-in">
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12, marginBottom: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 16 }}>
                 <Kpi icon={<Icon name="check" size={16} />} bg="#d8f0e5" value={conteo('habilitado')} label="Habilitados" color="#0a6e4b" onClick={() => setEstSituacion('habilitado')} />
-                <Kpi icon={<Icon name="alerta" size={16} />} bg="#ffe0e5" value={conteo('bloqueado')} label="Bloqueados por documentos" color="#c1122c" onClick={() => setEstSituacion('bloqueado')} />
-                <Kpi icon={<Icon name="candado" size={16} />} bg="#fbefd6" value={conteo('sin_cuenta')} label="Sin cuenta" color="#99610e" onClick={() => setEstSituacion('sin_cuenta')} />
+                <Kpi icon={<Icon name="tarjeta-credito" size={16} />} bg="#e3f1ff" value={conteoBrilla} label="Cupo Brilla" color="#00116f" hint="Financiación gases del Caribe" onClick={() => { setEstFinanciacion('brilla'); setEstSituacion('todas'); }} />
+                <Kpi icon={<Icon name="certificado" size={16} />} bg="#efe9fb" value={conteoIcetex} label="Crédito ICETEX" color="#5a37ad" hint="Crédito educativo activo" onClick={() => { setEstFinanciacion('icetex'); setEstSituacion('todas'); }} />
+                <Kpi icon={<Icon name="alerta" size={16} />} bg="#ffe0e5" value={conteo('bloqueado')} label="Bloqueados docs" color="#c1122c" onClick={() => setEstSituacion('bloqueado')} />
                 <Kpi icon={<Icon name="reloj" size={16} />} bg="#fbefd6" value={conteo('mora')} label="En mora" color="#99610e" onClick={() => setEstSituacion('mora')} />
-                <Kpi icon={<Icon name="graduacion" size={16} />} bg="#e3f1ff" value={estudiantes.length} label="Total" onClick={() => setEstSituacion('todas')} />
+                <Kpi icon={<Icon name="graduacion" size={16} />} bg="#f0eee9" value={estudiantes.length} label="Total alumnos" onClick={() => { setEstSituacion('todas'); setEstFinanciacion('todas'); }} />
               </div>
 
-              <div style={{ ...card, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 14 }}>
-                <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  Facultad
-                  <select value={estFacultad} onChange={(e) => { setEstFacultad(e.target.value); setEstPrograma('todos'); setEstSemestre('todos'); }} style={{ ...input, minWidth: 200 }}>
-                    <option value="todas">Todas las facultades</option>
-                    {facultades.map((f) => <option key={f} value={f}>{f}</option>)}
-                  </select>
-                </label>
-                <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  Programa
-                  <select value={estPrograma} onChange={(e) => { setEstPrograma(e.target.value); setEstSemestre('todos'); }} style={{ ...input, minWidth: 240 }}>
-                    <option value="todos">Todos los programas</option>
-                    {programasDeFacultad.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-                  </select>
-                </label>
-                <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  Semestre
-                  <select value={estSemestre} onChange={(e) => setEstSemestre(e.target.value)} style={{ ...input, minWidth: 130 }} disabled={estPrograma === 'todos'}>
-                    <option value="todos">{estPrograma === 'todos' ? 'Todos' : 'Todos los semestres'}</option>
-                    {semestresProg.map((s) => <option key={s} value={s}>Semestre {s}</option>)}
-                  </select>
-                </label>
-                <label style={{ fontSize: 12, color: '#4e4a43', fontWeight: 600, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  Situación
-                  <select value={estSituacion} onChange={(e) => setEstSituacion(e.target.value)} style={{ ...input, minWidth: 160 }}>
-                    <option value="todas">Todas</option>
-                    <option value="habilitado">Habilitados</option>
-                    <option value="bloqueado">Bloqueados por documentos</option>
-                    <option value="sin_cuenta">Sin cuenta</option>
-                    <option value="inactivo">Cuenta inactiva</option>
-                    <option value="mora">En mora</option>
-                    <option value="retirado">Retirados</option>
-                    <option value="graduado">Graduados</option>
-                  </select>
-                </label>
-                <input placeholder="Buscar por nombre, documento o código…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={{ ...input, minWidth: 220, flex: 1 }} />
-                <span style={{ fontSize: 12, color: '#9c988e' }}>{visibles.length} de {enJerarquia.length}</span>
-              </div>
-
-              <div style={card}>
-                <Encabezado
-                  titulo="Estudiantes por programa"
-                  sub="Situación de matrícula de cada estudiante: detecta bloqueos por documentos, cuenta o cartera."
-                />
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr>
-                        <th style={th}>Código</th>
-                        <th style={th}>Estudiante</th>
-                        <th style={th}>Facultad / Programa</th>
-                        <th style={th}>Sem.</th>
-                        <th style={th}>Estado</th>
-                        <th style={th}>Documentos</th>
-                        <th style={th}>Cuenta</th>
-                        <th style={th}>Situación de matrícula</th>
-                        <th style={th}>Expediente</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {visibles.map((e) => {
-                        const sit = situacionMatricula(e);
-                        const prog = programas.find((p) => p.id === e.programaId);
-                        return (
-                          <tr key={e.id}>
-                            <td style={td}><code style={{ fontSize: 12, color: '#4e4a43' }}>{e.id}</code></td>
-                            <td style={td}><strong>{e.nombre}</strong><br /><span style={{ fontSize: 11, color: '#9c988e' }}>{e.documento}</span></td>
-                            <td style={td}>{prog?.facultad || '—'}<br /><span style={{ fontSize: 11, color: '#9c988e' }}>{prog?.nombre || '—'}</span></td>
-                            <td style={td}>{e.semestre}</td>
-                            <td style={td}><Badge tone={ESTADO_ESTUDIANTE[e.estado]?.tone || 'slate'}>{ESTADO_ESTUDIANTE[e.estado]?.label || e.estado}</Badge></td>
-                            <td style={td}><Badge tone={DOC_TONE[e.documentos] || 'slate'}>{e.documentos}</Badge></td>
-                            <td style={td}>
-                              {e.usuario ? (
-                                <Badge tone={e.usuarioActivo ? 'blue' : 'red'}>{e.usuario}</Badge>
-                              ) : (
-                                <span style={{ fontSize: 11, color: '#9c988e' }}>sin cuenta</span>
-                              )}
-                            </td>
-                            <td style={td}>
-                              <Badge tone={SITUACION_TONE[sit.key] || 'slate'}>{sit.label}</Badge>
-                              <div style={{ fontSize: 11, color: '#9c988e', marginTop: 3 }}>{sit.motivo}</div>
-                            </td>
-                            <td style={td}>
-                              <button className="btn" style={{ padding: '5px 9px', fontSize: 11 }} onClick={() => { setSelEstudiante(e.id); setTab('expedientes'); }}>
-                                Ver ficha
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+              <div className="admin-filter-bar">
+                <Select label="Facultad" value={estFacultad} onChange={(v) => { setEstFacultad(v); setEstPrograma('todos'); setEstSemestre('todos'); }} groups={[{ options: [
+                  { value: 'todas', label: 'Todas las facultades' },
+                  ...facultades.map((f) => ({ value: f, label: f })),
+                ] }]} />
+                <Select label="Programa" value={estPrograma} onChange={(v) => { setEstPrograma(v); setEstSemestre('todos'); }} groups={[{ options: [
+                  { value: 'todos', label: 'Todos los programas' },
+                  ...programasDeFacultad.map((p) => ({ value: p.id, label: p.nombre })),
+                ] }]} />
+                <Select label="Semestre" value={estSemestre} onChange={setEstSemestre} groups={[{ options: [
+                  { value: 'todos', label: estPrograma === 'todos' ? 'Todos' : 'Todos' },
+                  ...semestresProg.map((s) => ({ value: String(s), label: `Semestre ${s}` })),
+                ] }]} />
+                <Select label="Financiación / Cupo" value={estFinanciacion} onChange={setEstFinanciacion} groups={[{ options: [
+                  { value: 'todas', label: 'Todas las modalidades' },
+                  { value: 'brilla', label: 'Cupo Brilla' },
+                  { value: 'icetex', label: 'ICETEX' },
+                  { value: 'caja', label: 'Caja Compensación' },
+                  { value: 'propio', label: 'Recursos Propios' },
+                  { value: 'sin_definir', label: 'Sin definir' },
+                ] }]} />
+                <Select label="Situación" value={estSituacion} onChange={setEstSituacion} groups={[{ options: [
+                  { value: 'todas', label: 'Todas' },
+                  { value: 'habilitado', label: 'Habilitados' },
+                  { value: 'bloqueado', label: 'Bloqueados por documentos' },
+                  { value: 'sin_cuenta', label: 'Sin cuenta' },
+                  { value: 'inactivo', label: 'Cuenta inactiva' },
+                  { value: 'mora', label: 'En mora' },
+                  { value: 'retirado', label: 'Retirados' },
+                  { value: 'graduado', label: 'Graduados' },
+                ] }]} />
+                <div style={{ flex: 2, padding: '10px 16px 9px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                  <span style={{ fontSize: 11, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--cul-muted, #5b6b86)', marginBottom: 2 }}>Buscar</span>
+                  <input placeholder="Buscar por nombre, documento o código…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={{ border: 0, background: 'transparent', font: 'inherit', fontWeight: 600, padding: 0, outline: 'none' }} />
                 </div>
-                {visibles.length === 0 && <Vacio>No hay estudiantes que coincidan con los filtros seleccionados.</Vacio>}
+              </div>
+              <div style={{ fontSize: 12, color: '#9c988e', marginTop: 8 }}>{visibles.length} de {enJerarquia.length}</div>
+
+              {/* Modal de edición de Financiación */}
+              {modalFinanciero && (
+                <div style={{
+                  position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                  backgroundColor: 'rgba(0,17,111,0.45)', backdropFilter: 'blur(3px)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  zIndex: 9999, padding: 16
+                }}>
+                  <div style={{
+                    background: '#fff', borderRadius: 16, width: '100%', maxWidth: 460,
+                    boxShadow: '0 24px 60px rgba(0,17,111,0.25)', overflow: 'hidden', border: '1px solid #e3f1ff'
+                  }}>
+                    <div style={{
+                      background: 'linear-gradient(135deg, #00116f 0%, #06468c 100%)',
+                      padding: '16px 20px', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                    }}>
+                      <div>
+                        <div style={{ fontSize: 15, fontWeight: 800 }}>Gestión de Financiación y Cupos</div>
+                        <div style={{ fontSize: 11.5, opacity: 0.85 }}>{modalFinanciero.nombre} ({modalFinanciero.id})</div>
+                      </div>
+                      <button
+                        onClick={() => setModalFinanciero(null)}
+                        style={{ background: 'none', border: 'none', color: '#fff', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}
+                      >
+                        ×
+                      </button>
+                    </div>
+
+                    <div style={{ padding: '20px' }}>
+                      <div style={{ marginBottom: 14 }}>
+                        <Select
+                          label="Modalidad principal de financiación"
+                          value={modalFinanciero.financiacion || ''}
+                          onChange={(v) => setModalFinanciero({ ...modalFinanciero, financiacion: v })}
+                          placeholder="Selecciona modalidad…"
+                          groups={[{ options: [
+                            { value: '', label: 'Selecciona modalidad…' },
+                            { value: 'Recursos Propios', label: 'Recursos Propios (Directo / Contado)' },
+                            { value: 'BRILLA', label: 'BRILLA (Gases del Caribe)' },
+                            { value: 'ICETEX', label: 'ICETEX (Crédito Educativo)' },
+                            { value: 'Caja de Compensación', label: 'Caja de Compensación (Combarranquilla, etc.)' },
+                            { value: 'Beca / Convenio', label: 'Beca institucional o Convenio' },
+                            { value: 'Crédito Bancario', label: 'Crédito Entidad Bancaria' },
+                          ] }]}
+                        />
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, background: '#f8fafd', padding: 12, borderRadius: 10, border: '1px solid #dce8f8', marginBottom: 14 }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#06468c' }}>
+                          <input
+                            type="checkbox"
+                            checked={!!modalFinanciero.cupoBrilla}
+                            onChange={(e) => setModalFinanciero({ ...modalFinanciero, cupoBrilla: e.target.checked })}
+                            style={{ width: 18, height: 18, accentColor: '#00116f' }}
+                          />
+                          <span>Aplica Cupo BRILLA (Gases del Caribe)</span>
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#06468c' }}>
+                          <input
+                            type="checkbox"
+                            checked={!!modalFinanciero.tieneCajaCompensacion}
+                            onChange={(e) => setModalFinanciero({ ...modalFinanciero, tieneCajaCompensacion: e.target.checked })}
+                            style={{ width: 18, height: 18, accentColor: '#00116f' }}
+                          />
+                          <span>Tiene beneficio de Caja de Compensación</span>
+                        </label>
+                      </div>
+
+                      <div style={{ marginBottom: 16 }}>
+                        <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#4e4a43', marginBottom: 6 }}>
+                          Observación Financiera
+                        </label>
+                        <textarea
+                          rows={2}
+                          placeholder="Ej. Cupo Brilla preaprobado por $2.500.000 con recibo de gas..."
+                          value={modalFinanciero.observacionFinanciera || ''}
+                          onChange={(e) => setModalFinanciero({ ...modalFinanciero, observacionFinanciera: e.target.value })}
+                          style={{ ...input, width: '100%', resize: 'vertical' }}
+                        />
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                        <button
+                          type="button"
+                          className="btn"
+                          style={{ background: '#f0eee9', color: '#4e4a43' }}
+                          onClick={() => setModalFinanciero(null)}
+                          disabled={guardandoFinanciero}
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          type="button"
+                          className="btn"
+                          style={{ background: '#00116f', color: '#fff' }}
+                          onClick={guardarFinanciero}
+                          disabled={guardandoFinanciero}
+                        >
+                          {guardandoFinanciero ? 'Guardando…' : 'Guardar cambios'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="modern-table-wrap">
+                <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(0,17,111,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, background: '#fff' }}>
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: '#1b1a17' }}>Estudiantes por programa y financiación</div>
+                    <div style={{ fontSize: 12, color: '#6e6a61', marginTop: 2 }}>Identifica la modalidad de pago (BRILLA, ICETEX, Caja o Propio) y el estado de la matrícula.</div>
+                  </div>
+                  <span style={{ fontSize: 12, color: '#9c988e', fontWeight: 600 }}>{visibles.length} de {enJerarquia.length} estudiantes</span>
+                </div>
+                <div style={{ padding: '0 4px 4px' }}>
+                  <div className="reg-lista" style={{ marginTop: 10 }}>
+                    {visibles.map((e) => {
+                      const sit = situacionMatricula(e);
+                      const prog = programas.find((p) => p.id === e.programaId);
+                      return (
+                        <div key={e.id} className="reg-card">
+                          <Avatar nombre={e.nombre} clase={avColor(e.nombre)} tamano={44} radio={22} />
+                          <div className="reg-id">
+                            <div className="reg-nombre">{e.nombre}</div>
+                            <div className="reg-sub">{e.documento} · <code style={{ fontSize: 11 }}>{e.id}</code></div>
+                          </div>
+                          <div className="reg-datos">
+                            <div className="reg-dato">
+                              <span className="reg-etq">Facultad / Programa</span>
+                              <span>{prog?.facultad || '—'}<br /><span style={{ fontSize: 11, color: '#9c988e' }}>{prog?.nombre || '—'}</span></span>
+                            </div>
+                            <div className="reg-dato">
+                              <span className="reg-etq">Sem.</span>
+                              <span>{e.semestre}</span>
+                            </div>
+                            <div className="reg-dato">
+                              <span className="reg-etq">Financiación</span>
+                              <FinBadge financiacion={e.financiacion} cupoBrilla={e.cupoBrilla} tieneCajaCompensacion={e.tieneCajaCompensacion} observacion={e.observacionFinanciera} />
+                            </div>
+                            <div className="reg-dato">
+                              <span className="reg-etq">Documentos</span>
+                              <Badge tone={DOC_TONE[e.documentos] || 'slate'}>{e.documentos}</Badge>
+                            </div>
+                            <div className="reg-dato">
+                              <span className="reg-etq">Cuenta</span>
+                              {e.usuario ? <Badge tone={e.usuarioActivo ? 'blue' : 'red'}>{e.usuario}</Badge> : <span style={{ fontSize: 11, color: '#9c988e' }}>sin cuenta</span>}
+                            </div>
+                          </div>
+                          <div className="reg-estado">
+                            <Badge tone={ESTADO_ESTUDIANTE[e.estado]?.tone || 'slate'}>{ESTADO_ESTUDIANTE[e.estado]?.label || e.estado}</Badge>
+                            <div style={{ marginTop: 4 }}>
+                              <Badge tone={SITUACION_TONE[sit.key] || 'slate'}>{sit.label}</Badge>
+                            </div>
+                          </div>
+                          <div className="reg-acciones">
+                            <button
+                              className="btn"
+                              style={{ padding: '6px 9px', fontSize: 11, background: '#e3f1ff', color: '#00116f', border: '1px solid #b8daff' }}
+                              onClick={() => setModalFinanciero({ id: e.id, nombre: e.nombre, financiacion: e.financiacion || '', cupoBrilla: !!e.cupoBrilla, tieneCajaCompensacion: !!e.tieneCajaCompensacion, observacionFinanciera: e.observacionFinanciera || '' })}
+                            >
+                              💳 Cupo
+                            </button>
+                            <button className="btn" style={{ padding: '6px 9px', fontSize: 11 }} onClick={() => { setSelEstudiante(e.id); setTab('expedientes'); }}>
+                              Ficha
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {visibles.length === 0 && <Vacio>No hay estudiantes que coincidan con los filtros seleccionados.</Vacio>}
+                </div>
               </div>
             </div>
           );
@@ -1032,11 +1207,16 @@ export default function Admisiones() {
 
               <div style={{ ...card, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
                 <input placeholder="Buscar por nombre, documento o código…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={{ ...input, minWidth: 260 }} />
-                <select value={filtroRegistro} onChange={(e) => setFiltroRegistro(e.target.value)} style={input}>
-                  <option value="inscritos">Por matricular (en inscripción)</option>
-                  <option value="sin_cuenta">Estudiantes sin cuenta de acceso</option>
-                  <option value="todos">Todos los estudiantes</option>
-                </select>
+                <Select
+                  label="Filtro de registro"
+                  value={filtroRegistro}
+                  onChange={setFiltroRegistro}
+                  groups={[{ options: [
+                    { value: 'inscritos', label: 'Por matricular (en inscripción)' },
+                    { value: 'sin_cuenta', label: 'Estudiantes sin cuenta de acceso' },
+                    { value: 'todos', label: 'Todos los estudiantes' },
+                  ] }]}
+                />
                 <span style={{ fontSize: 12, color: '#9c988e' }}>{lista.filter(enFiltro).length} de {lista.length} estudiantes</span>
               </div>
 
@@ -1051,74 +1231,47 @@ export default function Admisiones() {
                   titulo={filtroRegistro === 'sin_cuenta' ? 'Estudiantes sin cuenta de acceso al campus' : filtroRegistro === 'todos' ? 'Todos los estudiantes en registro' : 'Admitidos pendientes de inscripción'}
                   sub={filtroRegistro === 'sin_cuenta' ? 'Estudiantes registrados que todavía no tienen credenciales de acceso activas.' : filtroRegistro === 'todos' ? 'Listado general de estudiantes en el sistema.' : 'La inscripción se cierra cuando el estudiante queda activo y con la matrícula registrada.'}
                 />
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr>
-                        <th style={th}>Código</th>
-                        <th style={th}>Estudiante</th>
-                        <th style={th}>Programa</th>
-                        <th style={th}>Sem.</th>
-                        <th style={th}>Estado</th>
-                        <th style={th}>Financiero</th>
-                        <th style={th}>Cuenta</th>
-                        <th style={th}>Acción</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {lista.filter(enFiltro).map((e) => {
-                        const cuenta = estadoCuenta(e);
-                        return (
-                          <tr key={e.id}>
-                            <td style={td}><code style={{ fontSize: 12, color: '#4e4a43' }}>{e.id}</code></td>
-                            <td style={td}><strong>{e.nombre}</strong><br /><span style={{ fontSize: 11, color: '#9c988e' }}>{e.documento}</span></td>
-                            <td style={td}>{nombreProg(e.programaId)}</td>
-                            <td style={td}>{e.semestre}</td>
-                            <td style={td}>
-                              <Badge tone={ESTADO_ESTUDIANTE[e.estado]?.tone || 'slate'}>
-                                {ESTADO_ESTUDIANTE[e.estado]?.label || e.estado}
-                              </Badge>
-                            </td>
-                            <td style={td}><Badge tone={cuenta.tone}>{cuenta.label}</Badge></td>
-                            <td style={td}>
-                              {e.usuario ? (
-                                <Badge tone={e.usuarioActivo ? 'blue' : 'red'}>{e.usuario}</Badge>
-                              ) : (
-                                <span style={{ color: '#9c988e' }}>sin cuenta</span>
-                              )}
-                            </td>
-                            <td style={td}>
-                              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                                {e.estado === 'en_inscripcion' && (
-                                  <button className="btn" style={{ padding: '5px 9px', fontSize: 11 }} onClick={() => completarInscripcion(e)}>
-                                    Completar inscripción
-                                  </button>
-                                )}
-                                {!e.usuario && (
-                                  <button
-                                    className="btn"
-                                    style={{ padding: '5px 9px', fontSize: 11, background: '#e3f1ff', color: '#06468c', border: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}
-                                    onClick={() => crearCuentaDeEstudiante(e)}
-                                    title="Crear cuenta de acceso para este estudiante"
-                                  >
-                                    <Icon name="candado" size={13} /> Crear cuenta
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                <TarjetasRegistro
+                  items={lista.filter(enFiltro)}
+                  getKey={(e) => e.id}
+                  avatar={(e) => ({ nombre: e.nombre, foto: e.avatar, clase: e.avatarClass })}
+                  titulo={(e) => e.nombre}
+                  subtitulo={(e) => e.id}
+                  datos={[
+                    { etiqueta: 'Programa', render: (e) => nombreProg(e.programaId) },
+                    { etiqueta: 'Semestre', render: (e) => e.semestre },
+                    { etiqueta: 'Estado', render: (e) => <Badge tone={ESTADO_ESTUDIANTE[e.estado]?.tone || 'slate'}>{ESTADO_ESTUDIANTE[e.estado]?.label || e.estado}</Badge> },
+                    { etiqueta: 'Financiero', render: (e) => <Badge tone={estadoCuenta(e).tone}>{estadoCuenta(e).label}</Badge> },
+                    { etiqueta: 'Cuenta', render: (e) => e.usuario ? <Badge tone={e.usuarioActivo ? 'blue' : 'red'}>{e.usuario}</Badge> : <span style={{ color: '#9c988e' }}>sin cuenta</span> },
+                  ]}
+                  acciones={(e) => (
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      {e.estado === 'en_inscripcion' && (
+                        <button className="btn" style={{ padding: '5px 9px', fontSize: 11 }} onClick={() => completarInscripcion(e)}>
+                          Completar inscripción
+                        </button>
+                      )}
+                      {!e.usuario && (
+                        <button
+                          className="btn"
+                          style={{ padding: '5px 9px', fontSize: 11, background: '#e3f1ff', color: '#06468c', border: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                          onClick={() => crearCuentaDeEstudiante(e)}
+                          title="Crear cuenta de acceso para este estudiante"
+                        >
+                          <Icon name="candado" size={13} /> Crear cuenta
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  vacio={filtroRegistro === 'sin_cuenta' ? 'No hay estudiantes sin cuenta de acceso.' : 'Sin resultados.'}
+                />
                 {lista.filter(enFiltro).length === 0 && (
                   <Vacio>
                     {filtroRegistro === 'sin_cuenta'
                       ? 'No hay estudiantes sin cuenta de acceso.'
                       : filtroRegistro === 'todos'
-                      ? 'No hay estudiantes que coincidan con la búsqueda.'
-                      : 'No hay admitidos pendientes de inscripción con ese criterio.'}
+                        ? 'No hay estudiantes que coincidan con la búsqueda.'
+                        : 'No hay admitidos pendientes de inscripción con ese criterio.'}
                   </Vacio>
                 )}
               </div>
@@ -1137,11 +1290,14 @@ export default function Admisiones() {
             <div>
               <div style={{ ...card, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
                 <input placeholder="Buscar estudiante…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={{ ...input, minWidth: 240 }} />
-                <select value={est?.id || ''} onChange={(e) => setSelEstudiante(e.target.value)} style={{ ...input, minWidth: 300 }}>
-                  {estudiantes.filter(enFiltro).map((e) => (
-                    <option key={e.id} value={e.id}>{e.id} — {e.nombre}</option>
-                  ))}
-                </select>
+                <Select
+                  label="Estudiante"
+                  value={String(est?.id || '')}
+                  onChange={setSelEstudiante}
+                  groups={[{ options: estudiantes.filter(enFiltro).map((e) => ({
+                    value: String(e.id), label: `${e.id} — ${e.nombre}`,
+                  })) }]}
+                />
                 <span style={{ fontSize: 12, color: '#9c988e' }}>{estudiantes.filter(enFiltro).length} expedientes</span>
               </div>
 
@@ -1265,12 +1421,17 @@ export default function Admisiones() {
 
               <div style={{ ...card, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
                 <input placeholder="Buscar por nombre, documento o código…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} style={{ ...input, minWidth: 260 }} />
-                <select value={filtroCuenta} onChange={(e) => setFiltroCuenta(e.target.value)} style={input}>
-                  <option value="todos">Toda la cartera</option>
-                  <option value="mora">Solo en mora</option>
-                  <option value="pendiente">Con saldo pendiente</option>
-                  <option value="al_dia">Paz y salvo</option>
-                </select>
+                <Select
+                  label="Filtro de cartera"
+                  value={filtroCuenta}
+                  onChange={setFiltroCuenta}
+                  groups={[{ options: [
+                    { value: 'todos', label: 'Toda la cartera' },
+                    { value: 'mora', label: 'Solo en mora' },
+                    { value: 'pendiente', label: 'Con saldo pendiente' },
+                    { value: 'al_dia', label: 'Paz y salvo' },
+                  ] }]}
+                />
                 <span style={{ fontSize: 12, color: '#9c988e' }}>{porPagar.filter(enFiltro).length} estudiantes</span>
                 <button
                   className="btn"
@@ -1283,61 +1444,37 @@ export default function Admisiones() {
               </div>
 
               <div style={card}>
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr>
-                        <th style={th}>Código</th>
-                        <th style={th}>Estudiante</th>
-                        <th style={th}>Programa</th>
-                        <th style={th}>Estado</th>
-                        <th style={th}>Saldo</th>
-                        <th style={th}>Vencido</th>
-                        <th style={th}>Situación</th>
-                        <th style={th}>Detalle</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {porPagar.filter(enFiltro).map((e) => {
-                        const cuenta = estadoCuenta(e);
-                        const vencidos = pagosVencidos(e);
+                <TarjetasRegistro
+                  items={porPagar.filter(enFiltro)}
+                  getKey={(e) => e.id}
+                  avatar={(e) => ({ nombre: e.nombre, foto: e.avatar, clase: e.avatarClass })}
+                  titulo={(e) => e.nombre}
+                  subtitulo={(e) => e.id}
+                  datos={[
+                    { etiqueta: 'Programa', render: (e) => nombreProg(e.programaId) },
+                    { etiqueta: 'Estado', render: (e) => <Badge tone={ESTADO_ESTUDIANTE[e.estado].tone}>{ESTADO_ESTUDIANTE[e.estado].label}</Badge> },
+                    { etiqueta: 'Saldo', render: (e) => <strong style={{ color: saldo(e) > 0 ? '#c1122c' : '#0a6e4b' }}>{formatCurrency(saldo(e))}</strong> },
+                    { etiqueta: 'Vencido', render: (e) => formatCurrency(pagosVencidos(e).reduce((a, p) => a + p.valor, 0)) },
+                    { etiqueta: 'Situación', render: (e) => <Badge tone={estadoCuenta(e).tone}>{estadoCuenta(e).label}</Badge> },
+                    { etiqueta: 'Detalle', render: (e) => {
                         const abiertos = e.pagos.filter((p) => p.estado !== 'pagado');
-                        return (
-                          <tr key={e.id}>
-                            <td style={td}><code style={{ fontSize: 12, color: '#4e4a43' }}>{e.id}</code></td>
-                            <td style={td}><strong>{e.nombre}</strong><br /><span style={{ fontSize: 11, color: '#9c988e' }}>{e.documento}</span></td>
-                            <td style={td}>{nombreProg(e.programaId)}</td>
-                            <td style={td}><Badge tone={ESTADO_ESTUDIANTE[e.estado].tone}>{ESTADO_ESTUDIANTE[e.estado].label}</Badge></td>
-                            <td style={td}><strong style={{ color: saldo(e) > 0 ? '#c1122c' : '#0a6e4b' }}>{formatCurrency(saldo(e))}</strong></td>
-                            <td style={td}>{formatCurrency(vencidos.reduce((a, p) => a + p.valor, 0))}</td>
-                            <td style={td}><Badge tone={cuenta.tone}>{cuenta.label}</Badge></td>
-                            <td style={td}>
-                              {abiertos.length === 0 ? (
-                                <span style={{ fontSize: 11, color: '#9c988e' }}>Sin saldos abiertos</span>
-                              ) : (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                  {abiertos.map((p) => (
-                                    <div key={p.id} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 11.5 }}>
-                                      <span style={{ color: '#4e4a43' }}>{p.concepto}</span>
-                                      <span style={{ color: '#9c988e' }}>{formatCurrency(p.valor)}</span>
-                                      <button
-                                        className="btn"
-                                        style={{ padding: '2px 6px', fontSize: 10 }}
-                                        onClick={() => registrarPago(e.id, p.id)}
-                                      >
-                                        Registrar pago
-                                      </button>
-                                    </div>
-                                  ))}
+                        return abiertos.length === 0
+                          ? <span style={{ fontSize: 11, color: '#9c988e' }}>Sin saldos abiertos</span>
+                          : <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                              {abiertos.map((p) => (
+                                <div key={p.id} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 11.5, flexWrap: 'wrap' }}>
+                                  <span style={{ color: '#4e4a43' }}>{p.concepto}</span>
+                                  <span style={{ color: '#9c988e' }}>{formatCurrency(p.valor)}</span>
+                                  <button className="btn" style={{ padding: '2px 6px', fontSize: 10 }} onClick={() => registrarPago(e.id, p.id)}>
+                                    Registrar pago
+                                  </button>
                                 </div>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                              ))}
+                            </div>;
+                      } },
+                  ]}
+                  vacio="No hay estudiantes con ese criterio de cartera."
+                />
                 {porPagar.filter(enFiltro).length === 0 && <Vacio>No hay estudiantes con ese criterio de cartera.</Vacio>}
               </div>
             </div>
@@ -1355,20 +1492,22 @@ export default function Admisiones() {
               <div style={card}>
                 <Encabezado titulo="Emitir certificado" sub="Los certificados que exigen paz y salvo se bloquean si hay saldo." />
 
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#4e4a43', marginBottom: 5 }}>Estudiante</label>
-                <select value={selEstudiante} onChange={(e) => setSelEstudiante(e.target.value)} style={{ ...input, width: '100%', marginBottom: 14 }}>
-                  <option value="">Selecciona un estudiante…</option>
-                  {estudiantes.map((e) => (
-                    <option key={e.id} value={e.id}>{e.id} — {e.nombre} ({estadoCuenta(e).label})</option>
-                  ))}
-                </select>
+                <Select
+                  label="Estudiante"
+                  value={selEstudiante}
+                  onChange={setSelEstudiante}
+                  groups={[{ options: [
+                    { value: '', label: 'Selecciona un estudiante…' },
+                    ...estudiantes.map((e) => ({ value: String(e.id), label: `${e.id} — ${e.nombre} (${estadoCuenta(e).label})` })),
+                  ] }]}
+                />
 
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#4e4a43', marginBottom: 5 }}>Tipo de certificado</label>
-                <select value={selTipo} onChange={(e) => setSelTipo(e.target.value)} style={{ ...input, width: '100%', marginBottom: 14 }}>
-                  {TIPOS_CERTIFICADO.map((t) => (
-                    <option key={t.id} value={t.id}>{t.nombre}</option>
-                  ))}
-                </select>
+                <Select
+                  label="Tipo de certificado"
+                  value={selTipo}
+                  onChange={setSelTipo}
+                  groups={[{ options: TIPOS_CERTIFICADO.map((t) => ({ value: t.id, label: t.nombre })) }]}
+                />
 
                 {estSel && (
                   <div style={{ background: '#f7f6f3', border: '1px solid #e5e2da', borderRadius: 10, padding: 12, marginBottom: 14 }}>
@@ -1409,7 +1548,7 @@ export default function Admisiones() {
               <div style={card}>
                 <Encabezado titulo="Certificados emitidos" sub={`${data.certificadosEmitidos.length} registros`} />
                 <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <table className="tabla-datos">
                     <thead>
                       <tr>
                         <th style={th}>Radicado</th>

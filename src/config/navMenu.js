@@ -1,4 +1,4 @@
-﻿/* =============================================
+/* =============================================
    Menú de navegación por rol.
    Fuente única de verdad: el Sidebar no decide
    qué ve cada usuario, solo dibuja esta lista.
@@ -33,7 +33,7 @@ export const NAV_MENU = [
       { key: 'certificados', label: 'Certificados', icon: 'certificados', kind: 'view', view: 'academico', tab: 'certificados', roles: ['estudiante', 'profesor'], restringido: 'acceso' },
       { key: 'pagos', label: 'Pagos / Volante', icon: 'pagos', kind: 'view', view: 'academico', tab: 'pagos', roles: ['estudiante'] },
       { key: 'horario', label: 'Mi Horario', icon: 'horario', kind: 'view', view: 'academico', tab: 'horario', roles: ['estudiante'], restringido: 'acceso' },
-      { key: 'registro_notas', label: 'Registro Notas', icon: 'registro-notas', kind: 'route', to: '/docente', tab: 'notas', roles: ['profesor'] },
+      { key: 'registro_notas', label: 'Registro Notas', icon: 'registro-notas', kind: 'view', view: 'academico', tab: 'registro', roles: ['profesor'] },
     ],
   },
   {
@@ -60,6 +60,7 @@ export const NAV_MENU = [
     items: [
       { key: 'adm_resumen', label: 'Resumen', icon: 'adm-resumen', kind: 'route', to: '/admisiones', tab: 'resumen', roles: ['admisiones'] },
       { key: 'adm_aspirantes', label: 'Aspirantes', icon: 'adm-aspirantes', kind: 'route', to: '/admisiones', tab: 'aspirantes', roles: ['admisiones'] },
+      { key: 'adm_estudiantes', label: 'Estudiantes', icon: 'admin-estudiantes', kind: 'route', to: '/admisiones', tab: 'estudiantes', roles: ['admisiones'] },
       { key: 'adm_procesos', label: 'Procesos', icon: 'adm-procesos', kind: 'route', to: '/admisiones', tab: 'procesos', roles: ['admisiones'] },
       { key: 'adm_documentos', label: 'Documentos', icon: 'adm-documentos', kind: 'route', to: '/admisiones', tab: 'documentos', roles: ['admisiones'] },
       { key: 'adm_registro', label: 'Registro', icon: 'adm-registro', kind: 'route', to: '/admisiones', tab: 'registro', roles: ['admisiones'] },
@@ -89,13 +90,12 @@ export const NAV_MENU = [
   {
     section: 'Panel de Administración',
     items: [
-      { key: 'admin_resumen', label: 'Resumen', icon: 'admin-resumen', kind: 'route', to: '/admin', tab: 'resumen', roles: ['admin'] },
-      { key: 'admin_usuarios', label: 'Usuarios', icon: 'admin-usuarios', kind: 'route', to: '/admin', tab: 'usuarios', roles: ['admin'] },
-      { key: 'admin_estudiantes', label: 'Estudiantes', icon: 'admin-estudiantes', kind: 'route', to: '/admin', tab: 'estudiantes', roles: ['admin'] },
+      { key: 'admin_resumen', label: 'Resumen', icon: 'admin-resumen', kind: 'route', to: '/admin', tab: 'resumen', roles: ['admin', 'asistente'] },
+      { key: 'admin_usuarios', label: 'Usuarios', icon: 'admin-usuarios', kind: 'route', to: '/admin', tab: 'usuarios', roles: ['admin', 'asistente'] },
+      { key: 'admin_estudiantes', label: 'Estudiantes', icon: 'admin-estudiantes', kind: 'route', to: '/admin', tab: 'estudiantes', roles: ['admin', 'asistente'] },
       { key: 'admin_programas', label: 'Programas', icon: 'admin-programas', kind: 'route', to: '/admin', tab: 'programas', roles: ['admin'] },
-      { key: 'admin_cursos', label: 'Cursos', icon: 'admin-pensum', kind: 'route', to: '/admin', tab: 'cursos', roles: ['admin'] },
-      { key: 'admin_docentes', label: 'Docentes', icon: 'admin-docentes', kind: 'route', to: '/admin', tab: 'docentes', roles: ['admin'] },
-      { key: 'admin_asignacion', label: 'Asignación docente', icon: 'admin-asignacion', kind: 'route', to: '/admin', tab: 'asignacion', roles: ['admin'] },
+      { key: 'admin_cursos', label: 'Cursos', icon: 'admin-pensum', kind: 'route', to: '/admin', tab: 'cursos', roles: ['admin', 'asistente'] },
+      { key: 'admin_docentes', label: 'Docentes', icon: 'admin-docentes', kind: 'route', to: '/admin', tab: 'docentes', roles: ['admin', 'asistente'] },
       { key: 'admin_matricula', label: 'Matrícula', icon: 'admin-matricula', kind: 'route', to: '/admin', tab: 'matricula', roles: ['admin'] },
     ],
   },

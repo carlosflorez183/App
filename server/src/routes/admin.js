@@ -69,8 +69,19 @@ export default async function rutasAdmin(app) {
   }, async () => prisma.docente.findMany({ orderBy: { nombre: 'asc' } }));
 
   /* ── Gestión de usuarios (solo administrador) ────────────────────────── */
-  const soloAdmin = { preHandler: [app.autenticar, app.requiereRoles('admin')] };
-  const ROLES = ['estudiante', 'profesor', 'admin', 'admisiones', 'rectoria', 'talento_humano', 'contabilidad', 'director'];
+  /* Administración del sitio: admin (superadmin) y asistente (auxiliar de
+     sistemas). El asistente no puede tocar cuentas de superadmin ni
+     administradores; eso se valida en cada ruta que modifica usuarios. */
+  const soloAdmin = { preHandler: [app.autenticar, app.requiereRoles('admin', 'asistente')] };
+  const soloSuperadmin = { preHandler: [app.autenticar, app.requiereRoles('admin')] };
+  const ROLES = ['estudiante', 'profesor', 'admin', 'asistente', 'admisiones', 'rectoria', 'talento_humano', 'contabilidad', 'director'];
+
+  /* Un asistente no puede crear, editar ni bloquear cuentas de administración
+     ni de superadmin, ni asignarse ese rol. */
+  const protegida = (req, cuenta) => {
+    if (req.usuario.role === 'admin') return false;
+    return cuenta?.esSuperadmin || cuenta?.role === 'admin' || cuenta?.role === 'asistente';
+  };
 
   app.get('/admin/usuarios', soloAdmin, async () => {
     const usuarios = await prisma.usuario.findMany({
@@ -96,6 +107,7 @@ export default async function rutasAdmin(app) {
       avatarClass: u.avatarClass,
       activo: u.activo,
       creadoEn: u.creadoEn,
+      esSuperadmin: !!u.esSuperadmin,
       estudianteId: u.estudiante?.id || null,
       estudianteEstado: u.estudiante?.estado || null,
       docenteId: u.docente?.id || null,
@@ -115,6 +127,9 @@ export default async function rutasAdmin(app) {
     if (!limpio) return reply.code(400).send({ error: 'El usuario de ingreso es obligatorio' });
     if (role && !ROLES.includes(role)) {
       return reply.code(400).send({ error: `Rol no válido. Use uno de: ${ROLES.join(', ')}` });
+    }
+    if (protegida(req, { role })) {
+      return reply.code(403).send({ error: 'Solo el superadmin puede crear cuentas de administración o asistente' });
     }
     const repetido = await prisma.usuario.findFirst({
       where: { usuario: limpio },
@@ -136,6 +151,15 @@ export default async function rutasAdmin(app) {
       }
     }
 
+    /* Si la cuenta es de docente, se crea también su ficha de docente ligada
+       por usuarioId. Sin esa ficha el profesor no ve ningún curso. */
+    const esDocente = role === 'profesor';
+    const docenteIdManual = esDocente && req.body?.docenteId ? String(req.body.docenteId).trim() : null;
+    if (docenteIdManual) {
+      const existe = await prisma.docente.findUnique({ where: { id: docenteIdManual }, select: { id: true } });
+      if (existe) return reply.code(409).send({ error: `Ya existe un docente con el código ${docenteIdManual}` });
+    }
+
     const cuenta = await prisma.$transaction(async (tx) => {
       const creada = await tx.usuario.create({
         data: {
@@ -154,13 +178,34 @@ export default async function rutasAdmin(app) {
       if (estudiante) {
         await tx.estudiante.update({ where: { id: estudiante.id }, data: { usuarioId: creada.id } });
       }
+      if (esDocente) {
+        /* Código de docente: el que escriba el admin o, si no, uno nuevo con el
+           siguiente número libre (DOC-0001, DOC-0002…). */
+        let codigo = docenteIdManual;
+        if (!codigo) {
+          const total = await tx.docente.count();
+          let n = total + 1;
+          while (await tx.docente.findUnique({ where: { id: `DOC-${String(n).padStart(4, '0')}` }, select: { id: true } })) n += 1;
+          codigo = `DOC-${String(n).padStart(4, '0')}`;
+        }
+        await tx.docente.create({
+          data: {
+            id: codigo,
+            nombre: nombreLimpio,
+            email: email ? String(email).trim() : null,
+            area: req.body?.area ? String(req.body.area).trim() : null,
+            titulo: req.body?.titulo ? String(req.body.titulo).trim() : null,
+            usuarioId: creada.id,
+          },
+        });
+      }
       return creada;
     });
 
     return reply.code(201).send({
       ...publico(cuenta),
       credenciales: password ? null : { usuario: limpio, password: temporal },
-      mensaje: `${nombreLimpio} fue creado como ${ROLES.includes(role) ? role : 'estudiante'}`,
+      mensaje: `${nombreLimpio} fue creado como ${ROLES.includes(role) ? role : 'estudiante'}${esDocente ? ' con su ficha de docente' : ''}`,
     });
   });
 
@@ -172,6 +217,13 @@ export default async function rutasAdmin(app) {
     const { nombre, email, telefono, direccion, role, activo, usuario: login } = req.body || {};
     if (role && !ROLES.includes(role)) {
       return reply.code(400).send({ error: `Rol no válido. Use uno de: ${ROLES.join(', ')}` });
+    }
+    if (protegida(req, u) || (role && protegida(req, { role }))) {
+      return reply.code(403).send({ error: 'Esta cuenta de administración solo puede gestionarla el superadmin' });
+    }
+    // Nadie bloquea al superadmin.
+    if (u.esSuperadmin && activo === false) {
+      return reply.code(403).send({ error: 'El superadmin no puede ser bloqueado' });
     }
     // Impedimos que el administrador se quede a sí mismo sin acceso al sistema.
     if (u.usuario === req.usuario.usuario && activo === false) {
@@ -212,6 +264,9 @@ export default async function rutasAdmin(app) {
     }
     const u = await prisma.usuario.findUnique({ where: { id } });
     if (!u) return reply.code(404).send({ error: 'Usuario no encontrado' });
+    if (protegida(req, u)) {
+      return reply.code(403).send({ error: 'Solo el superadmin puede cambiar la contraseña de una cuenta de administración' });
+    }
     await prisma.usuario.update({ where: { id }, data: { password: hash(String(password)) } });
     return { ok: true, mensaje: `Contraseña actualizada para ${u.usuario}` };
   });
@@ -235,6 +290,12 @@ export default async function rutasAdmin(app) {
       return reply.code(409).send({
         error: 'La cuenta está ligada a un estudiante, docente o empleado. Elimine esa ficha primero o deshabilite la cuenta.',
       });
+    }
+    if (u.esSuperadmin) {
+      return reply.code(403).send({ error: 'El superadmin no puede ser eliminado' });
+    }
+    if (protegida(req, u)) {
+      return reply.code(403).send({ error: 'Solo el superadmin puede eliminar cuentas de administración' });
     }
     if (u.role === 'admin') {
       const admins = await prisma.usuario.count({ where: { role: 'admin' } });
@@ -279,6 +340,10 @@ export default async function rutasAdmin(app) {
       usuarioActivo: e.usuario?.activo ?? null,
       pagos: e._count.pagos,
       notas: e._count.notas,
+      financiacion: e.financiacion,
+      cupoBrilla: e.cupoBrilla,
+      tieneCajaCompensacion: e.tieneCajaCompensacion,
+      observacionFinanciera: e.observacionFinanciera,
     }));
   });
 
@@ -286,6 +351,7 @@ export default async function rutasAdmin(app) {
     const {
       estado, programaId, semestre, jornada, telefono, correo,
       nombre, documento, direccion, fechaIngreso,
+      financiacion, cupoBrilla, tieneCajaCompensacion, observacionFinanciera,
     } = req.body || {};
     const e = await prisma.estudiante.findUnique({ where: { id: req.params.id } });
     if (!e) return reply.code(404).send({ error: 'Estudiante no encontrado' });
@@ -329,6 +395,10 @@ export default async function rutasAdmin(app) {
       }
       data.fechaIngreso = f || e.fechaIngreso;
     }
+    if (financiacion !== undefined) data.financiacion = financiacion || null;
+    if (cupoBrilla !== undefined) data.cupoBrilla = !!cupoBrilla;
+    if (tieneCajaCompensacion !== undefined) data.tieneCajaCompensacion = !!tieneCajaCompensacion;
+    if (observacionFinanciera !== undefined) data.observacionFinanciera = observacionFinanciera || null;
     if (!Object.keys(data).length) return reply.code(400).send({ error: 'No hay cambios que aplicar' });
 
     // El estado del estudiante y su acceso van de la mano: bloquear lo deja
@@ -1204,13 +1274,19 @@ export default async function rutasAdmin(app) {
       orderBy: [{ estado: 'asc' }, { fechaLimite: 'asc' }],
       include: {
         estudiante: {
-          select: { id: true, nombre: true, documento: true, programa: { select: { nombre: true } } },
+          select: {
+            id: true, nombre: true, documento: true,
+            programa: { select: { nombre: true } },
+            usuario: { select: { avatar: true, avatarClass: true } },
+          },
         },
       },
     });
     return pagos.map((p) => ({
       ...p,
       estudiante: p.estudiante?.nombre ?? 'Estudiante eliminado',
+      estudianteAvatar: p.estudiante?.usuario?.avatar ?? null,
+      estudianteAvatarClass: p.estudiante?.usuario?.avatarClass ?? null,
       programa: p.estudiante?.programa?.nombre ?? null,
       documento: p.estudiante?.documento ?? null,
     }));

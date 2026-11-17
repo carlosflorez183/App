@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import Select from '../components/Select';
+import ModuleLayout from '../components/ModuleLayout';
 import Icon, { Ico } from '../components/Icon';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -48,7 +50,7 @@ export default function Matricula({ readOnly = false }) {
     (acc, m) => acc + m.creditos,
     0
   );
-  const maxCreditos = 23;
+  const maxCreditos = (user?.estudiante?.cupoBrilla || user?.estudiante?.financiacion === 'BRILLA' || user?.estudiante?.financiacion === 'ICETEX') ? 25 : (user?.estudiante?.tieneCajaCompensacion ? 24 : 23);
 
   /* La matrícula se habilita cuando Admisiones valida el expediente de
      documentos del estudiante. Hasta entonces el portal no deja matricular. */
@@ -151,57 +153,7 @@ export default function Matricula({ readOnly = false }) {
   ];
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f0eee9' }}>
-      {/* Topbar superior */}
-      <header style={{
-        background: '#fff',
-        borderBottom: '1px solid #e5e2da',
-        position: 'sticky',
-        top: 0,
-        zIndex: 50,
-        boxShadow: '0 1px 3px rgba(0,0,0,0.06)'
-      }}>
-        <div style={{
-          maxWidth: 1200,
-          margin: '0 auto',
-          padding: '0 20px',
-          height: 52,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12
-        }}>
-          <button
-            onClick={() => navigate('/dashboard')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              color: '#00116f',
-              fontSize: 13,
-              fontWeight: 700,
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '6px 10px',
-              borderRadius: 8
-            }}
-          >
-            ← Volver al Dashboard
-          </button>
-          <div style={{ width: 1, height: 18, background: '#cdc9bf' }} />
-          <span style={{ fontSize: 13, fontWeight: 700, color: '#211d17' }}>
-            {readOnly ? 'Consulta de Plan de Estudios' : 'Proceso de Matrícula Académica 2026-2'}
-          </span>
-          <div style={{ marginLeft: 'auto', fontSize: 12, color: '#6f6b62' }}>
-            {readOnly ? (
-              <>Consulta: <strong>{user?.name}</strong> ({user?.code})</>
-            ) : (
-              <>Estudiante: <strong>{user?.name}</strong> ({user?.code})</>
-            )}
-          </div>
-        </div>
-      </header>
-
+    <ModuleLayout title={readOnly ? 'Consulta de Pensum' : 'Matrícula en Línea'} subtitle={readOnly ? 'Plan de estudios' : 'Proceso de matrícula académica'} hideTabs flush colapsarSidebar={readOnly} rutaModulo={readOnly ? '/pensum' : null} seccionColapso={readOnly ? '/admisiones' : null}>
       {/* Hero del Stepper */}
       <div style={{ background: 'radial-gradient(90% 130% at 100% 0%, rgba(0,169,255,.45) 0%, rgba(0,169,255,0) 55%), linear-gradient(120deg,#00116f 0%,#06468c 55%,#002fff 120%)', color: '#fff', padding: '24px 0 16px' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 20px' }}>
@@ -291,18 +243,18 @@ export default function Matricula({ readOnly = false }) {
           <div className="fade-in">
             <div style={{ background: '#fff', border: '1px solid #e5e2da', borderRadius: 12, padding: 18, marginBottom: 16, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: '#6f6b62' }}>Programa:</span>
-              <select
-                value={programa?.id || ''}
-                onChange={(e) => {
-                  setPrograma(data.matricula.programas.find((p) => p.id === Number(e.target.value)));
+              <Select
+                label="Programa"
+                value={String(programa?.id || '')}
+                onChange={(v) => {
+                  setPrograma(data.matricula.programas.find((p) => p.id === Number(v)));
                   setSemestre(1);
                 }}
-                style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #cdc9bf', fontSize: 13 }}
-              >
-                {data.matricula.programas.map((p) => (
-                  <option key={p.id} value={p.id}>{p.nombre}</option>
-                ))}
-              </select>
+                groups={[{ options: data.matricula.programas.map((p) => ({
+                  value: String(p.id),
+                  label: p.nombre,
+                })) }]}
+              />
               <span style={{ fontSize: 11, color: '#9c988e' }}>
                 Plan de estudios completo. La matrícula la realiza el estudiante en su portal.
               </span>
@@ -514,7 +466,7 @@ export default function Matricula({ readOnly = false }) {
                     <div style={{ fontSize: 12, color: '#6f6b62', marginBottom: 8 }}>Profesor: {m.profesor}</div>
 
                     <div style={{ fontSize: 11, color: '#4e4a43', background: '#f7f6f3', padding: '6px 10px', borderRadius: 8 }}>
-                      <Icon name="reloj" size={16} /> Horarios: {m.horarios?.join(', ') || 'Por definir'}
+                      <Icon name="reloj" size={16} /> Horarios: {Array.isArray(m.horarios) ? m.horarios.map(h => typeof h === 'string' ? h : [h.dia, h.bloque || h.horaInicio, h.grupo ? `Grupo ${h.grupo}` : null].filter(Boolean).join(' ')).join(', ') : 'Por definir'}
                     </div>
 
                     {m.prerrequisito && (
@@ -566,13 +518,21 @@ export default function Matricula({ readOnly = false }) {
                       {dia}
                     </div>
                     {materiasSeleccionadasObj.map((m) => {
-                      const tieneClase = m.horarios?.some(h => h.toLowerCase().startsWith(dia.toLowerCase().slice(0, 3)));
+                      const tieneClase = Array.isArray(m.horarios) && m.horarios.some(h => {
+                        const txt = typeof h === 'string' ? h : `${h.dia || ''} ${h.bloque || h.horaInicio || ''}`;
+                        return txt.toLowerCase().startsWith(dia.toLowerCase().slice(0, 3));
+                      });
                       if (!tieneClase) return null;
+                      const hInfo = Array.isArray(m.horarios) ? m.horarios.find(h => {
+                        const txt = typeof h === 'string' ? h : `${h.dia || ''} ${h.bloque || h.horaInicio || ''}`;
+                        return txt.toLowerCase().startsWith(dia.toLowerCase().slice(0, 3));
+                      }) : null;
+                      const hTxt = typeof hInfo === 'string' ? hInfo : (hInfo ? [hInfo.bloque || hInfo.horaInicio, hInfo.horaFin ? `-${hInfo.horaFin}` : null, hInfo.grupo ? `G${hInfo.grupo}` : null, hInfo.aula ? `Aula ${hInfo.aula}` : null].filter(Boolean).join(' ') : '');
                       return (
                         <div key={m.id} style={{ background: '#eef7ff', borderLeft: '3px solid #0a5cae', padding: '8px 10px', borderRadius: 6, marginBottom: 8 }}>
-                          <div style={{ fontSize: 11, fontWeight: 800, color: '#04295f' }}>{m.codigo}</div>
+                          <div style={{ fontSize: 11, fontWeight: 800, color: '#04295f' }}>{m.codigo} {hInfo?.grupo ? `· Grupo ${hInfo.grupo}` : ''}</div>
                           <div style={{ fontSize: 12, fontWeight: 700, color: '#211d17' }}>{m.nombre}</div>
-                          <div style={{ fontSize: 10, color: '#6f6b62' }}>{m.horarios?.find(h => h.toLowerCase().startsWith(dia.toLowerCase().slice(0, 3)))}</div>
+                          <div style={{ fontSize: 10, color: '#6f6b62' }}>{hTxt}</div>
                         </div>
                       );
                     })}
@@ -732,6 +692,6 @@ export default function Matricula({ readOnly = false }) {
         </>
         )}
       </div>
-    </div>
+    </ModuleLayout>
   );
 }

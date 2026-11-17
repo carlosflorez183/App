@@ -41,7 +41,7 @@ export default async function rutasMatricula(app) {
     const materias = await prisma.materia.findMany({
       where: { programaId },
       orderBy: [{ semestre: 'asc' }, { codigo: 'asc' }],
-      include: { horarios: { orderBy: { id: 'asc' } } },
+      include: { horarios: { orderBy: [{ dia: 'asc' }, { id: 'asc' }] } },
     });
 
     const porSemestre = new Map();
@@ -73,13 +73,16 @@ export default async function rutasMatricula(app) {
         body: {
           type: 'object',
           required: ['materiaIds'],
-          additionalProperties: false,
+          additionalProperties: true,
           properties: {
             materiaIds: {
               type: 'array',
               minItems: 1,
-              maxItems: 20,
-              uniqueItems: true,
+              maxItems: 25,
+              items: { type: 'integer', minimum: 1 },
+            },
+            cursoIds: {
+              type: 'array',
               items: { type: 'integer', minimum: 1 },
             },
           },
@@ -116,10 +119,18 @@ export default async function rutasMatricula(app) {
         });
       }
 
+      let maxCred = MAX_CREDITOS;
+      if (estudiante.cupoBrilla || estudiante.financiacion === 'BRILLA' || estudiante.financiacion === 'icetex') {
+        maxCred = 25;
+      }
+      if (estudiante.tieneCajaCompensacion) {
+        maxCred = Math.max(maxCred, 24);
+      }
+
       const totalCreditos = materias.reduce((a, m) => a + m.creditos, 0);
-      if (totalCreditos > MAX_CREDITOS) {
+      if (totalCreditos > maxCred) {
         return reply.code(400).send({
-          error: `No puedes superar ${MAX_CREDITOS} créditos (seleccionaste ${totalCreditos}).`,
+          error: `No puedes superar ${maxCred} créditos (seleccionaste ${totalCreditos}).`,
         });
       }
 

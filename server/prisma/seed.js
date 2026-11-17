@@ -121,11 +121,11 @@ async function main() {
 
   const yaHayDatos = await prisma.usuario.count().catch(() => 0);
   if (yaHayDatos > 0 && !FORZAR) {
-    console.error(
-      '✖ La base ya tiene datos y el seed los reemplaza por completo (TRUNCATE).\n' +
-      '  Si es intencional, ejecútalo con SEED_FORCE=1 (p. ej. `SEED_FORCE=1 npm run prisma:seed`).'
+    console.log(
+      'ℹ La base ya tiene datos. Omitiendo seed para preservar la información existente.\n' +
+      '  (Para sobrescribir, ejecútalo con SEED_FORCE=1).'
     );
-    process.exit(1);
+    return;
   }
 
   console.log('→ Limpiando tablas');
@@ -403,8 +403,9 @@ async function main() {
         semestre: ubicacion.semestre ?? null,
         materiaId: progId ? clave.get(`${progId}:${c.codigo}`) ?? null : null,
         /* Modo de acceso: 'auto' inscribe al estudiante al matricular la
-           materia; 'manual' deja la inscripción en manos del staff. */
-        modoAcceso: MODO_ACCESO_CURSO[c.codigo] || 'manual',
+           materia; 'manual' deja la inscripción en manos del staff.
+           Por defecto 'auto': matricular = entrar al curso. */
+        modoAcceso: MODO_ACCESO_CURSO[c.codigo] || 'auto',
         cupo: c.estudiantes,
       };
     }),
@@ -621,7 +622,7 @@ async function main() {
     } else {
       usuarios.push({
         usuario: ADMIN_USUARIO, role: 'admin', nombre: 'Administrador General',
-        codigo: 'ADM-001', password: ADMIN_PASSWORD,
+        codigo: 'ADM-001', password: ADMIN_PASSWORD, esSuperadmin: true,
       });
     }
   }
@@ -639,6 +640,7 @@ async function main() {
         password: bcrypt.hashSync(u.password, 10),
         nombre: u.nombre,
         role: u.role,
+        esSuperadmin: Boolean(u.esSuperadmin),
         codigo: u.codigo,
         email: u.email,
         telefono: u.telefono,
